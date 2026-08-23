@@ -1,4 +1,4 @@
-﻿package com.avih6.vehiclecheck.ui.components
+package com.avih6.vehiclecheck.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -178,74 +178,7 @@ fun DtcLookupDialog(
                     }
                 }
 
-                // Live Suggestions List
-                if (query.isNotBlank() && liveSearchResults.isNotEmpty()) {
-                    Spacer(Modifier.height(8.dp))
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
-                    ) {
-                        Column(modifier = Modifier.padding(8.dp)) {
-                            Text(
-                                text = "תוצאות חיפוש מהירות (${liveSearchResults.size}):",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                            liveSearchResults.forEach { item ->
-                                val sevColor = Color(item.severity.colorHex)
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .clickable { performLookup(item.code) }
-                                        .padding(horizontal = 8.dp, vertical = 8.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Surface(
-                                            color = MaterialTheme.colorScheme.primaryContainer,
-                                            shape = RoundedCornerShape(6.dp)
-                                        ) {
-                                            Text(
-                                                text = item.code,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 13.sp,
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                            )
-                                        }
-                                        Spacer(Modifier.width(8.dp))
-                                        Column {
-                                            Text(
-                                                text = item.titleHe,
-                                                fontWeight = FontWeight.SemiBold,
-                                                fontSize = 12.sp,
-                                                maxLines = 1
-                                            )
-                                            Text(
-                                                text = item.categoryHe,
-                                                fontSize = 11.sp,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
-
-                                    Box(
-                                        modifier = Modifier
-                                            .size(10.dp)
-                                            .background(sevColor, CircleShape)
-                                    )
-                                }
-                                HorizontalDivider(modifier = Modifier.padding(horizontal = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
-                            }
-                        }
-                    }
-                }
-
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(14.dp))
 
                 // Lookup Result Display
                 if (result != null) {
@@ -259,35 +192,39 @@ fun DtcLookupDialog(
                         border = BorderStroke(1.5.dp, severityColor.copy(alpha = 0.6f))
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            // Header badge
+                            // Header badges (Always single line and non-wrapping)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Surface(
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text(
+                                        text = info.code,
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 18.sp,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                    )
+                                }
+
+                                Surface(
                                     color = severityColor.copy(alpha = 0.15f),
-                                    shape = RoundedCornerShape(8.dp)
+                                    shape = RoundedCornerShape(10.dp),
+                                    border = BorderStroke(1.dp, severityColor.copy(alpha = 0.3f))
                                 ) {
                                     Text(
                                         text = info.severity.titleHe,
                                         color = severityColor,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 12.sp,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
-                                }
-
-                                Surface(
-                                    color = MaterialTheme.colorScheme.primaryContainer,
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
-                                    Text(
-                                        text = info.code,
-                                        fontWeight = FontWeight.Black,
-                                        fontSize = 16.sp,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                        maxLines = 1,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                                     )
                                 }
                             }

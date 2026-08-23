@@ -181,9 +181,40 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             }
                         } catch (e: Exception) {}
                     }
+
+                    // Try Master Deregistered Dataset
+                    if (finalVehicle == null) {
+                        try {
+                            val respMaster = NetworkClient.apiService.getDeregisteredMaster(filters = "{\"mispar_rechev\":$plateLong}")
+                            val match = respMaster.result?.records?.firstOrNull() ?: run {
+                                NetworkClient.apiService.getDeregisteredMaster(filters = "{\"mispar_rechev\":\"$plateStr\"}").result?.records?.firstOrNull()
+                            }
+                            if (match != null) {
+                                finalVehicle = match.toVehicleRecord()
+                                isOffRoad = true
+                                offRoadDateFormatted = VehicleUtils.formatDate(match.cancellationDate)
+                            }
+                        } catch (e: Exception) {}
+                    }
+
+                    // Try Heavy Engineering Equipment (צמ"ה)
+                    if (finalVehicle == null) {
+                        try {
+                            val respZama = NetworkClient.apiService.getEngineeringEquipment(filters = "{\"mispar_rechev\":$plateLong}")
+                            val match = respZama.result?.records?.firstOrNull() ?: run {
+                                NetworkClient.apiService.getEngineeringEquipment(filters = "{\"mispar_rechev\":\"$plateStr\"}").result?.records?.firstOrNull()
+                            }
+                            if (match != null) {
+                                finalVehicle = match
+                                isOffRoad = true
+                            }
+                        } catch (e: Exception) {}
+                    }
                 }
 
                 if (finalVehicle == null) {
+                    // Save to history so user can easily recheck anytime
+                    repository.saveNotFoundSearch(plateStr)
                     _searchState.value = SearchState.NotFound(plateStr)
                     return@launch
                 }

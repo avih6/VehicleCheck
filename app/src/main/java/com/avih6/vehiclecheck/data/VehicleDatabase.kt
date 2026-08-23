@@ -1,4 +1,4 @@
-﻿package com.avih6.vehiclecheck.data
+package com.avih6.vehiclecheck.data
 
 import androidx.room.*
 import kotlinx.coroutines.flow.Flow
@@ -100,6 +100,25 @@ class HistoryRepository(private val dao: VehicleDao) {
             testExpiryDate = record?.testExpiryDate,
             isTestValid = isTestValid,
             daysUntilTest = daysUntilTest,
+            timestamp = System.currentTimeMillis()
+        )
+        dao.deleteByPlate(cleanPlate)
+        dao.insert(entry)
+    }
+
+    suspend fun saveNotFoundSearch(plate: String) {
+        val cleanPlate = plate.filter { it.isDigit() }
+        if (cleanPlate.length !in 5..8) return
+        val entry = VehicleHistoryEntity(
+            licensePlate = cleanPlate,
+            make = "לא אותר במאגר",
+            model = "לחץ לבדיקה חוזרת",
+            year = null,
+            color = null,
+            fuelType = null,
+            testExpiryDate = null,
+            isTestValid = false,
+            daysUntilTest = 0L,
             timestamp = System.currentTimeMillis()
         )
         dao.deleteByPlate(cleanPlate)

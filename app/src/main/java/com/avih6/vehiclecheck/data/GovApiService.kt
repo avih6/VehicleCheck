@@ -107,6 +107,22 @@ interface GovApiService {
         @Query("limit") limit: Int = 1
     ): GovApiResponse<DeregisteredVehicleRecord>
 
+    // 12b. Deregistered / Cancelled / Off-Road Vehicles Master Registry (מאגר רכבים שנגרעו)
+    @GET("api/3/action/datastore_search")
+    suspend fun getDeregisteredMaster(
+        @Query("resource_id") resourceId: String = "f6efe89a-373d-4501-8471-96815686be2b",
+        @Query("filters") filters: String,
+        @Query("limit") limit: Int = 1
+    ): GovApiResponse<DeregisteredVehicleRecord>
+
+    // 12c. Heavy Engineering Equipment (צמ"ה - כלי ציוד מכני הנדסי)
+    @GET("api/3/action/datastore_search")
+    suspend fun getEngineeringEquipment(
+        @Query("resource_id") resourceId: String = "58da1b8b-e85d-4a18-8f81-7917e3cd3d04",
+        @Query("filters") filters: String,
+        @Query("limit") limit: Int = 1
+    ): GovApiResponse<VehicleRecord>
+
     // 13. Count inactive vehicles of model (Using GovCountResponse)
     @GET("api/3/action/datastore_search")
     suspend fun getDeregisteredCount(

@@ -648,7 +648,7 @@ private fun GeneralTabContent(
                 typeStr?.let { SpecRow("סוג רישוי רכב:", it) }
 
                 techSpec?.countryOfOrigin?.let {
-                    if (it.isNotBlank()) SpecRow("ארץ ייצור:", it)
+                    if (it.isNotBlank()) CountrySpecRow("ארץ ייצור:", it)
                 }
                 vehicle.fuelType?.let { SpecRow("סוג דלק:", it) }
                 vehicle.color?.let { SpecRow("צבע:", it) }
@@ -1168,6 +1168,41 @@ private fun SpecRow(label: String, value: String, isHighlighted: Boolean = false
             fontWeight = if (isHighlighted) FontWeight.Bold else FontWeight.SemiBold,
             color = if (isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
         )
+    }
+}
+
+@Composable
+private fun CountrySpecRow(label: String, country: String) {
+    val flagUrl = VehicleUtils.getCountryFlagUrl(country)
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (flagUrl != null) {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(flagUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = country,
+                    modifier = Modifier
+                        .size(width = 24.dp, height = 16.dp)
+                        .clip(RoundedCornerShape(3.dp)),
+                    contentScale = ContentScale.FillBounds
+                )
+            }
+            Text(
+                text = country,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
     }
 }
 

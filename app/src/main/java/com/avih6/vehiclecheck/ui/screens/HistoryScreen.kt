@@ -1,4 +1,4 @@
-﻿package com.avih6.vehiclecheck.ui.screens
+package com.avih6.vehiclecheck.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -159,7 +159,10 @@ private fun HistoryItemCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Status Indicator Dot
-            val statusColor = if (item.isTestValid) {
+            val isNotFound = item.make == "לא אותר במאגר"
+            val statusColor = if (isNotFound) {
+                Color(0xFFFF9800)
+            } else if (item.isTestValid) {
                 if (item.daysUntilTest <= 30) TestExpiringSoonAmber else TestValidGreen
             } else {
                 TestExpiredRed
@@ -200,8 +203,10 @@ private fun HistoryItemCard(
                     )
                 }
 
-                // Test Status summary
-                val testText = if (item.isTestValid) {
+                // Test Status summary / Retry status
+                val testText = if (isNotFound) {
+                    "לא אותר במאגר • לחץ לבדיקה חוזרת 🔄"
+                } else if (item.isTestValid) {
                     "טסט בתוקף (עוד ${item.daysUntilTest} ימים)"
                 } else {
                     "טסט פג תוקף"

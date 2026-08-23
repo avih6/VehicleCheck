@@ -554,4 +554,41 @@ object VehicleUtils {
             else -> 1998L
         }
     }
+
+    fun getCountryIsoCode(countryName: String?): String? {
+        val c = countryName.orEmpty().trim().lowercase()
+        return when {
+            c.contains("גרמניה") || c.contains("germany") -> "de"
+            c.contains("יפן") || c.contains("japan") -> "jp"
+            c.contains("ארה\"ב") || c.contains("ארצות הברית") || c.contains("ארהב") || c.contains("usa") || c.contains("united states") -> "us"
+            c.contains("צרפת") || c.contains("france") -> "fr"
+            c.contains("קוריאה") || c.contains("korea") -> "kr"
+            c.contains("שוודיה") || c.contains("שבדיה") || c.contains("sweden") -> "se"
+            c.contains("בריטניה") || c.contains("אנגליה") || c.contains("הממלכה המאוחדת") || c.contains("uk") || c.contains("england") -> "gb"
+            c.contains("איטליה") || c.contains("italy") -> "it"
+            c.contains("צ'כיה") || c.contains("צכיה") || c.contains("czech") -> "cz"
+            c.contains("ספרד") || c.contains("spain") -> "es"
+            c.contains("סין") || c.contains("china") -> "cn"
+            c.contains("רומניה") || c.contains("romania") -> "ro"
+            c.contains("הודו") || c.contains("india") -> "in"
+            c.contains("טורקיה") || c.contains("תורכיה") || c.contains("turkey") -> "tr"
+            c.contains("ישראל") || c.contains("israel") -> "il"
+            c.contains("סלובקיה") || c.contains("slovakia") -> "sk"
+            c.contains("הונגריה") || c.contains("hungary") -> "hu"
+            c.contains("פולין") || c.contains("poland") -> "pl"
+            c.contains("מקסיקו") || c.contains("mexico") -> "mx"
+            c.contains("קנדה") || c.contains("canada") -> "ca"
+            c.contains("אוסטריה") || c.contains("austria") -> "at"
+            c.contains("בלגיה") || c.contains("belgium") -> "be"
+            c.contains("הולנד") || c.contains("netherlands") -> "nl"
+            c.contains("תאילנד") || c.contains("thailand") -> "th"
+            c.contains("דרום אפריקה") || c.contains("south africa") -> "za"
+            else -> null
+        }
+    }
+
+    fun getCountryFlagUrl(countryName: String?): String? {
+        val iso = getCountryIsoCode(countryName) ?: return null
+        return "https://flagcdn.com/w80/$iso.png"
+    }
 }
