@@ -47,6 +47,42 @@ data class VehicleRecord(
 )
 
 @Serializable
+data class VehicleTechnicalSpecRecord(
+    @SerialName("_id") val id: Long? = null,
+    @SerialName("tozeret_cd") val makeCode: Long? = null,
+    @SerialName("degem_cd") val modelCode: Long? = null,
+    @SerialName("shnat_yitzur") val year: Int? = null,
+    @SerialName("koah_sus") val horsepower: Int? = null,
+    @SerialName("nefah_manoa") val engineDisplacement: Int? = null,
+    @SerialName("automatic_ind") val isAutomatic: Int? = null,
+    @SerialName("hanaa_nm") val driveType: String? = null,
+    @SerialName("merkav") val bodyType: String? = null,
+    @SerialName("mispar_moshavim") val seats: Int? = null,
+    @SerialName("mispar_dlatot") val doors: Int? = null,
+    @SerialName("mispar_kariot_avir") val airbags: Int? = null,
+    @SerialName("mispar_halonot_hashmal") val electricWindows: Int? = null,
+    @SerialName("mishkal_kolel") val totalWeight: Int? = null,
+    @SerialName("kosher_grira_im_blamim") val towingCapacityWithBrakes: Int? = null,
+    @SerialName("kosher_grira_bli_blamim") val towingCapacityWithoutBrakes: Int? = null,
+    @SerialName("madad_yarok") val greenIndex: Double? = null,
+    @SerialName("kvutzat_zihum") val emissionGroup: Int? = null,
+    @SerialName("hege_koah_ind") val powerSteering: Int? = null,
+    @SerialName("matzlemat_reverse_ind") val reverseCamera: Int? = null,
+    @SerialName("galgaley_sagsoget_kala_ind") val alloyWheels: Int? = null,
+    @SerialName("halon_bagg_ind") val sunroof: Int? = null,
+    @SerialName("maarechet_ezer_labalam_ind") val brakeAssist: Int? = null,
+    @SerialName("bakarat_shyut_adaptivit_ind") val adaptiveCruise: Int? = null,
+    @SerialName("zihuy_holchey_regel_ind") val pedestrianDetection: Int? = null,
+    @SerialName("zihuy_tamrurey_tnua_ind") val trafficSignDetection: Int? = null,
+    @SerialName("zihuy_beshetah_nistar_ind") val blindSpotDetection: Int? = null,
+    @SerialName("teura_automatit_benesiya_kadima_ind") val autoHeadlights: Int? = null,
+    @SerialName("bakarat_stiya_menativ_ind") val laneDepartureWarning: Int? = null,
+    @SerialName("nitur_merhak_milfanim_ind") val forwardCollisionWarning: Int? = null,
+    @SerialName("hayshaney_lahatz_avir_batzmigim_ind") val tpms: Int? = null,
+    @SerialName("shlita_automatit_beorot_gvohim_ind") val autoHighBeam: Int? = null
+)
+
+@Serializable
 data class VehicleExtraHistoryRecord(
     @SerialName("_id") val id: Long? = null,
     @SerialName("mispar_rechev") val licensePlate: Long? = null,
@@ -80,10 +116,12 @@ sealed interface SearchState {
     object Loading : SearchState
     data class Success(
         val vehicle: VehicleRecord,
+        val techSpec: VehicleTechnicalSpecRecord?,
         val extraHistory: VehicleExtraHistoryRecord?,
         val formattedPlate: String,
         val testStatus: TestStatus,
-        val hasDisabledPermit: Boolean
+        val hasDisabledPermit: Boolean,
+        val permitIssueDate: Long?
     ) : SearchState
     data class NotFound(val plate: String) : SearchState
     data class Error(val message: String) : SearchState
@@ -112,6 +150,16 @@ object VehicleUtils {
             7 -> "${clean.substring(0, 2)}-${clean.substring(2, 5)}-${clean.substring(5, 7)}"
             8 -> "${clean.substring(0, 3)}-${clean.substring(3, 5)}-${clean.substring(5, 8)}"
             else -> raw
+        }
+    }
+
+    fun formatPermitDate(dateLong: Long?): String {
+        if (dateLong == null || dateLong == 0L) return ""
+        val s = dateLong.toString()
+        return if (s.length == 8) {
+            "${s.substring(6, 8)}/${s.substring(4, 6)}/${s.substring(0, 4)}"
+        } else {
+            s
         }
     }
 }

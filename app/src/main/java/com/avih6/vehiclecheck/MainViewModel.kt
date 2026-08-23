@@ -1,4 +1,4 @@
-package com.avih6.vehiclecheck
+﻿package com.avih6.vehiclecheck
 
 import android.app.Application
 import android.content.Context
@@ -73,21 +73,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val filterJson = "{\"mispar_rechev\": $plateNum}"
                 val permitFilterJson = "{\"MISPAR RECHEV\": $plateNum}"
 
-                // 1. Primary private vehicle dataset
+                // 1. Primary vehicle lookup
                 val primaryDeferred = async {
                     try {
                         NetworkClient.apiService.getPrivateVehicle(filters = filterJson)
                     } catch (e: Exception) { null }
                 }
 
-                // 2. Extra History & Mileage dataset
+                // 2. Extra History & Mileage lookup
                 val extraDeferred = async {
                     try {
                         NetworkClient.apiService.getExtraHistory(filters = filterJson)
                     } catch (e: Exception) { null }
                 }
 
-                // 3. Cross-check disabled permit dataset
+                // 3. Disabled permit cross-check lookup
                 val permitDeferred = async {
                     try {
                         NetworkClient.apiService.getDisabledPermit(filters = permitFilterJson)
@@ -96,7 +96,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
                 var vehicle = primaryDeferred.await()?.result?.records?.firstOrNull()
 
-                // Fallback 1: Query search if exact filter returned empty
+                // Fallback 1: Query search
                 if (vehicle == null) {
                     try {
                         val queryRes = NetworkClient.apiService.searchVehicleByQuery(query = plateStr)
@@ -112,7 +112,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     } catch (e: Exception) { null }
                 }
 
-                // Fallback 3: Two-Wheelers (Motorcycles/Scooters)
+                // Fallback 3: Two-Wheelers
                 if (vehicle == null) {
                     try {
                         val twoWheelerRes = NetworkClient.apiService.getTwoWheeler(filters = filterJson)
@@ -121,21 +121,46 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 val extraHistory = extraDeferred.await()?.result?.records?.firstOrNull()
-                val hasPermit = (permitDeferred.await()?.result?.records?.isNotEmpty() == true)
+                val permitRecord = permitDeferred.await()?.result?.records?.firstOrNull()
+                val hasPermit = (permitRecord != null)
 
                 if (vehicle != null) {
+                    // Fetch full technical model specifications (HP, Engine, 4x4, Seats, Towing, Active Safety systems)
+                    var techSpec: VehicleTechnicalSpecRecord? = null
+                    if (vehicle.makeCode != null && vehicle.modelCd != null) {
+                        try {
+                            val specFilter = if (vehicle.year != null) {
+                                "{\"tozeret_cd\": ${vehicle.makeCode}, \"degem_cd\": ${vehicle.modelCd}, \"shnat_yitzur\": ${vehicle.year}}"
+                            } else {
+                                "{\"tozeret_cd\": ${vehicle.makeCode}, \"degem_cd\": ${vehicle.modelCd}}"
+                            }
+                            val specRes = NetworkClient.apiService.getModelTechnicalSpec(filters = specFilter)
+                            techSpec = specRes.result?.records?.firstOrNull()
+                            
+                            // Fallback without year if year-specific query was empty
+                            if (techSpec == null && vehicle.year != null) {
+                                val broadFilter = "{\"tozeret_cd\": ${vehicle.makeCode}, \"degem_cd\": ${vehicle.modelCd}}"
+                                techSpec = NetworkClient.apiService.getModelTechnicalSpec(filters = broadFilter).result?.records?.firstOrNull()
+                            }
+                        } catch (e: Exception) {
+                            // Spec fetch error non-fatal
+                        }
+                    }
+
                     val formatted = VehicleUtils.formatPlate(plateStr)
                     val testStatus = VehicleUtils.parseTestStatus(vehicle.testExpiryDate)
                     
-                    // Save to history
+                    // Save to Room DB history
                     repository.saveSearch(plateStr, vehicle, testStatus)
 
                     _searchState.value = SearchState.Success(
                         vehicle = vehicle,
+                        techSpec = techSpec,
                         extraHistory = extraHistory,
                         formattedPlate = formatted,
                         testStatus = testStatus,
-                        hasDisabledPermit = hasPermit
+                        hasDisabledPermit = hasPermit,
+                        permitIssueDate = permitRecord?.issueDate
                     )
                 } else {
                     _searchState.value = SearchState.NotFound(plateStr)

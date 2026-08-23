@@ -27,7 +27,15 @@ interface GovApiService {
         @Query("limit") limit: Int = 5
     ): GovApiResponse<VehicleRecord>
 
-    // 3. Extra History & Mileage (מאגר קילומטראז' ומקוריות)
+    // 3. Technical Specs & Active Safety Model Registry
+    @GET("api/3/action/datastore_search")
+    suspend fun getModelTechnicalSpec(
+        @Query("resource_id") resourceId: String = "142afde2-6228-49f9-8a29-9b6c3a0cbe40",
+        @Query("filters") filters: String,
+        @Query("limit") limit: Int = 1
+    ): GovApiResponse<VehicleTechnicalSpecRecord>
+
+    // 4. Extra History & Mileage (מאגר קילומטראז' ומקוריות)
     @GET("api/3/action/datastore_search")
     suspend fun getExtraHistory(
         @Query("resource_id") resourceId: String = "56063a99-8a3e-4ff4-912e-5966c0279bad",
@@ -35,7 +43,7 @@ interface GovApiService {
         @Query("limit") limit: Int = 1
     ): GovApiResponse<VehicleExtraHistoryRecord>
 
-    // 4. Heavy Vehicles / Trucks / Buses
+    // 5. Heavy Vehicles / Trucks / Buses
     @GET("api/3/action/datastore_search")
     suspend fun getHeavyVehicle(
         @Query("resource_id") resourceId: String = "cd3acc5c-03c3-4c42-ac1a-d7240f2e022f",
@@ -43,7 +51,7 @@ interface GovApiService {
         @Query("limit") limit: Int = 1
     ): GovApiResponse<VehicleRecord>
 
-    // 5. Two-Wheelers / Motorcycles
+    // 6. Two-Wheelers / Motorcycles
     @GET("api/3/action/datastore_search")
     suspend fun getTwoWheeler(
         @Query("resource_id") resourceId: String = "bf9df4e2-d90d-4c0a-a40b-5426e6f6630f",
@@ -51,7 +59,7 @@ interface GovApiService {
         @Query("limit") limit: Int = 1
     ): GovApiResponse<VehicleRecord>
 
-    // 6. Cross-Check Disabled Permit
+    // 7. Cross-Check Disabled Permit
     @GET("api/3/action/datastore_search")
     suspend fun getDisabledPermit(
         @Query("resource_id") resourceId: String = "c8b9f9c8-4612-4068-934f-d4acd2e3c06e",
