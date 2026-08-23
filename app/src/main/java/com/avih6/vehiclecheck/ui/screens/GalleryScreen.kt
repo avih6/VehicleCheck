@@ -34,6 +34,7 @@ import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.avih6.vehiclecheck.data.CarGalleryImage
+import com.avih6.vehiclecheck.data.VehicleUtils
 import com.avih6.vehiclecheck.data.WikimediaGalleryService
 import kotlinx.coroutines.launch
 
@@ -67,7 +68,7 @@ fun GalleryScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(searchQuery) {
         loadImages(searchQuery)
     }
 
@@ -80,7 +81,7 @@ fun GalleryScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.92f)),
+                    .background(Color.Black.copy(alpha = 0.94f)),
                 contentAlignment = Alignment.Center
             ) {
                 AsyncImage(
@@ -91,7 +92,7 @@ fun GalleryScreen(
                     contentDescription = imageItem.title,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(0.75f),
+                        .fillMaxHeight(0.78f),
                     contentScale = ContentScale.Fit
                 )
 
@@ -111,25 +112,32 @@ fun GalleryScreen(
                     IconButton(onClick = {
                         val sendIntent = Intent().apply {
                             action = Intent.ACTION_SEND
-                            putExtra(Intent.EXTRA_TEXT, "תמונת רכב: ${imageItem.imageUrl}")
+                            putExtra(Intent.EXTRA_TEXT, "תמונת רכב (${imageItem.title}):\n${imageItem.imageUrl}")
                             type = "text/plain"
                         }
-                        context.startActivity(Intent.createChooser(sendIntent, "שתף תמונה"))
+                        context.startActivity(Intent.createChooser(sendIntent, "שתף תמונת רכב"))
                     }) {
                         Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.White)
                     }
                 }
 
                 // Bottom Title
-                Text(
-                    text = imageItem.title,
-                    color = Color.White,
-                    fontSize = 13.sp,
-                    textAlign = TextAlign.Center,
+                Surface(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(20.dp)
-                )
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    color = Color.Black.copy(alpha = 0.6f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = imageItem.title,
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(10.dp)
+                    )
+                }
             }
         }
     }
@@ -144,8 +152,8 @@ fun GalleryScreen(
             value = searchQuery,
             onValueChange = { searchQuery = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("חיפוש תמונות רכב (יצרן ודגם באנגלית)") },
-            placeholder = { Text("למשל: Subaru Forester, Toyota RAV4...") },
+            label = { Text("חיפוש תמונות רכב (עברית או אנגלית)") },
+            placeholder = { Text("למשל: Subaru Forester, טויוטה קורולה...") },
             leadingIcon = {
                 Icon(Icons.Default.Image, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             },
@@ -181,26 +189,44 @@ fun GalleryScreen(
                         keyboardController?.hide()
                         loadImages(item)
                     },
-                    label = { Text(item, fontSize = 12.sp) },
+                    label = { Text(item, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
                     shape = RoundedCornerShape(12.dp)
                 )
             }
         }
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(12.dp))
 
-        // License / Info text
-        Text(
-            text = "גלריית תמונות חופשית ומקורית ברישיון Wikimedia Commons (ללא סימן מים)",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
-        )
+        // Header info
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "גלריית תמונות חופשית (Wikimedia Commons)",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+            if (images.isNotEmpty()) {
+                Text(
+                    text = "${images.size} תמונות",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
 
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator()
+                    Spacer(Modifier.height(10.dp))
+                    Text("טוען תמונות...", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         } else if (images.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -211,13 +237,17 @@ fun GalleryScreen(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(64.dp)
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(12.dp))
                     Text(
-                        text = "לא נמצאו תמונות עבור חיפוש זה.\nנסה לחפש שם דגם באנגלית (למשל: Subaru Forester).",
+                        text = "לא נמצאו תמונות עבור \"$searchQuery\".\nנסה לבחור באחד הדגמים למעלה או חפש שם באנגלית.",
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium
                     )
+                    Spacer(Modifier.height(12.dp))
+                    Button(onClick = { loadImages("Subaru Forester") }) {
+                        Text("הצג תמונות של Subaru Forester")
+                    }
                 }
             }
         } else {
@@ -227,25 +257,43 @@ fun GalleryScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(images) { item ->
+                items(images, key = { it.imageUrl }) { item ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(140.dp)
+                            .height(150.dp)
                             .clip(RoundedCornerShape(14.dp))
                             .clickable { selectedImageForViewer = item },
                         shape = RoundedCornerShape(14.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
                     ) {
-                        AsyncImage(
-                            model = ImageRequest.Builder(context)
-                                .data(item.imageUrl)
-                                .crossfade(true)
-                                .build(),
-                            contentDescription = item.title,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(item.thumbUrl)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = item.title,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+
+                            // Title overlay on bottom
+                            Surface(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .fillMaxWidth(),
+                                color = Color.Black.copy(alpha = 0.5f)
+                            ) {
+                                Text(
+                                    text = item.title,
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    maxLines = 1,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
