@@ -1,4 +1,4 @@
-﻿package com.avih6.vehiclecheck.ui.screens
+package com.avih6.vehiclecheck.ui.screens
 
 import android.content.Intent
 import androidx.compose.foundation.background
@@ -195,7 +195,37 @@ fun GalleryScreen(
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(10.dp))
+
+        // Copyright / DMCA Notice Banner
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Default.Info,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "כל התמונות בגלריה מוצגות ברישיון שימוש חופשי (Wikimedia Commons). אם הנך סבור שקיימת פגיעה בזכויות יוצרים, אנא פנה אלינו באמצעות כפתור \"יצירת קשר\" בתפריט להסרה מיידית.",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 15.sp
+                )
+            }
+        }
+
+        Spacer(Modifier.height(10.dp))
 
         // Header info
         Row(
@@ -255,6 +285,7 @@ fun GalleryScreen(
                 columns = GridCells.Fixed(2),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(bottom = 100.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(images, key = { it.imageUrl }) { item ->
@@ -271,6 +302,7 @@ fun GalleryScreen(
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
                                     .data(item.thumbUrl)
+                                    .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
                                     .crossfade(true)
                                     .build(),
                                 contentDescription = item.title,

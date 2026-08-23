@@ -303,11 +303,12 @@ fun ResultCard(
                 AsyncImage(
                     model = ImageRequest.Builder(context)
                         .data(brandLogoUrl)
+                        .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
                         .crossfade(true)
                         .build(),
                     contentDescription = "Brand Emblem",
                     modifier = Modifier
-                        .size(95.dp)
+                        .size(85.dp)
                         .padding(2.dp),
                     contentScale = ContentScale.Fit
                 )
