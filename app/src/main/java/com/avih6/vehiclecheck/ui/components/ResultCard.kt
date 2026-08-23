@@ -242,14 +242,15 @@ fun ResultCard(
                                 fontSize = 20.sp,
                                 letterSpacing = 1.sp
                             )
-                            IconButton(
+                            HoverTooltipIconButton(
                                 onClick = {
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                     val cleanDigits = (vehicle.licensePlate?.toString() ?: formattedPlate).filter { it.isDigit() }
                                     clipboard.setPrimaryClip(ClipData.newPlainText("Plate", cleanDigits))
                                     Toast.makeText(context, "מספר רכב הועתק ללוח", Toast.LENGTH_SHORT).show()
                                 },
-                                modifier = Modifier.size(26.dp).padding(start = 6.dp)
+                                tooltipText = "העתק מספר רכב",
+                                modifier = Modifier.size(28.dp).padding(start = 4.dp)
                             ) {
                                 Icon(
                                     Icons.Outlined.ContentCopy,
@@ -263,24 +264,30 @@ fun ResultCard(
 
                     // Actions
                     Row {
-                        IconButton(onClick = onToggleFavorite) {
+                        HoverTooltipIconButton(
+                            onClick = onToggleFavorite,
+                            tooltipText = if (isFavorite) "הסר ממועדפים" else "הוסף למועדפים"
+                        ) {
                             Icon(
                                 imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
                                 contentDescription = "Favorite",
                                 tint = if (isFavorite) Color(0xFFFFB300) else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        IconButton(onClick = {
-                            val shareText = buildComprehensiveShareText(
-                                vehicle, techSpec, importerInfo, extraHistory, formattedPlate, testStatus, hasDisabledPermit, permitIssueDate, isOffRoad, offRoadDate, recalls
-                            )
-                            val sendIntent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                putExtra(Intent.EXTRA_TEXT, shareText)
-                                type = "text/plain"
-                            }
-                            context.startActivity(Intent.createChooser(sendIntent, "שתף דוח רכב"))
-                        }) {
+                        HoverTooltipIconButton(
+                            onClick = {
+                                val shareText = buildComprehensiveShareText(
+                                    vehicle, techSpec, importerInfo, extraHistory, formattedPlate, testStatus, hasDisabledPermit, permitIssueDate, isOffRoad, offRoadDate, recalls
+                                )
+                                val sendIntent = Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    putExtra(Intent.EXTRA_TEXT, shareText)
+                                    type = "text/plain"
+                                }
+                                context.startActivity(Intent.createChooser(sendIntent, "שתף דוח רכב"))
+                            },
+                            tooltipText = "שתף דוח בדיקת רכב"
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Share,
                                 contentDescription = "Share",

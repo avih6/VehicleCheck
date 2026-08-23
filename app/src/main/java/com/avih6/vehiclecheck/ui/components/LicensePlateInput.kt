@@ -1,4 +1,4 @@
-﻿package com.avih6.vehiclecheck.ui.components
+package com.avih6.vehiclecheck.ui.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardActions
@@ -47,7 +47,10 @@ fun LicensePlateInput(
         trailingIcon = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (value.isNotEmpty()) {
-                    IconButton(onClick = onClear) {
+                    HoverTooltipIconButton(
+                        onClick = onClear,
+                        tooltipText = "נקה קלט"
+                    ) {
                         Icon(
                             Icons.Default.Clear, 
                             contentDescription = "נקה",
@@ -55,13 +58,19 @@ fun LicensePlateInput(
                         )
                     }
                 }
-                IconButton(onClick = onVoiceClick) {
+                HoverTooltipIconButton(
+                    onClick = onVoiceClick,
+                    tooltipText = "חיפוש קולי"
+                ) {
                     Icon(
                         Icons.Default.Mic, 
                         contentDescription = "חיפוש קולי"
                     )
                 }
-                IconButton(onClick = onCameraClick) {
+                HoverTooltipIconButton(
+                    onClick = onCameraClick,
+                    tooltipText = "סריקת לוחית רישוי במצלמה"
+                ) {
                     Icon(
                         Icons.Default.CameraAlt, 
                         contentDescription = "סריקת מצלמה"

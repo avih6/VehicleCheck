@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import com.avih6.vehiclecheck.ui.components.AdBanner
 import com.avih6.vehiclecheck.ui.components.RatingDialog
 import com.avih6.vehiclecheck.ui.components.ThemeSettingsDialog
+import com.avih6.vehiclecheck.ui.components.handCursor
 import com.avih6.vehiclecheck.ui.screens.HistoryScreen
 import com.avih6.vehiclecheck.ui.screens.InfoScreen
 import com.avih6.vehiclecheck.ui.screens.SearchScreen
@@ -220,12 +221,18 @@ fun MainAppShell(viewModel: MainViewModel) {
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                        com.avih6.vehiclecheck.ui.components.HoverTooltipIconButton(
+                            onClick = { scope.launch { drawerState.open() } },
+                            tooltipText = "תפריט ראשי"
+                        ) {
                             Icon(Icons.Default.Menu, contentDescription = "Menu")
                         }
                     },
                     actions = {
-                        IconButton(onClick = { showOptionsMenu = true }) {
+                        com.avih6.vehiclecheck.ui.components.HoverTooltipIconButton(
+                            onClick = { showOptionsMenu = true },
+                            tooltipText = "אפשרויות נוספות"
+                        ) {
                             Icon(Icons.Default.MoreVert, contentDescription = "More Options")
                         }
                         DropdownMenu(
@@ -238,7 +245,8 @@ fun MainAppShell(viewModel: MainViewModel) {
                                     showOptionsMenu = false
                                     showSettingsDialog = true
                                 },
-                                leadingIcon = { Icon(Icons.Default.Settings, null) }
+                                leadingIcon = { Icon(Icons.Default.Settings, null) },
+                                modifier = Modifier.handCursor()
                             )
                             HorizontalDivider()
                             DropdownMenuItem(
@@ -247,7 +255,8 @@ fun MainAppShell(viewModel: MainViewModel) {
                                     showOptionsMenu = false
                                     shareApp(context)
                                 },
-                                leadingIcon = { Icon(Icons.Default.Share, null) }
+                                leadingIcon = { Icon(Icons.Default.Share, null) },
+                                modifier = Modifier.handCursor()
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.menu_rate)) },
@@ -255,7 +264,8 @@ fun MainAppShell(viewModel: MainViewModel) {
                                     showOptionsMenu = false
                                     showRatingDialog = true
                                 },
-                                leadingIcon = { Icon(Icons.Default.Star, null) }
+                                leadingIcon = { Icon(Icons.Default.Star, null) },
+                                modifier = Modifier.handCursor()
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.menu_contact)) },
@@ -263,7 +273,8 @@ fun MainAppShell(viewModel: MainViewModel) {
                                     showOptionsMenu = false
                                     sendEmail(context)
                                 },
-                                leadingIcon = { Icon(Icons.Default.Email, null) }
+                                leadingIcon = { Icon(Icons.Default.Email, null) },
+                                modifier = Modifier.handCursor()
                             )
                             HorizontalDivider()
                             DropdownMenuItem(
@@ -272,7 +283,8 @@ fun MainAppShell(viewModel: MainViewModel) {
                                     showOptionsMenu = false
                                     launchCustomTab(context, privacyPolicyUrl)
                                 },
-                                leadingIcon = { Icon(Icons.Default.PrivacyTip, null) }
+                                leadingIcon = { Icon(Icons.Default.PrivacyTip, null) },
+                                modifier = Modifier.handCursor()
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.menu_terms)) },
@@ -280,7 +292,8 @@ fun MainAppShell(viewModel: MainViewModel) {
                                     showOptionsMenu = false
                                     launchCustomTab(context, termsUrl)
                                 },
-                                leadingIcon = { Icon(Icons.Default.Description, null) }
+                                leadingIcon = { Icon(Icons.Default.Description, null) },
+                                modifier = Modifier.handCursor()
                             )
                         }
                     },
@@ -305,7 +318,8 @@ fun MainAppShell(viewModel: MainViewModel) {
                                     contentDescription = stringResource(R.string.tab_search)
                                 )
                             },
-                            label = { Text(stringResource(R.string.tab_search), fontSize = 11.sp) }
+                            label = { Text(stringResource(R.string.tab_search), fontSize = 11.sp) },
+                            modifier = Modifier.handCursor()
                         )
                         NavigationBarItem(
                             selected = selectedTab == 1,
@@ -316,7 +330,8 @@ fun MainAppShell(viewModel: MainViewModel) {
                                     contentDescription = "ריקולים"
                                 )
                             },
-                            label = { Text("ריקולים", fontSize = 11.sp) }
+                            label = { Text("ריקולים", fontSize = 11.sp) },
+                            modifier = Modifier.handCursor()
                         )
                         NavigationBarItem(
                             selected = selectedTab == 2,
@@ -327,7 +342,8 @@ fun MainAppShell(viewModel: MainViewModel) {
                                     contentDescription = "קודי תקלה"
                                 )
                             },
-                            label = { Text("תקלות", fontSize = 11.sp) }
+                            label = { Text("תקלות", fontSize = 11.sp) },
+                            modifier = Modifier.handCursor()
                         )
                         NavigationBarItem(
                             selected = selectedTab == 3,
@@ -338,7 +354,8 @@ fun MainAppShell(viewModel: MainViewModel) {
                                     contentDescription = "גלריה"
                                 )
                             },
-                            label = { Text("גלריה", fontSize = 11.sp) }
+                            label = { Text("גלריה", fontSize = 11.sp) },
+                            modifier = Modifier.handCursor()
                         )
                         NavigationBarItem(
                             selected = selectedTab == 4,
@@ -349,7 +366,8 @@ fun MainAppShell(viewModel: MainViewModel) {
                                     contentDescription = stringResource(R.string.tab_history)
                                 )
                             },
-                            label = { Text(stringResource(R.string.tab_history), fontSize = 11.sp) }
+                            label = { Text(stringResource(R.string.tab_history), fontSize = 11.sp) },
+                            modifier = Modifier.handCursor()
                         )
                     }
                 }
