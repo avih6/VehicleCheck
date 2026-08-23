@@ -330,11 +330,11 @@ fun MainAppShell(viewModel: MainViewModel) {
                             onClick = { selectedTab = 1 },
                             icon = {
                                 Icon(
-                                    if (selectedTab == 1) Icons.Filled.BarChart else Icons.Outlined.BarChart,
-                                    contentDescription = "סטטיסטיקה"
+                                    if (selectedTab == 1) Icons.Filled.History else Icons.Outlined.History,
+                                    contentDescription = stringResource(R.string.tab_history)
                                 )
                             },
-                            label = { Text("סטטיסטיקה", fontSize = 10.sp) },
+                            label = { Text(stringResource(R.string.tab_history), fontSize = 10.sp) },
                             modifier = Modifier.handCursor()
                         )
                         NavigationBarItem(
@@ -342,11 +342,11 @@ fun MainAppShell(viewModel: MainViewModel) {
                             onClick = { selectedTab = 2 },
                             icon = {
                                 Icon(
-                                    if (selectedTab == 2) Icons.Filled.Warning else Icons.Outlined.WarningAmber,
-                                    contentDescription = "ריקולים"
+                                    if (selectedTab == 2) Icons.Filled.BarChart else Icons.Outlined.BarChart,
+                                    contentDescription = "סטטיסטיקה"
                                 )
                             },
-                            label = { Text("ריקולים", fontSize = 10.sp) },
+                            label = { Text("סטטיסטיקה", fontSize = 10.sp) },
                             modifier = Modifier.handCursor()
                         )
                         NavigationBarItem(
@@ -354,11 +354,11 @@ fun MainAppShell(viewModel: MainViewModel) {
                             onClick = { selectedTab = 3 },
                             icon = {
                                 Icon(
-                                    if (selectedTab == 3) Icons.Filled.Build else Icons.Outlined.Build,
-                                    contentDescription = "קודי תקלה"
+                                    if (selectedTab == 3) Icons.Filled.Warning else Icons.Outlined.WarningAmber,
+                                    contentDescription = "ריקולים"
                                 )
                             },
-                            label = { Text("תקלות", fontSize = 10.sp) },
+                            label = { Text("ריקולים", fontSize = 10.sp) },
                             modifier = Modifier.handCursor()
                         )
                         NavigationBarItem(
@@ -366,11 +366,11 @@ fun MainAppShell(viewModel: MainViewModel) {
                             onClick = { selectedTab = 4 },
                             icon = {
                                 Icon(
-                                    if (selectedTab == 4) Icons.Filled.Image else Icons.Outlined.Image,
-                                    contentDescription = "גלריה"
+                                    if (selectedTab == 4) Icons.Filled.Build else Icons.Outlined.Build,
+                                    contentDescription = "קודי תקלה"
                                 )
                             },
-                            label = { Text("גלריה", fontSize = 10.sp) },
+                            label = { Text("תקלות", fontSize = 10.sp) },
                             modifier = Modifier.handCursor()
                         )
                         NavigationBarItem(
@@ -378,11 +378,11 @@ fun MainAppShell(viewModel: MainViewModel) {
                             onClick = { selectedTab = 5 },
                             icon = {
                                 Icon(
-                                    if (selectedTab == 5) Icons.Filled.History else Icons.Outlined.History,
-                                    contentDescription = stringResource(R.string.tab_history)
+                                    if (selectedTab == 5) Icons.Filled.Image else Icons.Outlined.Image,
+                                    contentDescription = "גלריה"
                                 )
                             },
-                            label = { Text(stringResource(R.string.tab_history), fontSize = 10.sp) },
+                            label = { Text("גלריה", fontSize = 10.sp) },
                             modifier = Modifier.handCursor()
                         )
                     }
@@ -399,17 +399,25 @@ fun MainAppShell(viewModel: MainViewModel) {
                         viewModel = viewModel,
                         modifier = Modifier.fillMaxSize()
                     )
-                    1 -> com.avih6.vehiclecheck.ui.screens.StatisticsScreen(
+                    1 -> HistoryScreen(
+                        viewModel = viewModel,
+                        onSelectVehicle = { plate ->
+                            viewModel.searchPlateDirect(plate)
+                            selectedTab = 0
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    2 -> com.avih6.vehiclecheck.ui.screens.StatisticsScreen(
                         viewModel = viewModel,
                         modifier = Modifier.fillMaxSize()
                     )
-                    2 -> com.avih6.vehiclecheck.ui.screens.RecallsScreen(
+                    3 -> com.avih6.vehiclecheck.ui.screens.RecallsScreen(
                         modifier = Modifier.fillMaxSize()
                     )
-                    3 -> com.avih6.vehiclecheck.ui.screens.DtcScreen(
+                    4 -> com.avih6.vehiclecheck.ui.screens.DtcScreen(
                         modifier = Modifier.fillMaxSize()
                     )
-                    4 -> {
+                    5 -> {
                         val currentSearchState = viewModel.searchState.collectAsState().value
                         val initialQuery = if (currentSearchState is com.avih6.vehiclecheck.data.SearchState.Success) {
                             val v = currentSearchState.vehicle
@@ -422,14 +430,6 @@ fun MainAppShell(viewModel: MainViewModel) {
                             modifier = Modifier.fillMaxSize()
                         )
                     }
-                    5 -> HistoryScreen(
-                        viewModel = viewModel,
-                        onSelectVehicle = { plate ->
-                            viewModel.searchPlateDirect(plate)
-                            selectedTab = 0
-                        },
-                        modifier = Modifier.fillMaxSize()
-                    )
                 }
             }
         }
