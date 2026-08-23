@@ -645,14 +645,25 @@ private fun GeneralTabContent(
                 SpecRow("קבוצת אגרה:", "קבוצה $feeGroup מתוך 7")
 
                 val typeStr = if (vehicle.modelType == "P") "פרטי (M1)" else if (vehicle.modelType == "M") "מסחרי (N1)" else vehicle.modelType
-                typeStr?.let { SpecRow("סוג רישוי רכב:", it) }
+                typeStr?.let {
+                    val icon = VehicleUtils.getVehicleTypeIcon(it)
+                    SpecRow("סוג רישוי רכב:", "$icon $it")
+                }
 
                 techSpec?.countryOfOrigin?.let {
                     if (it.isNotBlank()) CountrySpecRow("ארץ ייצור:", it)
                 }
-                vehicle.fuelType?.let { SpecRow("סוג דלק:", it) }
-                vehicle.color?.let { SpecRow("צבע:", it) }
-                extraHistory?.originality?.let { SpecRow("מקוריות:", it) }
+                vehicle.fuelType?.let {
+                    val icon = VehicleUtils.getFuelTypeIcon(it)
+                    SpecRow("סוג דלק:", "$icon $it")
+                }
+                vehicle.color?.let {
+                    if (it.isNotBlank()) ColorSpecRow("צבע:", it)
+                }
+                extraHistory?.originality?.let {
+                    val icon = VehicleUtils.getOriginalityIcon(it)
+                    SpecRow("מקוריות:", "$icon $it")
+                }
             }
         }
 
@@ -670,10 +681,10 @@ private fun GeneralTabContent(
                     modifier = Modifier.padding(bottom = 10.dp)
                 )
 
-                SpecRow("האם הותקנה מערכת גפ\"מ (גז):", if (extraHistory?.lpgInstalled == 1) "כן ✅" else "לא")
-                SpecRow("האם בוצע שינוי צבע:", if (extraHistory?.colorChange == 1) "כן" else "לא")
-                SpecRow("האם בוצע שינוי במידת צמיג:", if (extraHistory?.tireChange == 1) "כן" else "לא")
-                val towHook = if ((techSpec?.towingCapacityWithBrakes ?: 0) > 0) "מורשה לגרירה (עד ${techSpec?.towingCapacityWithBrakes} ק\"ג)" else "ללא וו גרירה"
+                SpecRow("האם הותקנה מערכת גפ\"מ (גז):", if (extraHistory?.lpgInstalled == 1) "כן 🔥" else "לא ⚪")
+                SpecRow("האם בוצע שינוי צבע:", if (extraHistory?.colorChange == 1) "כן 🎨" else "לא ⚪")
+                SpecRow("האם בוצע שינוי במידת צמיג:", if (extraHistory?.tireChange == 1) "כן 🛞" else "לא ⚪")
+                val towHook = if ((techSpec?.towingCapacityWithBrakes ?: 0) > 0) "מורשה לגרירה (עד ${techSpec?.towingCapacityWithBrakes} ק\"ג) 🪝" else "ללא וו גרירה ⚪"
                 SpecRow("וו גרירה:", towHook)
             }
         }
@@ -1199,6 +1210,34 @@ private fun CountrySpecRow(label: String, country: String) {
             }
             Text(
                 text = country,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@Composable
+private fun ColorSpecRow(label: String, colorName: String) {
+    val (colorLong, borderLong) = VehicleUtils.getColorVisual(colorName)
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Surface(
+                modifier = Modifier.size(16.dp),
+                shape = CircleShape,
+                color = Color(colorLong),
+                border = if (borderLong != null) BorderStroke(1.5.dp, Color(borderLong)) else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+            ) {}
+            Text(
+                text = colorName,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
             )

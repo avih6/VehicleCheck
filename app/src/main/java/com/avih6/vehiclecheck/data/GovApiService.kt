@@ -123,6 +123,21 @@ interface GovApiService {
         @Query("limit") limit: Int = 1
     ): GovApiResponse<VehicleRecord>
 
+    // 12d. Pre-2000 Deregistered / Vintage Vehicles (רכבים שנגרעו עד שנת 2000)
+    @GET("api/3/action/datastore_search")
+    suspend fun getDeregisteredVehiclePre2000(
+        @Query("resource_id") resourceId: String = "c8b9f9c8-ec61-45b9-bc55-974a4911d08e",
+        @Query("filters") filters: String,
+        @Query("limit") limit: Int = 1
+    ): GovApiResponse<DeregisteredVehicleRecord>
+
+    // 12e. Total Active Vehicles Count in Registry (סך כלי רכב רשומים)
+    @GET("api/3/action/datastore_search")
+    suspend fun getTotalActiveVehicles(
+        @Query("resource_id") resourceId: String = "053cea08-09bc-40ec-8f7a-156f0677aff3",
+        @Query("limit") limit: Int = 0
+    ): GovCountResponse
+
     // 13. Count inactive vehicles of model (Using GovCountResponse)
     @GET("api/3/action/datastore_search")
     suspend fun getDeregisteredCount(

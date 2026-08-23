@@ -52,10 +52,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val favorites: StateFlow<List<VehicleHistoryEntity>> = repository.favorites
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val _dbVehicleCount = MutableStateFlow<Int?>(null)
+    val dbVehicleCount: StateFlow<Int?> = _dbVehicleCount.asStateFlow()
+
     private val _nativeAd = MutableStateFlow<NativeAd?>(null)
     val nativeAd: StateFlow<NativeAd?> = _nativeAd.asStateFlow()
 
     private var isAdLoading = false
+
+    init {
+        fetchDatabaseStats()
+    }
+
+    private fun fetchDatabaseStats() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val resp = NetworkClient.apiService.getTotalActiveVehicles()
+                if (resp.result != null && resp.result.total > 0) {
+                    _dbVehicleCount.value = resp.result.total
+                }
+            } catch (e: Exception) {}
+        }
+    }
 
     fun onQueryChange(newQuery: String) {
         val filtered = newQuery.filter { it.isDigit() }.take(8)
@@ -188,6 +206,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             val respMaster = NetworkClient.apiService.getDeregisteredMaster(filters = "{\"mispar_rechev\":$plateLong}")
                             val match = respMaster.result?.records?.firstOrNull() ?: run {
                                 NetworkClient.apiService.getDeregisteredMaster(filters = "{\"mispar_rechev\":\"$plateStr\"}").result?.records?.firstOrNull()
+                            }
+                            if (match != null) {
+                                finalVehicle = match.toVehicleRecord()
+                                isOffRoad = true
+                                offRoadDateFormatted = VehicleUtils.formatDate(match.cancellationDate)
+                            }
+                        } catch (e: Exception) {}
+                    }
+
+                    // Try Pre-2000 Deregistered / Vintage Dataset (for 1950s etc.)
+                    if (finalVehicle == null) {
+                        try {
+                            val respPre2000 = NetworkClient.apiService.getDeregisteredVehiclePre2000(filters = "{\"mispar_rechev\":$plateLong}")
+                            val match = respPre2000.result?.records?.firstOrNull() ?: run {
+                                NetworkClient.apiService.getDeregisteredVehiclePre2000(filters = "{\"mispar_rechev\":\"$plateStr\"}").result?.records?.firstOrNull()
                             }
                             if (match != null) {
                                 finalVehicle = match.toVehicleRecord()

@@ -591,4 +591,64 @@ object VehicleUtils {
         val iso = getCountryIsoCode(countryName) ?: return null
         return "https://flagcdn.com/w80/$iso.png"
     }
+
+    fun getColorVisual(colorName: String?): Pair<Long, Long?> {
+        val c = colorName.orEmpty().trim().lowercase()
+        return when {
+            c.contains("לבן") || c.contains("שנהב") || c.contains("פנינה") -> Pair(0xFFFFFFFFL, 0xFFBDBDBDL)
+            c.contains("שחור") -> Pair(0xFF1E1E1EL, null)
+            c.contains("אפור") || c.contains("גרפיט") || c.contains("עכבר") -> Pair(0xFF757575L, null)
+            c.contains("כסוף") || c.contains("כסף") -> Pair(0xFFC0C0C0L, 0xFF9E9E9EL)
+            c.contains("תכלת") || c.contains("טורקיז") -> Pair(0xFF03A9F4L, null)
+            c.contains("כחול") || c.contains("נייבי") -> Pair(0xFF1565C0L, null)
+            c.contains("אדום") || c.contains("בורדו") || c.contains("יין") -> Pair(0xFFC62828L, null)
+            c.contains("ירוק") || c.contains("זית") -> Pair(0xFF2E7D32L, null)
+            c.contains("צהוב") -> Pair(0xFFFFD600L, 0xFFFBC02DL)
+            c.contains("כתום") -> Pair(0xFFFF6D00L, null)
+            c.contains("חום") || c.contains("ברונזה") -> Pair(0xFF6D4C41L, null)
+            c.contains("בז'") || c.contains("בז") || c.contains("קרם") || c.contains("שמפניה") -> Pair(0xFFF5F5DCL, 0xFFBDBDBDL)
+            c.contains("זהב") -> Pair(0xFFFFD700L, 0xFFFBC02DL)
+            c.contains("סגול") || c.contains("חציל") -> Pair(0xFF6A1B9AL, null)
+            c.contains("ורוד") -> Pair(0xFFE91E63L, null)
+            else -> Pair(0xFF9E9E9EL, null)
+        }
+    }
+
+    fun getFuelTypeIcon(fuelType: String?): String {
+        val f = fuelType.orEmpty().trim().lowercase()
+        return when {
+            f.contains("בנזין") -> "⛽"
+            f.contains("סולר") || f.contains("דיזל") -> "⛽"
+            f.contains("היבריד") || f.contains("היברידי") -> "⚡🔋"
+            f.contains("חשמל") || f.contains("חשמלי") -> "⚡"
+            f.contains("גז") || f.contains("גפ\"מ") || f.contains("גפמ") -> "🔥"
+            f.contains("פלאג") || f.contains("plugin") -> "🔌"
+            else -> "⛽"
+        }
+    }
+
+    fun getVehicleTypeIcon(type: String?): String {
+        val t = type.orEmpty().trim().lowercase()
+        return when {
+            t.contains("פרטי") || t.contains("m1") -> "🚗"
+            t.contains("מסחרי") || t.contains("n1") -> "🚐"
+            t.contains("משא") || t.contains("n2") || t.contains("n3") -> "🚚"
+            t.contains("אופנוע") || t.contains("קטנוע") || t.contains("l") -> "🏍️"
+            t.contains("טרקטור") || t.contains("צמ\"ה") || t.contains("הנדסי") -> "🚜"
+            t.contains("אוטובוס") || t.contains("m2") || t.contains("m3") -> "🚌"
+            else -> "🚗"
+        }
+    }
+
+    fun getOriginalityIcon(orig: String?): String {
+        val o = orig.orEmpty().trim().lowercase()
+        return when {
+            o.contains("פרטי") -> "👤"
+            o.contains("השכרה") -> "🏢"
+            o.contains("ליסינג") -> "💼"
+            o.contains("חברה") -> "🏢"
+            o.contains("מדינה") || o.contains("משטרה") || o.contains("צבא") -> "🛡️"
+            else -> "📄"
+        }
+    }
 }
