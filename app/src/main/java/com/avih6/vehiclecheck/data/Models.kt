@@ -206,6 +206,42 @@ data class DeregisteredVehicleRecord(
 }
 
 @Serializable
+data class EngineeringEquipmentRecord(
+    @SerialName("_id") val id: Long? = null,
+    @SerialName("mispar_tzama") val licensePlate: Long? = null,
+    @SerialName("mispar_shilda") val vin: String? = null,
+    @SerialName("shilda_totzar_cd") val makeCode: Long? = null,
+    @SerialName("shilda_totzar_en_nm") val makeName: String? = null,
+    @SerialName("degem_nm") val modelName: String? = null,
+    @SerialName("shnat_yitzur") val year: Int? = null,
+    @SerialName("sug_tzama_nm") val vehicleType: String? = null,
+    @SerialName("hanaa_nm") val driveType: String? = null,
+    @SerialName("rishum_date") val registrationDate: String? = null,
+    @SerialName("koah_sus") val horsepower: Int? = null,
+    @SerialName("mishkal_ton") val weightTon: Double? = null,
+    @SerialName("mishkal_kolel_ton") val totalWeightTon: Double? = null,
+    @SerialName("tokef_date") val expirationDate: String? = null,
+    @SerialName("kosher_harama_ton") val liftingCapacityTon: Double? = null,
+    @SerialName("hagbala_nm_1") val restriction1: String? = null
+) {
+    fun toVehicleRecord(): VehicleRecord {
+        return VehicleRecord(
+            id = id,
+            licensePlate = licensePlate ?: 0L,
+            make = makeName ?: "ציוד הנדסי",
+            model = modelName ?: vehicleType ?: "צמ\"ה",
+            year = year ?: 0,
+            onRoadDate = registrationDate,
+            testExpiryDate = expirationDate,
+            ownership = "ציוד מכני הנדסי (צמ\"ה)",
+            fuelType = "דיזל / מנוע תעשייתי",
+            color = "צהוב / תעשייתי",
+            vin = vin
+        )
+    }
+}
+
+@Serializable
 data class VehicleRecallRestrictionRecord(
     @SerialName("_id") val id: Long? = null,
     @SerialName("MISPAR_RECHEV") val licensePlate: Long? = null,
@@ -611,44 +647,6 @@ object VehicleUtils {
             c.contains("סגול") || c.contains("חציל") -> Pair(0xFF6A1B9AL, null)
             c.contains("ורוד") -> Pair(0xFFE91E63L, null)
             else -> Pair(0xFF9E9E9EL, null)
-        }
-    }
-
-    fun getFuelTypeIcon(fuelType: String?): String {
-        val f = fuelType.orEmpty().trim().lowercase()
-        return when {
-            f.contains("בנזין") -> "⛽"
-            f.contains("סולר") || f.contains("דיזל") -> "⛽"
-            f.contains("היבריד") || f.contains("היברידי") -> "⚡🔋"
-            f.contains("חשמל") || f.contains("חשמלי") -> "⚡"
-            f.contains("גז") || f.contains("גפ\"מ") || f.contains("גפמ") -> "🔥"
-            f.contains("פלאג") || f.contains("plugin") -> "🔌"
-            else -> "⛽"
-        }
-    }
-
-    fun getVehicleTypeIcon(type: String?): String {
-        val t = type.orEmpty().trim().lowercase()
-        return when {
-            t.contains("פרטי") || t.contains("m1") -> "🚗"
-            t.contains("מסחרי") || t.contains("n1") -> "🚐"
-            t.contains("משא") || t.contains("n2") || t.contains("n3") -> "🚚"
-            t.contains("אופנוע") || t.contains("קטנוע") || t.contains("l") -> "🏍️"
-            t.contains("טרקטור") || t.contains("צמ\"ה") || t.contains("הנדסי") -> "🚜"
-            t.contains("אוטובוס") || t.contains("m2") || t.contains("m3") -> "🚌"
-            else -> "🚗"
-        }
-    }
-
-    fun getOriginalityIcon(orig: String?): String {
-        val o = orig.orEmpty().trim().lowercase()
-        return when {
-            o.contains("פרטי") -> "👤"
-            o.contains("השכרה") -> "🏢"
-            o.contains("ליסינג") -> "💼"
-            o.contains("חברה") -> "🏢"
-            o.contains("מדינה") || o.contains("משטרה") || o.contains("צבא") -> "🛡️"
-            else -> "📄"
         }
     }
 }

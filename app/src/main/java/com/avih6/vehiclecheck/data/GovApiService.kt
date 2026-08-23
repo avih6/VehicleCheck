@@ -118,20 +118,12 @@ interface GovApiService {
     // 12c. Heavy Engineering Equipment (צמ"ה - כלי ציוד מכני הנדסי)
     @GET("api/3/action/datastore_search")
     suspend fun getEngineeringEquipment(
-        @Query("resource_id") resourceId: String = "58da1b8b-e85d-4a18-8f81-7917e3cd3d04",
+        @Query("resource_id") resourceId: String = "58dc4654-16b1-42ed-8170-98fadec153ea",
         @Query("filters") filters: String,
         @Query("limit") limit: Int = 1
-    ): GovApiResponse<VehicleRecord>
+    ): GovApiResponse<EngineeringEquipmentRecord>
 
-    // 12d. Pre-2000 Deregistered / Vintage Vehicles (רכבים שנגרעו עד שנת 2000)
-    @GET("api/3/action/datastore_search")
-    suspend fun getDeregisteredVehiclePre2000(
-        @Query("resource_id") resourceId: String = "c8b9f9c8-ec61-45b9-bc55-974a4911d08e",
-        @Query("filters") filters: String,
-        @Query("limit") limit: Int = 1
-    ): GovApiResponse<DeregisteredVehicleRecord>
-
-    // 12e. Total Active Vehicles Count in Registry (סך כלי רכב רשומים)
+    // 12d. Total Active Vehicles Count in Registry (סך כלי רכב רשומים)
     @GET("api/3/action/datastore_search")
     suspend fun getTotalActiveVehicles(
         @Query("resource_id") resourceId: String = "053cea08-09bc-40ec-8f7a-156f0677aff3",

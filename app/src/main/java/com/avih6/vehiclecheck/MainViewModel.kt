@@ -215,31 +215,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         } catch (e: Exception) {}
                     }
 
-                    // Try Pre-2000 Deregistered / Vintage Dataset (for 1950s etc.)
-                    if (finalVehicle == null) {
-                        try {
-                            val respPre2000 = NetworkClient.apiService.getDeregisteredVehiclePre2000(filters = "{\"mispar_rechev\":$plateLong}")
-                            val match = respPre2000.result?.records?.firstOrNull() ?: run {
-                                NetworkClient.apiService.getDeregisteredVehiclePre2000(filters = "{\"mispar_rechev\":\"$plateStr\"}").result?.records?.firstOrNull()
-                            }
-                            if (match != null) {
-                                finalVehicle = match.toVehicleRecord()
-                                isOffRoad = true
-                                offRoadDateFormatted = VehicleUtils.formatDate(match.cancellationDate)
-                            }
-                        } catch (e: Exception) {}
-                    }
-
                     // Try Heavy Engineering Equipment (צמ"ה)
                     if (finalVehicle == null) {
                         try {
-                            val respZama = NetworkClient.apiService.getEngineeringEquipment(filters = "{\"mispar_rechev\":$plateLong}")
+                            val respZama = NetworkClient.apiService.getEngineeringEquipment(filters = "{\"mispar_tzama\":$plateLong}")
                             val match = respZama.result?.records?.firstOrNull() ?: run {
-                                NetworkClient.apiService.getEngineeringEquipment(filters = "{\"mispar_rechev\":\"$plateStr\"}").result?.records?.firstOrNull()
+                                NetworkClient.apiService.getEngineeringEquipment(filters = "{\"mispar_tzama\":\"$plateStr\"}").result?.records?.firstOrNull()
                             }
                             if (match != null) {
-                                finalVehicle = match
-                                isOffRoad = true
+                                finalVehicle = match.toVehicleRecord()
+                                isOffRoad = false
                             }
                         } catch (e: Exception) {}
                     }

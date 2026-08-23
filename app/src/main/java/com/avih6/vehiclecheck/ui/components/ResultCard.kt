@@ -648,23 +648,20 @@ private fun GeneralTabContent(
 
                 val typeStr = if (vehicle.modelType == "P") "פרטי (M1)" else if (vehicle.modelType == "M") "מסחרי (N1)" else vehicle.modelType
                 typeStr?.let {
-                    val icon = VehicleUtils.getVehicleTypeIcon(it)
-                    SpecRow("סוג רישוי רכב:", "$icon $it")
+                    SpecRow("סוג רישוי רכב:", it)
                 }
 
                 techSpec?.countryOfOrigin?.let {
                     if (it.isNotBlank()) CountrySpecRow("ארץ ייצור:", it)
                 }
                 vehicle.fuelType?.let {
-                    val icon = VehicleUtils.getFuelTypeIcon(it)
-                    SpecRow("סוג דלק:", "$icon $it")
+                    if (it.isNotBlank()) FuelSpecRow("סוג דלק:", it)
                 }
                 vehicle.color?.let {
                     if (it.isNotBlank()) ColorSpecRow("צבע:", it)
                 }
                 extraHistory?.originality?.let {
-                    val icon = VehicleUtils.getOriginalityIcon(it)
-                    SpecRow("מקוריות:", "$icon $it")
+                    if (it.isNotBlank()) SpecRow("מקוריות:", it)
                 }
             }
         }
@@ -683,10 +680,10 @@ private fun GeneralTabContent(
                     modifier = Modifier.padding(bottom = 10.dp)
                 )
 
-                SpecRow("האם הותקנה מערכת גפ\"מ (גז):", if (extraHistory?.lpgInstalled == 1) "כן 🔥" else "לא ⚪")
-                SpecRow("האם בוצע שינוי צבע:", if (extraHistory?.colorChange == 1) "כן 🎨" else "לא ⚪")
-                SpecRow("האם בוצע שינוי במידת צמיג:", if (extraHistory?.tireChange == 1) "כן 🛞" else "לא ⚪")
-                val towHook = if ((techSpec?.towingCapacityWithBrakes ?: 0) > 0) "מורשה לגרירה (עד ${techSpec?.towingCapacityWithBrakes} ק\"ג) 🪝" else "ללא וו גרירה ⚪"
+                SpecRow("האם הותקנה מערכת גפ\"מ (גז):", if (extraHistory?.lpgInstalled == 1) "כן (מותקנת)" else "לא")
+                SpecRow("האם בוצע שינוי צבע:", if (extraHistory?.colorChange == 1) "כן (שינוי רשום)" else "לא")
+                SpecRow("האם בוצע שינוי במידת צמיג:", if (extraHistory?.tireChange == 1) "כן (מאושר ברישיון)" else "לא")
+                val towHook = if ((techSpec?.towingCapacityWithBrakes ?: 0) > 0) "מורשה לגרירה (עד ${techSpec?.towingCapacityWithBrakes} ק\"ג)" else "ללא רישום וו גרירה"
                 SpecRow("וו גרירה:", towHook)
             }
         }
@@ -1240,6 +1237,42 @@ private fun ColorSpecRow(label: String, colorName: String) {
             ) {}
             Text(
                 text = colorName,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@Composable
+private fun FuelSpecRow(label: String, fuelType: String) {
+    val f = fuelType.trim().lowercase()
+    val (icon, tint) = when {
+        f.contains("חשמל") || f.contains("חשמלי") -> Pair(Icons.Default.Bolt, Color(0xFF00ACC1))
+        f.contains("היבריד") || f.contains("היברידי") -> Pair(Icons.Default.BatteryChargingFull, Color(0xFF43A047))
+        f.contains("סולר") || f.contains("דיזל") -> Pair(Icons.Default.LocalGasStation, Color(0xFFFFB300))
+        f.contains("גז") || f.contains("גפ\"מ") -> Pair(Icons.Default.LocalGasStation, Color(0xFFE53935))
+        else -> Pair(Icons.Default.LocalGasStation, Color(0xFF1E88E5))
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = fuelType,
+                tint = tint,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = fuelType,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
             )

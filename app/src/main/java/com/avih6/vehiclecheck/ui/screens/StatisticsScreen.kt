@@ -1,12 +1,9 @@
-﻿package com.avih6.vehiclecheck.ui.screens
+package com.avih6.vehiclecheck.ui.screens
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -18,10 +15,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -40,7 +37,7 @@ data class BrandStat(
 
 data class FuelStat(
     val name: String,
-    val icon: String,
+    val icon: ImageVector,
     val percent: Float,
     val count: Int,
     val color: Color
@@ -77,11 +74,11 @@ fun StatisticsScreen(
 
     val fuelStats = remember {
         listOf(
-            FuelStat("בנזין", "⛽", 67.8f, 2640000, Color(0xFF1E88E5)),
-            FuelStat("היברידי (HEV / MHEV)", "⚡🔋", 16.4f, 638000, Color(0xFF43A047)),
-            FuelStat("חשמלי מלא (BEV)", "⚡", 8.8f, 342000, Color(0xFF00ACC1)),
-            FuelStat("דיזל / סולר", "⛽", 6.2f, 241000, Color(0xFFFFB300)),
-            FuelStat("גפ\"מ (גז) ופלאג-אין", "🔥", 0.8f, 31000, Color(0xFFE53935))
+            FuelStat("בנזין", Icons.Default.LocalGasStation, 67.8f, 2640000, Color(0xFF1E88E5)),
+            FuelStat("היברידי (HEV / MHEV)", Icons.Default.BatteryChargingFull, 16.4f, 638000, Color(0xFF43A047)),
+            FuelStat("חשמלי מלא (BEV)", Icons.Default.Bolt, 8.8f, 342000, Color(0xFF00ACC1)),
+            FuelStat("דיזל / סולר", Icons.Default.LocalGasStation, 6.2f, 241000, Color(0xFFFFB300)),
+            FuelStat("גפ\"מ (גז) ופלאג-אין", Icons.Default.LocalGasStation, 0.8f, 31000, Color(0xFFE53935))
         )
     }
 
@@ -104,7 +101,7 @@ fun StatisticsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.BarChart,
+                        imageVector = Icons.Default.Leaderboard,
                         contentDescription = "סטטיסטיקה",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(36.dp)
@@ -143,7 +140,12 @@ fun StatisticsScreen(
                         modifier = Modifier.padding(12.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(text = "🚗", fontSize = 24.sp)
+                        Icon(
+                            imageVector = Icons.Default.DirectionsCar,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(26.dp)
+                        )
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = "%,d".format(displayTotal),
@@ -169,7 +171,12 @@ fun StatisticsScreen(
                         modifier = Modifier.padding(12.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(text = "⚡🔋", fontSize = 24.sp)
+                        Icon(
+                            imageVector = Icons.Default.Bolt,
+                            contentDescription = null,
+                            tint = Color(0xFF2E7D32),
+                            modifier = Modifier.size(26.dp)
+                        )
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = "25.2%",
@@ -221,13 +228,24 @@ fun StatisticsScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = stat.icon,
+                                        contentDescription = null,
+                                        tint = stat.color,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = stat.name,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
                                 Text(
-                                    text = "${stat.icon} ${stat.name}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Text(
-                                    text = "${stat.percent}% (%,d)".format(stat.count),
+                                    text = "${stat.percent}% (" + "%,d".format(stat.count) + ")",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Bold,
                                     color = stat.color
@@ -387,10 +405,10 @@ fun StatisticsScreen(
                         modifier = Modifier.padding(bottom = 10.dp)
                     )
 
-                    InsightRow("🛣️", "נסועה שנתית ממוצעת:", "כ-15,400 ק\"מ לרכב פרטי בשנה")
-                    InsightRow("🎂", "גיל רכב ממוצע:", "כ-7.4 שנים בישראל")
-                    InsightRow("♻️", "רכבים שנגרעים מדי שנה:", "כ-240,000 כלי רכב יורדים מהכביש / מושבתים")
-                    InsightRow("🛡️", "ציון בטיחות ממוצע:", "ציון 6 מתוך 8 במבחני משרד התחבורה")
+                    InsightRow(Icons.Default.Speed, "נסועה שנתית ממוצעת:", "כ-15,400 ק\"מ לרכב פרטי בשנה")
+                    InsightRow(Icons.Default.CalendarToday, "גיל רכב ממוצע:", "כ-7.4 שנים בישראל")
+                    InsightRow(Icons.Default.DeleteOutline, "רכבים שנגרעים מדי שנה:", "כ-240,000 כלי רכב יורדים מהכביש / מושבתים")
+                    InsightRow(Icons.Default.Shield, "ציון בטיחות ממוצע:", "ציון 6 מתוך 8 במבחני משרד התחבורה")
                 }
             }
         }
@@ -398,14 +416,19 @@ fun StatisticsScreen(
 }
 
 @Composable
-private fun InsightRow(emoji: String, label: String, value: String) {
+private fun InsightRow(icon: ImageVector, label: String, value: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = emoji, fontSize = 18.sp)
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp)
+        )
         Spacer(Modifier.width(10.dp))
         Column {
             Text(
