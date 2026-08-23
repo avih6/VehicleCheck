@@ -292,15 +292,15 @@ fun ResultCard(
 
                 Spacer(Modifier.height(14.dp))
 
-                // Brand 3D Metallic Logo
+                // Brand Pure Metallic Emblem (High Resolution, No Text)
                 AsyncImage(
                     model = ImageRequest.Builder(context)
                         .data(brandLogoUrl)
                         .crossfade(true)
                         .build(),
-                    contentDescription = "Brand Logo",
+                    contentDescription = "Brand Emblem",
                     modifier = Modifier
-                        .size(75.dp)
+                        .size(95.dp)
                         .padding(2.dp),
                     contentScale = ContentScale.Fit
                 )

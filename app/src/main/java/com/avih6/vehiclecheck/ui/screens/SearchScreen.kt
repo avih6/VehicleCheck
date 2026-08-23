@@ -6,6 +6,7 @@ import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -50,6 +51,7 @@ fun SearchScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     var showCameraScanner by remember { mutableStateOf(false) }
+    var showDtcDialog by remember { mutableStateOf(false) }
 
     // Speech Recognizer Launcher
     val speechLauncher = rememberLauncherForActivityResult(
@@ -73,6 +75,12 @@ fun SearchScreen(
         )
     }
 
+    if (showDtcDialog) {
+        com.avih6.vehiclecheck.ui.components.DtcLookupDialog(
+            onDismiss = { showDtcDialog = false }
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -91,7 +99,7 @@ fun SearchScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    Icons.Outlined.DirectionsCar,
+                    imageVector = Icons.Default.Info,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
@@ -126,6 +134,10 @@ fun SearchScreen(
         com.avih6.vehiclecheck.ui.components.LicensePlateInput(
             value = query,
             onValueChange = { viewModel.onQueryChange(it) },
+            onSearch = {
+                keyboardController?.hide()
+                viewModel.search()
+            },
             onVoiceClick = {
                 val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
@@ -159,6 +171,30 @@ fun SearchScreen(
                 text = stringResource(R.string.search_btn),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(Modifier.height(10.dp))
+
+        // DTC Diagnostic Trouble Codes Tool Button
+        OutlinedButton(
+            onClick = { showDtcDialog = true },
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            shape = RoundedCornerShape(14.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        ) {
+            Icon(
+                Icons.Default.Build,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = "פענוח קודי תקלה ברכב (DTC / OBD2)",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
 

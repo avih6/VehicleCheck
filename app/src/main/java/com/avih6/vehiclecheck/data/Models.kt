@@ -19,6 +19,17 @@ data class GovResult<T>(
 )
 
 @Serializable
+data class GovCountResponse(
+    val success: Boolean = false,
+    val result: GovCountResult? = null
+)
+
+@Serializable
+data class GovCountResult(
+    val total: Int = 0
+)
+
+@Serializable
 data class VehicleRecord(
     @SerialName("_id") val id: Long? = null,
     @SerialName("mispar_rechev") val licensePlate: Long? = null,
@@ -366,6 +377,8 @@ object VehicleUtils {
     fun formatPlate(raw: String): String {
         val clean = raw.filter { it.isDigit() }
         return when (clean.length) {
+            5 -> "${clean.substring(0, 2)}-${clean.substring(2, 5)}"
+            6 -> "${clean.substring(0, 3)}-${clean.substring(3, 6)}"
             7 -> "${clean.substring(0, 2)}-${clean.substring(2, 5)}-${clean.substring(5, 7)}"
             8 -> "${clean.substring(0, 3)}-${clean.substring(3, 5)}-${clean.substring(5, 8)}"
             else -> raw
@@ -395,40 +408,35 @@ object VehicleUtils {
 
     fun getBrandLogoUrl(hebrewMake: String?): String {
         val m = hebrewMake.orEmpty().lowercase()
-        val brand = when {
-            m.contains("סובארו") || m.contains("subaru") -> "subaru"
-            m.contains("דייהטסו") || m.contains("daihatsu") -> "daihatsu"
-            m.contains("טויוטה") || m.contains("toyota") -> "toyota"
-            m.contains("יונדאי") || m.contains("hyundai") -> "hyundai"
-            m.contains("קיה") || m.contains("kia") -> "kia"
-            m.contains("מאזדה") || m.contains("mazda") -> "mazda"
-            m.contains("סקודה") || m.contains("skoda") -> "skoda"
-            m.contains("מרצדס") || m.contains("mercedes") -> "mercedes-benz"
-            m.contains("ב.מ.וו") || m.contains("bmw") -> "bmw"
-            m.contains("אאודי") || m.contains("audi") -> "audi"
-            m.contains("פולקסווגן") || m.contains("volkswagen") -> "volkswagen"
-            m.contains("רנו") || m.contains("renault") -> "renault"
-            m.contains("פיג'ו") || m.contains("peugeot") -> "peugeot"
-            m.contains("סיטרואן") || m.contains("citroen") -> "citroen"
-            m.contains("ניסאן") || m.contains("nissan") -> "nissan"
-            m.contains("הונדה") || m.contains("honda") -> "honda"
-            m.contains("שברולט") || m.contains("chevrolet") -> "chevrolet"
-            m.contains("פורד") || m.contains("ford") -> "ford"
-            m.contains("סוזוקי") || m.contains("suzuki") -> "suzuki"
-            m.contains("סיאט") || m.contains("seat") -> "seat"
-            m.contains("וולוו") || m.contains("volvo") -> "volvo"
-            m.contains("מיצובישי") || m.contains("mitsubishi") -> "mitsubishi"
-            m.contains("טסלה") || m.contains("tesla") -> "tesla"
-            m.contains("בי ואי די") || m.contains("byd") -> "byd"
-            m.contains("ג'ילי") || m.contains("geely") -> "geely"
-            m.contains("אם ג'י") || m.contains("mg") -> "mg"
-            m.contains("קופרה") || m.contains("cupra") -> "cupra"
-            m.contains("ג'יפ") || m.contains("jeep") -> "jeep"
-            m.contains("לנד רובר") || m.contains("land rover") -> "land-rover"
-            m.contains("פורשה") || m.contains("porsche") -> "porsche"
-            else -> "car"
+        return when {
+            m.contains("סובארו") || m.contains("subaru") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Subaru_emblem.svg/512px-Subaru_emblem.svg.png"
+            m.contains("טויוטה") || m.contains("toyota") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Toyota.svg/512px-Toyota.svg.png"
+            m.contains("יונדאי") || m.contains("hyundai") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Hyundai_Motor_Company_logo.svg/512px-Hyundai_Motor_Company_logo.svg.png"
+            m.contains("מאזדה") || m.contains("mazda") -> "https://upload.wikimedia.org/wikipedia/en/thumb/f/f6/Mazda_Logo.svg/512px-Mazda_Logo.svg.png"
+            m.contains("קיה") || m.contains("kia") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/KIA_logo2.svg/512px-KIA_logo2.svg.png"
+            m.contains("סקודה") || m.contains("skoda") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Škoda_Auto_logo_%282023%29.svg/512px-Škoda_Auto_logo_%282023%29.svg.png"
+            m.contains("מרצדס") || m.contains("mercedes") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Mercedes-Logo.svg/512px-Mercedes-Logo.svg.png"
+            m.contains("ב.מ.וו") || m.contains("bmw") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/BMW.svg/512px-BMW.svg.png"
+            m.contains("אאודי") || m.contains("audi") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Audi-Logo_2016.svg/512px-Audi-Logo_2016.svg.png"
+            m.contains("פולקסווגן") || m.contains("volkswagen") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Volkswagen_logo_2019.svg/512px-Volkswagen_logo_2019.svg.png"
+            m.contains("דייהטסו") || m.contains("daihatsu") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Daihatsu_logo.svg/512px-Daihatsu_logo.svg.png"
+            m.contains("ניסאן") || m.contains("nissan") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Nissan_2020_logo.svg/512px-Nissan_2020_logo.svg.png"
+            m.contains("טסלה") || m.contains("tesla") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Tesla_logo.png/512px-Tesla_logo.png"
+            m.contains("רנו") || m.contains("renault") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Renault_2021_Logo.svg/512px-Renault_2021_Logo.svg.png"
+            m.contains("פיג'ו") || m.contains("peugeot") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Peugeot_2021_Logo.svg/512px-Peugeot_2021_Logo.svg.png"
+            m.contains("סיטרואן") || m.contains("citroen") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Citroën_2022.svg/512px-Citroën_2022.svg.png"
+            m.contains("הונדה") || m.contains("honda") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Honda_Logo.svg/512px-Honda_Logo.svg.png"
+            m.contains("סוזוקי") || m.contains("suzuki") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Suzuki_logo_2019.svg/512px-Suzuki_logo_2019.svg.png"
+            m.contains("סיאט") || m.contains("seat") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/SEAT_Logo_from_2017.svg/512px-SEAT_Logo_from_2017.svg.png"
+            m.contains("וולוו") || m.contains("volvo") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Volvo-Iron-Mark-Black.svg/512px-Volvo-Iron-Mark-Black.svg.png"
+            m.contains("מיצובישי") || m.contains("mitsubishi") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Mitsubishi_logo.svg/512px-Mitsubishi_logo.svg.png"
+            m.contains("בי ואי די") || m.contains("byd") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/BYD_Auto_2022_logo.svg/512px-BYD_Auto_2022_logo.svg.png"
+            m.contains("אם ג'י") || m.contains("mg") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/MG_Motor_logo_%282021%29.svg/512px-MG_Motor_logo_%282021%29.svg.png"
+            m.contains("קופרה") || m.contains("cupra") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Cupra_Logo.svg/512px-Cupra_Logo.svg.png"
+            m.contains("ג'יפ") || m.contains("jeep") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Jeep_logo.svg/512px-Jeep_logo.svg.png"
+            m.contains("פורשה") || m.contains("porsche") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Porsche_Wappen.svg/512px-Porsche_Wappen.svg.png"
+            else -> "https://raw.githubusercontent.com/filippofilip95/car-logos-dataset/master/logos/optimized/car.png"
         }
-        return "https://raw.githubusercontent.com/filippofilip95/car-logos-dataset/master/logos/optimized/$brand.png"
     }
 
     fun getEnglishMakeAndModel(hebrewMake: String?, model: String?): Pair<String, String> {

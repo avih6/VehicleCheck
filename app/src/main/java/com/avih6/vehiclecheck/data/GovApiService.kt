@@ -75,13 +75,13 @@ interface GovApiService {
         @Query("limit") limit: Int = 1
     ): GovApiResponse<VehicleImporterPriceRecord>
 
-    // 9. Count active vehicles with same make and model
+    // 9. Count active vehicles with same make and model (Using GovCountResponse)
     @GET("api/3/action/datastore_search")
     suspend fun getSameModelActiveCount(
         @Query("resource_id") resourceId: String = "053cea08-09bc-40ec-8f7a-156f0677aff3",
         @Query("filters") filters: String,
         @Query("limit") limit: Int = 0
-    ): GovApiResponse<VehicleRecord>
+    ): GovCountResponse
 
     // 10. Deregistered / Cancelled / Off-Road Vehicles (2010-2016)
     @GET("api/3/action/datastore_search")
@@ -107,13 +107,13 @@ interface GovApiService {
         @Query("limit") limit: Int = 1
     ): GovApiResponse<DeregisteredVehicleRecord>
 
-    // 13. Count inactive vehicles of model
+    // 13. Count inactive vehicles of model (Using GovCountResponse)
     @GET("api/3/action/datastore_search")
     suspend fun getDeregisteredCount(
         @Query("resource_id") resourceId: String,
         @Query("filters") filters: String,
         @Query("limit") limit: Int = 0
-    ): GovApiResponse<DeregisteredVehicleRecord>
+    ): GovCountResponse
 
     // 14. Recall Restrictions per vehicle (הגבלות ריקול פתוחות ברכב)
     @GET("api/3/action/datastore_search")

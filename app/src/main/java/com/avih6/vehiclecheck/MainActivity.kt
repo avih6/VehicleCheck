@@ -208,8 +208,9 @@ fun MainAppShell(viewModel: MainViewModel) {
                         Text(
                             text = when (selectedTab) {
                                 0 -> stringResource(R.string.search_title)
-                                1 -> stringResource(R.string.history_title)
-                                else -> stringResource(R.string.tab_info)
+                                1 -> "פענוח קודי תקלה (DTC)"
+                                2 -> "גלריית רכבים"
+                                else -> stringResource(R.string.history_title)
                             },
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.ExtraBold,
@@ -310,22 +311,33 @@ fun MainAppShell(viewModel: MainViewModel) {
                             onClick = { selectedTab = 1 },
                             icon = {
                                 Icon(
-                                    if (selectedTab == 1) Icons.Filled.History else Icons.Outlined.History,
-                                    contentDescription = stringResource(R.string.tab_history)
+                                    if (selectedTab == 1) Icons.Filled.Build else Icons.Outlined.Build,
+                                    contentDescription = "קודי תקלה"
                                 )
                             },
-                            label = { Text(stringResource(R.string.tab_history)) }
+                            label = { Text("קודי תקלה") }
                         )
                         NavigationBarItem(
                             selected = selectedTab == 2,
                             onClick = { selectedTab = 2 },
                             icon = {
                                 Icon(
-                                    if (selectedTab == 2) Icons.Filled.Info else Icons.Outlined.Info,
-                                    contentDescription = stringResource(R.string.tab_info)
+                                    if (selectedTab == 2) Icons.Filled.Image else Icons.Outlined.Image,
+                                    contentDescription = "גלריה"
                                 )
                             },
-                            label = { Text(stringResource(R.string.tab_info)) }
+                            label = { Text("גלריה") }
+                        )
+                        NavigationBarItem(
+                            selected = selectedTab == 3,
+                            onClick = { selectedTab = 3 },
+                            icon = {
+                                Icon(
+                                    if (selectedTab == 3) Icons.Filled.History else Icons.Outlined.History,
+                                    contentDescription = stringResource(R.string.tab_history)
+                                )
+                            },
+                            label = { Text(stringResource(R.string.tab_history)) }
                         )
                     }
                 }
@@ -341,7 +353,23 @@ fun MainAppShell(viewModel: MainViewModel) {
                         viewModel = viewModel,
                         modifier = Modifier.fillMaxSize()
                     )
-                    1 -> HistoryScreen(
+                    1 -> com.avih6.vehiclecheck.ui.screens.DtcScreen(
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    2 -> {
+                        val currentSearchState = viewModel.searchState.collectAsState().value
+                        val initialQuery = if (currentSearchState is com.avih6.vehiclecheck.data.SearchState.Success) {
+                            val v = currentSearchState.vehicle
+                            val (makeEn, modelEn) = com.avih6.vehiclecheck.data.VehicleUtils.getEnglishMakeAndModel(v.make, v.model)
+                            "$makeEn $modelEn"
+                        } else "Subaru Forester"
+
+                        com.avih6.vehiclecheck.ui.screens.GalleryScreen(
+                            initialQuery = initialQuery,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                    3 -> HistoryScreen(
                         viewModel = viewModel,
                         onSelectVehicle = { plate ->
                             viewModel.searchPlateDirect(plate)
@@ -349,7 +377,6 @@ fun MainAppShell(viewModel: MainViewModel) {
                         },
                         modifier = Modifier.fillMaxSize()
                     )
-                    2 -> InfoScreen(modifier = Modifier.fillMaxSize())
                 }
             }
         }

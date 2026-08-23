@@ -1,4 +1,4 @@
-package com.avih6.vehiclecheck.ui.components
+﻿package com.avih6.vehiclecheck.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -75,15 +75,15 @@ fun VehicleStatsDialog(
 
                 Spacer(Modifier.height(16.dp))
 
-                // Brand Logo Large
+                // Pure Brand Emblem Large (105dp)
                 AsyncImage(
                     model = ImageRequest.Builder(context)
                         .data(brandLogoUrl)
                         .crossfade(true)
                         .build(),
-                    contentDescription = "Brand Logo",
+                    contentDescription = "Brand Emblem",
                     modifier = Modifier
-                        .size(85.dp)
+                        .size(105.dp)
                         .padding(4.dp),
                     contentScale = ContentScale.Fit
                 )

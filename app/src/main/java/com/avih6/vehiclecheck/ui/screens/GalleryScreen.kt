@@ -1,0 +1,254 @@
+﻿package com.avih6.vehiclecheck.ui.screens
+
+import android.content.Intent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.avih6.vehiclecheck.data.CarGalleryImage
+import com.avih6.vehiclecheck.data.WikimediaGalleryService
+import kotlinx.coroutines.launch
+
+@Composable
+fun GalleryScreen(
+    initialQuery: String = "Subaru Forester",
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val scope = rememberCoroutineScope()
+
+    var searchQuery by remember { mutableStateOf(initialQuery) }
+    var images by remember { mutableStateOf<List<CarGalleryImage>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(false) }
+    var selectedImageForViewer by remember { mutableStateOf<CarGalleryImage?>(null) }
+
+    val popularSuggestions = remember {
+        listOf("Subaru Forester", "Toyota Corolla", "Hyundai Tucson", "Kia Sportage", "Mazda 3", "Tesla Model 3", "Skoda Octavia", "Daihatsu Charade")
+    }
+
+    fun loadImages(query: String) {
+        if (query.isBlank()) return
+        scope.launch {
+            isLoading = true
+            val words = query.trim().split(" ")
+            val make = words.firstOrNull() ?: ""
+            val model = if (words.size > 1) words.drop(1).joinToString(" ") else ""
+            images = WikimediaGalleryService.fetchCarImages(make, model)
+            isLoading = false
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        loadImages(searchQuery)
+    }
+
+    // Fullscreen Image Dialog
+    selectedImageForViewer?.let { imageItem ->
+        Dialog(
+            onDismissRequest = { selectedImageForViewer = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.92f)),
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(imageItem.imageUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = imageItem.title,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.75f),
+                    contentScale = ContentScale.Fit
+                )
+
+                // Top Controls
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { selectedImageForViewer = null }) {
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+                    }
+
+                    IconButton(onClick = {
+                        val sendIntent = Intent().apply {
+                            action = Intent.ACTION_SEND
+                            putExtra(Intent.EXTRA_TEXT, "תמונת רכב: ${imageItem.imageUrl}")
+                            type = "text/plain"
+                        }
+                        context.startActivity(Intent.createChooser(sendIntent, "שתף תמונה"))
+                    }) {
+                        Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.White)
+                    }
+                }
+
+                // Bottom Title
+                Text(
+                    text = imageItem.title,
+                    color = Color.White,
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(20.dp)
+                )
+            }
+        }
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        // Search Header
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("חיפוש תמונות רכב (יצרן ודגם באנגלית)") },
+            placeholder = { Text("למשל: Subaru Forester, Toyota RAV4...") },
+            leadingIcon = {
+                Icon(Icons.Default.Image, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            },
+            trailingIcon = {
+                IconButton(onClick = {
+                    keyboardController?.hide()
+                    loadImages(searchQuery)
+                }) {
+                    Icon(Icons.Default.Search, contentDescription = "Search", tint = MaterialTheme.colorScheme.primary)
+                }
+            },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = {
+                keyboardController?.hide()
+                loadImages(searchQuery)
+            }),
+            shape = RoundedCornerShape(16.dp)
+        )
+
+        Spacer(Modifier.height(10.dp))
+
+        // Quick Suggestions
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(popularSuggestions) { item ->
+                FilterChip(
+                    selected = searchQuery == item,
+                    onClick = {
+                        searchQuery = item
+                        keyboardController?.hide()
+                        loadImages(item)
+                    },
+                    label = { Text(item, fontSize = 12.sp) },
+                    shape = RoundedCornerShape(12.dp)
+                )
+            }
+        }
+
+        Spacer(Modifier.height(14.dp))
+
+        // License / Info text
+        Text(
+            text = "גלריית תמונות חופשית ומקורית ברישיון Wikimedia Commons (ללא סימן מים)",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+        )
+
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (images.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        Icons.Outlined.PhotoLibrary,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(64.dp)
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "לא נמצאו תמונות עבור חיפוש זה.\nנסה לחפש שם דגם באנגלית (למשל: Subaru Forester).",
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(images) { item ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(140.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable { selectedImageForViewer = item },
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                    ) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(item.imageUrl)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = item.title,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

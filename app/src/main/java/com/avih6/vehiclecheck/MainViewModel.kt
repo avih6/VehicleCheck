@@ -67,8 +67,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun search() {
         val plate = _query.value.trim()
-        if (plate.length !in 7..8) {
-            _searchState.value = SearchState.Error("מספר הרכב חייב להכיל 7 או 8 ספרות")
+        if (plate.length !in 5..8) {
+            _searchState.value = SearchState.Error("מספר הרכב חייב להכיל בין 5 ל-8 ספרות")
             return
         }
         performSearch(plate)
@@ -77,7 +77,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun searchPlateDirect(plate: String) {
         val clean = plate.filter { it.isDigit() }.take(8)
         _query.value = clean
-        if (clean.length in 7..8) {
+        if (clean.length in 5..8) {
             performSearch(clean)
         }
     }
@@ -258,34 +258,43 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     try {
                         val makeCd = vehicle.makeCode
                         val modelCd = vehicle.modelCd
-                        val year = vehicle.year
+                        val year = vehicle.year ?: 2022
                         if (makeCd != null && modelCd != null) {
                             val activeTotalFilter = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}"
                             val activeResp = NetworkClient.apiService.getSameModelActiveCount(filters = activeTotalFilter)
                             val totalActive = activeResp.result?.total ?: 0
 
-                            val activeYearFilter = if (year != null) "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd,\"shnat_yitzur\":$year}" else activeTotalFilter
-                            val activeYearCount = if (year != null) NetworkClient.apiService.getSameModelActiveCount(filters = activeYearFilter).result?.total ?: 0 else totalActive
+                            // Specific Year Active
+                            val activeYearFilter = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd,\"shnat_yitzur\":$year}"
+                            val activeYearCount = NetworkClient.apiService.getSameModelActiveCount(filters = activeYearFilter).result?.total ?: 0
 
-                            val inactFilter = if (year != null) "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd,\"shnat_yitzur\":$year}" else "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}"
-                            val inactResp = NetworkClient.apiService.getDeregisteredCount("851ecab1-0622-4dbe-a6c7-f950cf82abf9", inactFilter)
-                            val inactCount2017 = inactResp.result?.total ?: 0
+                            // Query other nearby years
+                            val prevYearCount = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd,\"shnat_yitzur\":${year - 1}}").result?.total ?: 0
+                            val nextYearCount = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd,\"shnat_yitzur\":${year + 1}}").result?.total ?: 0
 
-                            val inactResp2 = NetworkClient.apiService.getDeregisteredCount("4e6b9724-4c1e-43f0-909a-154d4cc4e046", inactFilter)
-                            val inactCount2010 = inactResp2.result?.total ?: 0
+                            // Inactive count (from 2017+ and 2010+)
+                            val inactFilter = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}"
+                            val inactResp2017 = NetworkClient.apiService.getDeregisteredCount("851ecab1-0622-4dbe-a6c7-f950cf82abf9", inactFilter)
+                            val inactCount2017 = inactResp2017.result?.total ?: 0
 
-                            val totalInactive = inactCount2017 + inactCount2010
+                            val inactResp2010 = NetworkClient.apiService.getDeregisteredCount("4e6b9724-4c1e-43f0-909a-154d4cc4e046", inactFilter)
+                            val inactCount2010 = inactResp2010.result?.total ?: 0
 
-                            val currentYear = year ?: 2022
+                            val totalInactive = (inactCount2017 + inactCount2010).coerceAtLeast(if (isOffRoad) 1 else 2)
+                            val realTotalActive = if (totalActive > 0) totalActive else if (isOffRoad) 0 else 1
+
                             val breakdown = mutableListOf<ModelYearCount>()
-                            breakdown.add(ModelYearCount(currentYear, activeYearCount, totalInactive))
-                            if (totalActive > activeYearCount) {
-                                breakdown.add(ModelYearCount(currentYear + 1, totalActive - activeYearCount, 0))
+                            if (nextYearCount > 0) {
+                                breakdown.add(ModelYearCount(year + 1, nextYearCount, 0))
+                            }
+                            breakdown.add(ModelYearCount(year, if (activeYearCount > 0) activeYearCount else realTotalActive, totalInactive))
+                            if (prevYearCount > 0) {
+                                breakdown.add(ModelYearCount(year - 1, prevYearCount, 0))
                             }
 
                             ModelStatistics(
-                                totalActive = if (totalActive > 0) totalActive else if (isOffRoad) 0 else 1,
-                                totalInactive = if (totalInactive > 0) totalInactive else if (isOffRoad) 1 else 2,
+                                totalActive = realTotalActive,
+                                totalInactive = totalInactive,
                                 breakdownByYear = breakdown
                             )
                         } else {
