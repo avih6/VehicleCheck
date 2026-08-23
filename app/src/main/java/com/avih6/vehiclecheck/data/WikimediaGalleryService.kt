@@ -11,6 +11,9 @@ data class CarGalleryImage(
     val title: String,
     val imageUrl: String,
     val thumbUrl: String,
+    val descriptionUrl: String = "",
+    val license: String = "Creative Commons (Wikimedia Commons)",
+    val artist: String = "",
     val width: Int = 0,
     val height: Int = 0
 )
@@ -39,7 +42,7 @@ object WikimediaGalleryService {
         val query = buildSearchQuery(rawMake, rawModel)
         val encodedQuery = URLEncoder.encode(query, "UTF-8")
         val offsetParam = if (offset > 0) "&gsroffset=$offset" else ""
-        val urlStr = "https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=$encodedQuery&gsrlimit=$limit$offsetParam&prop=imageinfo&iiprop=url|size&iiurlwidth=800&format=json&origin=*"
+        val urlStr = "https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=$encodedQuery&gsrlimit=$limit$offsetParam&prop=imageinfo&iiprop=url|size|extmetadata&iiurlwidth=800&format=json&origin=*"
 
         try {
             val url = URL(urlStr)
@@ -62,7 +65,8 @@ object WikimediaGalleryService {
                 while (keys.hasNext()) {
                     val key = keys.next()
                     val page = pagesObj.getJSONObject(key)
-                    val title = page.optString("title", "")
+                    val rawTitle = page.optString("title", "")
+                    val title = rawTitle
                         .replace("File:", "")
                         .replace(".jpg", "", ignoreCase = true)
                         .replace(".jpeg", "", ignoreCase = true)
@@ -75,8 +79,18 @@ object WikimediaGalleryService {
                         val info = imageInfoArr.getJSONObject(0)
                         val fullUrl = info.optString("url")
                         val thumbUrl = info.optString("thumburl").ifBlank { fullUrl }
+                        val descUrl = info.optString("descriptionurl").ifBlank {
+                            "https://commons.wikimedia.org/wiki/${URLEncoder.encode(rawTitle, "UTF-8")}"
+                        }
                         val w = info.optInt("width", 0)
                         val h = info.optInt("height", 0)
+
+                        val extMetadata = info.optJSONObject("extmetadata")
+                        val licName = extMetadata?.optJSONObject("LicenseShortName")?.optString("value")
+                        val license = if (!licName.isNullOrBlank()) licName else "Creative Commons (Wikimedia Commons)"
+
+                        val rawArtist = extMetadata?.optJSONObject("Artist")?.optString("value").orEmpty()
+                        val cleanArtist = rawArtist.replace(Regex("<[^>]*>"), "").trim()
 
                         val checkPath = fullUrl.substringBefore("?")
                         val isValidExtension = checkPath.endsWith(".jpg", ignoreCase = true) ||
@@ -96,6 +110,9 @@ object WikimediaGalleryService {
                                 title = title,
                                 imageUrl = fullUrl,
                                 thumbUrl = thumbUrl,
+                                descriptionUrl = descUrl,
+                                license = license,
+                                artist = cleanArtist,
                                 width = w,
                                 height = h
                             ))

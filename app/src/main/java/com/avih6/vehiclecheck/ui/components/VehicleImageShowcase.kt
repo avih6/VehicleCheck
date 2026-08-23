@@ -1,6 +1,8 @@
 package com.avih6.vehiclecheck.ui.components
 
 import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -107,22 +109,79 @@ fun VehicleImageShowcase(
                     }
                 }
 
-                // Bottom Title
+                // Bottom Rich Info Card (Title, License, Artist, Clickable Source Link)
                 Surface(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .padding(16.dp),
-                    color = Color.Black.copy(alpha = 0.6f),
-                    shape = RoundedCornerShape(12.dp)
+                    color = Color.Black.copy(alpha = 0.85f),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f))
                 ) {
-                    Text(
-                        text = currentImage.title,
-                        color = Color.White,
-                        fontSize = 12.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(10.dp)
-                    )
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Title / Model Name
+                        Text(
+                            text = currentImage.title,
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Spacer(Modifier.height(4.dp))
+
+                        // Artist & License details
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            if (currentImage.artist.isNotBlank()) {
+                                Text(
+                                    text = "יוצר: ${currentImage.artist} • ",
+                                    color = Color.LightGray,
+                                    fontSize = 11.sp
+                                )
+                            }
+                            Text(
+                                text = "רישיון: ${currentImage.license}",
+                                color = Color(0xFF81D4FA),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        Spacer(Modifier.height(8.dp))
+
+                        // Open in Wikimedia Commons Button
+                        if (currentImage.descriptionUrl.isNotBlank()) {
+                            Button(
+                                onClick = {
+                                    try {
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(currentImage.descriptionUrl))
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) { }
+                                },
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                ),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    text = "צפייה במקור וזכויות יוצרים בוויקימדיה",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

@@ -1,6 +1,8 @@
 package com.avih6.vehiclecheck.ui.screens
 
 import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -36,14 +38,12 @@ import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.avih6.vehiclecheck.data.CarGalleryImage
+import com.avih6.vehiclecheck.data.NetworkClient
 import com.avih6.vehiclecheck.data.WikimediaGalleryService
 import com.avih6.vehiclecheck.ui.components.HoverTooltipIconButton
 import com.avih6.vehiclecheck.ui.components.handCursor
-import kotlinx.coroutines.launch
-
-import com.avih6.vehiclecheck.data.NetworkClient
-import com.avih6.vehiclecheck.data.VehicleUtils
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
@@ -58,6 +58,7 @@ fun GalleryScreen(
 
     var searchQuery by remember { mutableStateOf(if (initialQuery == "הכל") "" else initialQuery) }
     var selectedBrand by remember { mutableStateOf(if (initialQuery.isBlank()) "הכל" else initialQuery) }
+    var selectedModel by remember { mutableStateOf("כל הדגמים") }
     var images by remember { mutableStateOf<List<CarGalleryImage>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var isLoadingMore by remember { mutableStateOf(false) }
@@ -68,15 +69,16 @@ fun GalleryScreen(
     val fallbackManufacturers = remember {
         listOf(
             "הכל", "טויוטה", "יונדאי", "קיה", "מאזדה", "סקודה", "טסלה", "סובארו",
-            "מרצדס", "ב.מ.וו", "אאודי", "פולקסווגן", "BYD", "ג'ילי", "MG", "קופרה",
-            "שברולט", "פורד", "פיג'ו", "רנו", "סיטרואן", "וולוו", "סוזוקי", "הונדה",
+            "שברולט", "מרצדס", "ב.מ.וו", "אאודי", "פולקסווגן", "BYD", "ג'ילי", "MG", "קופרה",
+            "פורד", "פיג'ו", "רנו", "סיטרואן", "וולוו", "סוזוקי", "הונדה",
             "מיצובישי", "ניסאן", "סיאט", "דאצ'יה", "לקסוס", "פורשה", "ג'יפ", "קאדילאק"
         )
     }
 
     var dynamicManufacturers by remember { mutableStateOf<List<String>>(fallbackManufacturers) }
+    var makeToModelsMap by remember { mutableStateOf<Map<String, List<String>>>(emptyMap()) }
 
-    // Load full list of certified car makes dynamically from Government Database
+    // Load full list of certified car makes and models dynamically from Government Database
     LaunchedEffect(Unit) {
         scope.launch {
             try {
@@ -84,18 +86,69 @@ fun GalleryScreen(
                     NetworkClient.apiService.getAllRecalls(limit = 4000, sort = "_id desc")
                 }
                 val records = resp.result?.records ?: emptyList()
+                
+                val modelMap = mutableMapOf<String, MutableSet<String>>()
                 val liveMakes = records.mapNotNull { it.makeName?.trim() }
                     .filter { it.isNotBlank() && it.length > 1 }
                     .distinct()
                     .sorted()
 
+                records.forEach { rec ->
+                    val make = rec.makeName?.trim().orEmpty()
+                    val mod = rec.model?.trim().orEmpty()
+                    if (make.isNotBlank() && mod.isNotBlank()) {
+                        val items = mod.split(",", ";", "/").map { it.trim() }.filter { it.length >= 2 }
+                        modelMap.getOrPut(make) { mutableSetOf() }.addAll(items)
+                    }
+                }
+
                 if (liveMakes.isNotEmpty()) {
                     dynamicManufacturers = listOf("הכל") + liveMakes
                 }
+                makeToModelsMap = modelMap.mapValues { listOf("כל הדגמים") + it.value.sorted() }
             } catch (_: Exception) {
-                // Fallback to rich default list if offline
+                // Fallback
             }
         }
+    }
+
+    fun getModelsForCurrentBrand(brand: String): List<String> {
+        val fromGov = makeToModelsMap[brand]
+        if (!fromGov.isNullOrEmpty()) return fromGov
+
+        // Brand-specific fallback models
+        val b = brand.lowercase()
+        val defaultList = when {
+            b.contains("שברולט") || b.contains("chevrolet") -> listOf("CORVETTE", "CAMARO", "SPARK", "MALIBU", "TRAVERSE", "BLAZER", "EQUINOX", "CRUZE", "SILVERADO", "TAHOE", "SUBURBAN", "TRAX", "BOLT")
+            b.contains("טויוטה") || b.contains("toyota") -> listOf("COROLLA", "YARIS", "RAV4", "LAND CRUISER", "CAMRY", "HILUX", "C-HR", "PRIUS", "AYGO", "HIGHLANDER", "BZ4X")
+            b.contains("יונדאי") || b.contains("hyundai") -> listOf("TUCSON", "IONIQ 5", "IONIQ 6", "KONA", "ELANTRA", "I10", "I20", "I30", "SANTA FE", "BAYON", "STARIA", "VENUE")
+            b.contains("קיה") || b.contains("kia") -> listOf("SPORTAGE", "PICANTO", "NIRO", "EV6", "EV9", "STONIC", "SELTOS", "CARNIVAL", "SORENTO", "CEED", "RIO")
+            b.contains("סובארו") || b.contains("subaru") -> listOf("FORESTER", "OUTBACK", "CROSSTREK", "XV", "IMPREZA", "BRZ", "SOLTERRA", "EVOLTIS")
+            b.contains("מאזדה") || b.contains("mazda") -> listOf("MAZDA 3", "MAZDA 2", "MAZDA 6", "CX-5", "CX-30", "CX-60", "CX-90", "MX-5")
+            b.contains("סקודה") || b.contains("skoda") -> listOf("OCTAVIA", "SUPERB", "KODIAQ", "KAROQ", "KAMIQ", "FABIA", "SCALA", "ENYAQ")
+            b.contains("טסלה") || b.contains("tesla") -> listOf("MODEL 3", "MODEL Y", "MODEL S", "MODEL X", "CYBERTRUCK")
+            b.contains("מרצדס") || b.contains("mercedes") -> listOf("A-CLASS", "C-CLASS", "E-CLASS", "S-CLASS", "GLA", "GLB", "GLC", "GLE", "GLS", "EQA", "EQB", "EQE", "EQS", "G-CLASS")
+            b.contains("ב.מ.וו") || b.contains("bmw") -> listOf("SERIES 1", "SERIES 3", "SERIES 5", "SERIES 7", "X1", "X3", "X5", "X6", "X7", "I4", "IX", "M3", "M5")
+            b.contains("אאודי") || b.contains("audi") -> listOf("A3", "A4", "A6", "A8", "Q3", "Q5", "Q7", "Q8", "E-TRON", "RS3", "RS6", "TT")
+            b.contains("פולקסווגן") || b.contains("volkswagen") || b.contains("vw") -> listOf("GOLF", "POLO", "TIGUAN", "PASSAT", "T-ROC", "TAIGO", "ID.4", "ID.5", "TOUAREG")
+            b.contains("byd") || b.contains("בי ואי די") -> listOf("ATTO 3", "DOLPHIN", "SEAL", "TANG", "HAN", "SEAL U")
+            b.contains("ג'ילי") || b.contains("geely") -> listOf("GEOMETRY C", "GEOMETRY E", "EX5")
+            b.contains("mg") || b.contains("אם ג'י") -> listOf("MG 4", "MG ZS", "MG 5", "EHS", "MARVEL R", "CYBERSTER")
+            b.contains("קופרה") || b.contains("cupra") -> listOf("FORMENTOR", "LEON", "ATECA", "BORN", "TAVASCAN")
+            b.contains("פורד") || b.contains("ford") -> listOf("FOCUS", "KUGA", "PUMA", "MUSTANG", "MUSTANG MACH-E", "EXPLORER", "RANGER", "BRONCO")
+            b.contains("פיג'ו") || b.contains("peugeot") -> listOf("208", "2008", "308", "3008", "5008", "408", "508")
+            b.contains("רנו") || b.contains("renault") -> listOf("CLIO", "CAPTUR", "MEGANE", "ARKANA", "AUSTRAL", "ZOE")
+            b.contains("וולוו") || b.contains("volvo") -> listOf("XC40", "XC60", "XC90", "EX30", "EX90", "S60", "V60")
+            b.contains("סיאט") || b.contains("seat") -> listOf("IBIZA", "LEON", "ARONA", "ATECA", "TARRACO")
+            b.contains("סוזוקי") || b.contains("suzuki") -> listOf("SWIFT", "VITARA", "S-CROSS", "IGNIS", "JIMNY")
+            b.contains("הונדה") || b.contains("honda") -> listOf("CIVIC", "HR-V", "CR-V", "JAZZ", "ACCORD")
+            b.contains("מיצובישי") || b.contains("mitsubishi") -> listOf("OUTLANDER", "ECLIPSE CROSS", "SPACE STAR", "ASX", "TRITON")
+            b.contains("ניסאן") || b.contains("nissan") -> listOf("QASHQAI", "X-TRAIL", "JUKE", "MICRA", "LEAF", "ARIYA")
+            b.contains("פורשה") || b.contains("porsche") -> listOf("911", "CAYENNE", "MACAN", "PANAMERA", "TAYCAN", "718 BOXSTER")
+            else -> emptyList()
+        }
+
+        return if (defaultList.isNotEmpty()) listOf("כל הדגמים") + defaultList else emptyList()
     }
 
     fun loadInitialImages(brandOrQuery: String) {
@@ -148,6 +201,8 @@ fun GalleryScreen(
                 detectedPlateVehicleInfo!!
             } else if (searchQuery.isNotBlank()) {
                 searchQuery
+            } else if (selectedModel != "כל הדגמים") {
+                "$selectedBrand $selectedModel"
             } else {
                 selectedBrand
             }
@@ -168,11 +223,12 @@ fun GalleryScreen(
 
     LaunchedEffect(selectedBrand) {
         if (searchQuery.isBlank()) {
+            selectedModel = "כל הדגמים"
             loadInitialImages(selectedBrand)
         }
     }
 
-    // Fullscreen Image Dialog
+    // Fullscreen Image Dialog with Detailed Info, License & Direct Source Link
     selectedImageForViewer?.let { imageItem ->
         Dialog(
             onDismissRequest = { selectedImageForViewer = null },
@@ -181,7 +237,7 @@ fun GalleryScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.94f)),
+                    .background(Color.Black.copy(alpha = 0.95f)),
                 contentAlignment = Alignment.Center
             ) {
                 AsyncImage(
@@ -193,11 +249,11 @@ fun GalleryScreen(
                     contentDescription = imageItem.title,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(0.78f),
+                        .fillMaxHeight(0.72f),
                     contentScale = ContentScale.Fit
                 )
 
-                // Top Controls
+                // Top Action Bar (Close & Share)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -217,7 +273,7 @@ fun GalleryScreen(
                         onClick = {
                             val sendIntent = Intent().apply {
                                 action = Intent.ACTION_SEND
-                                putExtra(Intent.EXTRA_TEXT, "תמונת רכב (${imageItem.title}):\n${imageItem.imageUrl}")
+                                putExtra(Intent.EXTRA_TEXT, "תמונת רכב (${imageItem.title}):\n${imageItem.imageUrl}\nמקור: ${imageItem.descriptionUrl}")
                                 type = "text/plain"
                             }
                             context.startActivity(Intent.createChooser(sendIntent, "שתף תמונת רכב"))
@@ -228,25 +284,87 @@ fun GalleryScreen(
                     }
                 }
 
-                // Bottom Title
+                // Bottom Rich Info Card (Title, License, Artist, Clickable Source Link)
                 Surface(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .padding(16.dp),
-                    color = Color.Black.copy(alpha = 0.6f),
-                    shape = RoundedCornerShape(12.dp)
+                    color = Color.Black.copy(alpha = 0.85f),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f))
                 ) {
-                    Text(
-                        text = imageItem.title,
-                        color = Color.White,
-                        fontSize = 12.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(10.dp)
-                    )
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // Title / Model Name
+                        Text(
+                            text = imageItem.title,
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Spacer(Modifier.height(4.dp))
+
+                        // Artist & License details
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            if (imageItem.artist.isNotBlank()) {
+                                Text(
+                                    text = "יוצר: ${imageItem.artist} • ",
+                                    color = Color.LightGray,
+                                    fontSize = 11.sp
+                                )
+                            }
+                            Text(
+                                text = "רישיון: ${imageItem.license}",
+                                color = Color(0xFF81D4FA),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        Spacer(Modifier.height(8.dp))
+
+                        // Open in Wikimedia Commons Button
+                        if (imageItem.descriptionUrl.isNotBlank()) {
+                            Button(
+                                onClick = {
+                                    try {
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(imageItem.descriptionUrl))
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) { }
+                                },
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                ),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                                modifier = Modifier.handCursor()
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    text = "צפייה במקור וזכויות יוצרים בוויקימדיה",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
+    }
+
+    val availableModelsForCurrentBrand = remember(selectedBrand, makeToModelsMap) {
+        if (selectedBrand == "הכל") emptyList() else getModelsForCurrentBrand(selectedBrand)
     }
 
     Column(
@@ -260,7 +378,7 @@ fun GalleryScreen(
             onValueChange = { searchQuery = it },
             modifier = Modifier.fillMaxWidth(),
             label = { Text("חיפוש מספר רכב, יצרן או דגם (עברית/אנגלית)") },
-            placeholder = { Text("למשל: 12-345-67, טויוטה קורולה, Tesla Model Y...") },
+            placeholder = { Text("למשל: 12-345-67, שברולט קורבט, Tesla Model Y...") },
             leadingIcon = {
                 Icon(Icons.Default.Image, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             },
@@ -312,7 +430,7 @@ fun GalleryScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -338,7 +456,7 @@ fun GalleryScreen(
 
         Spacer(Modifier.height(8.dp))
 
-        // All Manufacturers Filter Chips (Automatically loaded from Gov database)
+        // Row 1: All Manufacturers Filter Chips (Loaded dynamically from Gov database)
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -350,6 +468,7 @@ fun GalleryScreen(
                     onClick = {
                         searchQuery = ""
                         selectedBrand = brand
+                        selectedModel = "כל הדגמים"
                         keyboardController?.hide()
                         loadInitialImages(brand)
                     },
@@ -360,6 +479,44 @@ fun GalleryScreen(
             }
         }
 
+        // Row 2: Certified Models for Selected Brand
+        if (availableModelsForCurrentBrand.isNotEmpty()) {
+            Spacer(Modifier.height(6.dp))
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                item {
+                    Text(
+                        text = "דגמים:",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(end = 4.dp)
+                    )
+                }
+                items(availableModelsForCurrentBrand) { model ->
+                    FilterChip(
+                        selected = selectedModel == model,
+                        onClick = {
+                            selectedModel = model
+                            searchQuery = ""
+                            keyboardController?.hide()
+                            if (model == "כל הדגמים") {
+                                loadInitialImages(selectedBrand)
+                            } else {
+                                loadInitialImages("$selectedBrand $model")
+                            }
+                        },
+                        label = { Text(model, fontSize = 11.sp) },
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.handCursor()
+                    )
+                }
+            }
+        }
+
         Spacer(Modifier.height(8.dp))
 
         // Copyright / DMCA Safe Harbor Notice Banner
@@ -367,7 +524,7 @@ fun GalleryScreen(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -399,7 +556,9 @@ fun GalleryScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "גלריית כל הרכבים (Wikimedia Commons)",
+                text = if (selectedBrand != "הכל") {
+                    if (selectedModel != "כל הדגמים") "גלריית $selectedBrand $selectedModel" else "גלריית כל רכבי $selectedBrand"
+                } else "גלריית כל הרכבים (Wikimedia Commons)",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold
@@ -434,7 +593,7 @@ fun GalleryScreen(
                     )
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        text = "לא נמצאו תמונות עבור \"${if (searchQuery.isNotBlank()) searchQuery else selectedBrand}\".\nבחר באחד היצרנים למעלה או חפש שם דגם.",
+                        text = "לא נמצאו תמונות עבור \"${if (searchQuery.isNotBlank()) searchQuery else "$selectedBrand $selectedModel"}\".\nבחר באחד היצרנים או הדגמים למעלה.",
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium
@@ -444,6 +603,7 @@ fun GalleryScreen(
                         onClick = {
                             searchQuery = ""
                             selectedBrand = "הכל"
+                            selectedModel = "כל הדגמים"
                             loadInitialImages("הכל")
                         },
                         modifier = Modifier.handCursor()
