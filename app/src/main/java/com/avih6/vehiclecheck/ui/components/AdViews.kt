@@ -1,4 +1,4 @@
-﻿package com.avih6.vehiclecheck.ui.components
+package com.avih6.vehiclecheck.ui.components
 
 import android.view.LayoutInflater
 import android.view.View
@@ -6,7 +6,6 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.RatingBar
 import android.widget.TextView
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
@@ -20,6 +19,7 @@ import com.avih6.vehiclecheck.R
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.nativead.MediaView
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdView
 
@@ -39,7 +39,7 @@ fun AdBanner(modifier: Modifier = Modifier) {
 
 @Composable
 fun NativeAdView(nativeAd: NativeAd, modifier: Modifier = Modifier) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
     val textColor = if (isDark) android.graphics.Color.WHITE else android.graphics.Color.BLACK
     val bodyColor = if (isDark) android.graphics.Color.LTGRAY else android.graphics.Color.DKGRAY
 
@@ -55,6 +55,7 @@ fun NativeAdView(nativeAd: NativeAd, modifier: Modifier = Modifier) {
             factory = { context ->
                 val adView = LayoutInflater.from(context)
                     .inflate(R.layout.ad_native_result, null) as NativeAdView
+                
                 populateNativeAdView(nativeAd, adView, textColor, bodyColor)
                 adView
             },
@@ -70,6 +71,7 @@ private fun populateNativeAdView(nativeAd: NativeAd, adView: NativeAdView, textC
     adView.bodyView = adView.findViewById(R.id.ad_body)
     adView.callToActionView = adView.findViewById(R.id.ad_call_to_action)
     adView.iconView = adView.findViewById(R.id.ad_app_icon)
+    adView.mediaView = adView.findViewById(R.id.ad_media)
     adView.priceView = adView.findViewById(R.id.ad_price)
     adView.starRatingView = adView.findViewById(R.id.ad_stars)
     adView.storeView = adView.findViewById(R.id.ad_store)
@@ -78,7 +80,7 @@ private fun populateNativeAdView(nativeAd: NativeAd, adView: NativeAdView, textC
     val headline = adView.headlineView as? TextView
     headline?.text = nativeAd.headline
     headline?.setTextColor(textColor)
-
+    
     if (nativeAd.body == null) {
         adView.bodyView?.visibility = View.INVISIBLE
     } else {
@@ -92,14 +94,21 @@ private fun populateNativeAdView(nativeAd: NativeAd, adView: NativeAdView, textC
         adView.callToActionView?.visibility = View.INVISIBLE
     } else {
         adView.callToActionView?.visibility = View.VISIBLE
-        (adView.callToActionView as? Button)?.text = nativeAd.callToAction
+        (adView.callToActionView as Button).text = nativeAd.callToAction
     }
 
-    if (nativeAd.icon == null) {
+    // Media / Icon handling
+    if (nativeAd.mediaContent != null) {
+        adView.mediaView?.setMediaContent(nativeAd.mediaContent!!)
+        adView.mediaView?.visibility = View.VISIBLE
         adView.iconView?.visibility = View.GONE
-    } else {
+    } else if (nativeAd.icon != null) {
         (adView.iconView as? ImageView)?.setImageDrawable(nativeAd.icon?.drawable)
         adView.iconView?.visibility = View.VISIBLE
+        adView.mediaView?.visibility = View.GONE
+    } else {
+        adView.mediaView?.visibility = View.GONE
+        adView.iconView?.visibility = View.GONE
     }
 
     adView.setNativeAd(nativeAd)

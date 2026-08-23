@@ -1,4 +1,4 @@
-﻿package com.avih6.vehiclecheck
+package com.avih6.vehiclecheck
 
 import android.app.Application
 import android.content.Context

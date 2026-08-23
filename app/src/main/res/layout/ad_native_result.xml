@@ -7,7 +7,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="10dp">
+        android:padding="8dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -15,12 +15,19 @@
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
+            <com.google.android.gms.ads.nativead.MediaView
+                android:id="@+id/ad_media"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginEnd="10dp" />
+
             <ImageView
                 android:id="@+id/ad_app_icon"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:adjustViewBounds="true"
-                android:layout_marginEnd="10dp" />
+                android:layout_marginEnd="10dp"
+                android:visibility="gone" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -52,7 +59,7 @@
                         android:layout_height="wrap_content"
                         android:ellipsize="end"
                         android:maxLines="1"
-                        android:textSize="14sp"
+                        android:textSize="13sp"
                         android:textStyle="bold" />
                 </LinearLayout>
 
@@ -63,7 +70,7 @@
                     android:ellipsize="end"
                     android:maxLines="2"
                     android:layout_marginTop="2dp"
-                    android:textSize="12sp" />
+                    android:textSize="11sp" />
             </LinearLayout>
 
             <Button
@@ -71,12 +78,11 @@
                 android:layout_width="wrap_content"
                 android:layout_height="36dp"
                 android:layout_marginStart="8dp"
-                android:paddingHorizontal="12dp"
+                android:paddingHorizontal="10dp"
                 android:paddingVertical="0dp"
-                android:textSize="12sp" />
+                android:textSize="11sp" />
         </LinearLayout>
 
-        <!-- Hidden optional elements without MediaView -->
         <TextView
             android:id="@+id/ad_advertiser"
             android:layout_width="0dp"
