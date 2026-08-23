@@ -10,13 +10,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.browser.customtabs.CustomTabsIntent
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -35,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.avih6.vehiclecheck.ui.components.AdBanner
 import com.avih6.vehiclecheck.ui.components.RatingDialog
+import com.avih6.vehiclecheck.ui.components.ThemeSettingsDialog
 import com.avih6.vehiclecheck.ui.screens.HistoryScreen
 import com.avih6.vehiclecheck.ui.screens.InfoScreen
 import com.avih6.vehiclecheck.ui.screens.SearchScreen
@@ -51,19 +50,16 @@ class MainActivity : ComponentActivity() {
 
         MobileAds.initialize(this) {}
 
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.auto(
-                android.graphics.Color.TRANSPARENT,
-                android.graphics.Color.TRANSPARENT
-            ),
-            navigationBarStyle = SystemBarStyle.auto(
-                android.graphics.Color.TRANSPARENT,
-                android.graphics.Color.TRANSPARENT
-            )
-        )
-
         setContent {
-            val isDark = isSystemInDarkTheme()
+            val themeMode by viewModel.themeMode.collectAsState()
+            val dynamicColors by viewModel.dynamicColors.collectAsState()
+
+            val systemDark = isSystemInDarkTheme()
+            val isDark = when (themeMode) {
+                "dark" -> true
+                "light" -> false
+                else -> systemDark
+            }
 
             DisposableEffect(isDark) {
                 enableEdgeToEdge(
@@ -81,7 +77,7 @@ class MainActivity : ComponentActivity() {
                 onDispose {}
             }
 
-            VehicleCheckTheme(darkTheme = isDark) {
+            VehicleCheckTheme(darkTheme = isDark, dynamicColor = dynamicColors) {
                 MainAppShell(viewModel)
             }
         }
@@ -97,11 +93,11 @@ fun MainAppShell(viewModel: MainViewModel) {
 
     var selectedTab by remember { mutableIntStateOf(0) }
     var showRatingDialog by remember { mutableStateOf(false) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
     var showOptionsMenu by remember { mutableStateOf(false) }
 
     val privacyPolicyUrl = "https://avih6.github.io/vehicle-check/privacy-policy"
     val termsUrl = "https://avih6.github.io/vehicle-check/terms-of-service"
-    val avih6AppsUrl = "https://avih6.github.io/"
 
     if (showRatingDialog) {
         RatingDialog(
@@ -118,6 +114,13 @@ fun MainAppShell(viewModel: MainViewModel) {
         )
     }
 
+    if (showSettingsDialog) {
+        ThemeSettingsDialog(
+            onDismiss = { showSettingsDialog = false },
+            viewModel = viewModel
+        )
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -126,6 +129,18 @@ fun MainAppShell(viewModel: MainViewModel) {
             ) {
                 DrawerHeader()
                 Spacer(Modifier.height(16.dp))
+
+                NavigationDrawerItem(
+                    label = { Text(stringResource(R.string.menu_settings)) },
+                    selected = false,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        showSettingsDialog = true
+                    },
+                    icon = { Icon(Icons.Default.Settings, null) }
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                 NavigationDrawerItem(
                     label = { Text(stringResource(R.string.menu_share)) },
@@ -153,29 +168,6 @@ fun MainAppShell(viewModel: MainViewModel) {
                         sendEmail(context)
                     },
                     icon = { Icon(Icons.Default.Email, null) }
-                )
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                // AVIH6 Apps Portfolio Link
-                NavigationDrawerItem(
-                    label = { Text(stringResource(R.string.menu_more_apps)) },
-                    selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        launchCustomTab(context, avih6AppsUrl)
-                    },
-                    icon = {
-                        Surface(
-                            modifier = Modifier.size(24.dp),
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primary
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text("A", color = Color.White, fontWeight = FontWeight.Black, fontSize = 13.sp)
-                            }
-                        }
-                    }
                 )
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -239,6 +231,15 @@ fun MainAppShell(viewModel: MainViewModel) {
                             onDismissRequest = { showOptionsMenu = false }
                         ) {
                             DropdownMenuItem(
+                                text = { Text(stringResource(R.string.menu_settings)) },
+                                onClick = {
+                                    showOptionsMenu = false
+                                    showSettingsDialog = true
+                                },
+                                leadingIcon = { Icon(Icons.Default.Settings, null) }
+                            )
+                            HorizontalDivider()
+                            DropdownMenuItem(
                                 text = { Text(stringResource(R.string.menu_share)) },
                                 onClick = {
                                     showOptionsMenu = false
@@ -263,24 +264,6 @@ fun MainAppShell(viewModel: MainViewModel) {
                                 leadingIcon = { Icon(Icons.Default.Email, null) }
                             )
                             HorizontalDivider()
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.menu_more_apps)) },
-                                onClick = {
-                                    showOptionsMenu = false
-                                    launchCustomTab(context, avih6AppsUrl)
-                                },
-                                leadingIcon = {
-                                    Surface(
-                                        modifier = Modifier.size(22.dp),
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.primary
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Text("A", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                                        }
-                                    }
-                                }
-                            )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.menu_privacy)) },
                                 onClick = {
@@ -378,35 +361,36 @@ private fun DrawerHeader() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(180.dp)
+            .height(200.dp)
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
                         MaterialTheme.colorScheme.primary,
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
                     )
                 )
-            )
-            .padding(20.dp),
-        contentAlignment = Alignment.BottomStart
+            ),
+        contentAlignment = Alignment.Center
     ) {
-        Column {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Surface(
-                modifier = Modifier.size(56.dp),
-                shape = RoundedCornerShape(14.dp),
-                color = Color.White,
-                border = BorderStroke(2.dp, Color.White.copy(alpha = 0.8f))
+                modifier = Modifier.size(80.dp),
+                shape = CircleShape,
+                shadowElevation = 4.dp
             ) {
-                Box(contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier.fillMaxSize().background(Color.White),
+                    contentAlignment = Alignment.Center
+                ) {
                     Icon(
                         Icons.Default.DirectionsCar,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier.size(48.dp)
                     )
                 }
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
             Text(
                 stringResource(R.string.app_name),
                 color = Color.White,

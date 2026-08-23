@@ -189,11 +189,13 @@ fun SearchScreen(
                         ResultCard(
                             vehicle = state.vehicle,
                             techSpec = state.techSpec,
+                            importerInfo = state.importerInfo,
                             extraHistory = state.extraHistory,
                             formattedPlate = state.formattedPlate,
                             testStatus = state.testStatus,
                             hasDisabledPermit = state.hasDisabledPermit,
                             permitIssueDate = state.permitIssueDate,
+                            sameModelActiveCount = state.sameModelActiveCount,
                             isFavorite = isFav,
                             onToggleFavorite = { viewModel.toggleFavoriteCurrentResult(query, isFav) }
                         )

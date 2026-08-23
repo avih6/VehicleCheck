@@ -75,10 +75,10 @@
     <string name="total_vehicles_gov">סך הכל כלי רכב במאגר: כ-3.8 מיליון</string>
 
     <!-- Menu & Drawer -->
-    <string name="menu_share">שתף אפליקציה</string>
-    <string name="menu_rate">דרג אותנו</string>
-    <string name="menu_contact">צור קשר / משוב</string>
-    <string name="menu_more_apps">עוד אפליקציות של AVIH6</string>
+    <string name="menu_settings">הגדרות תצוגה</string>
+    <string name="menu_share">שיתוף האפליקציה</string>
+    <string name="menu_rate">דירוג האפליקציה</string>
+    <string name="menu_contact">פנייה לתמיכה</string>
     <string name="menu_privacy">מדיניות פרטיות</string>
     <string name="menu_terms">תנאי שימוש</string>
     <string name="share_app_text">"בדוק פרטי רכב, טסט, קילומטראז, מפרט טכני ובטיחות באפליקציית בדיקת רכב:&#10;https://play.google.com/store/apps/details?id=com.avih6.vehiclecheck"</string>

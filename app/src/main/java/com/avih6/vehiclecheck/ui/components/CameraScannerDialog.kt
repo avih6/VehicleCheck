@@ -1,4 +1,4 @@
-﻿package com.avih6.vehiclecheck.ui.components
+package com.avih6.vehiclecheck.ui.components
 
 import android.content.Context
 import android.hardware.Sensor
@@ -11,12 +11,17 @@ import androidx.annotation.OptIn
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FlashOff
+import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material.icons.filled.ZoomOut
 import androidx.compose.material3.*
@@ -26,10 +31,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -79,6 +84,8 @@ fun CameraScannerDialog(
     var minZoomRatio by remember { mutableFloatStateOf(1f) }
     var maxZoomRatio by remember { mutableFloatStateOf(6f) }
     var cameraControl by remember { mutableStateOf<CameraControl?>(null) }
+    var cameraInfo by remember { mutableStateOf<CameraInfo?>(null) }
+    var isTorchOn by remember { mutableStateOf(false) }
     var detectedPlate by remember { mutableStateOf<String?>(null) }
     var isPaused by remember { mutableStateOf(false) }
 
@@ -184,6 +191,8 @@ fun CameraScannerDialog(
                                 lifecycleOwner, cameraSelector, preview, imageAnalyzer
                             )
                             cameraControl = camera.cameraControl
+                            cameraInfo = camera.cameraInfo
+
                             camera.cameraInfo.zoomState.observe(lifecycleOwner) { state ->
                                 if (state != null) {
                                     minZoomRatio = state.minZoomRatio
@@ -199,15 +208,59 @@ fun CameraScannerDialog(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Close Button
-            IconButton(
-                onClick = onDismiss,
+            // Scanning Viewfinder Box in center
+            if (detectedPlate == null) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .fillMaxWidth(0.85f)
+                        .height(130.dp)
+                        .border(BorderStroke(2.5.dp, Color(0xFFFFD54F)), RoundedCornerShape(16.dp))
+                        .background(Color(0x22FFD54F), RoundedCornerShape(16.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "כוון את לוחית הרישוי למסגרת",
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                        modifier = Modifier
+                            .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            // Top Actions (Flash and Close)
+            Row(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(16.dp)
-                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+                // Torch toggle
+                IconButton(
+                    onClick = {
+                        isTorchOn = !isTorchOn
+                        cameraControl?.enableTorch(isTorchOn)
+                    },
+                    modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                ) {
+                    Icon(
+                        imageVector = if (isTorchOn) Icons.Default.FlashOn else Icons.Default.FlashOff,
+                        contentDescription = "Flash",
+                        tint = if (isTorchOn) Color(0xFFFFD54F) else Color.White
+                    )
+                }
+
+                // Close Button
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+                }
             }
 
             // Zoom Controls
@@ -232,7 +285,7 @@ fun CameraScannerDialog(
                         }
 
                         Text(
-                            text = "x",
+                            text = "${String.format(Locale.US, "%.1f", zoomRatio)}x",
                             color = Color.White,
                             modifier = Modifier.padding(horizontal = 8.dp)
                         )

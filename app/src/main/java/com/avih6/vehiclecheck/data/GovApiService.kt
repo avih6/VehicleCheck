@@ -1,4 +1,4 @@
-﻿package com.avih6.vehiclecheck.data
+package com.avih6.vehiclecheck.data
 
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -66,6 +66,22 @@ interface GovApiService {
         @Query("filters") filters: String,
         @Query("limit") limit: Int = 1
     ): GovApiResponse<DisabledPermitRecord>
+
+    // 8. Importer Name & Price
+    @GET("api/3/action/datastore_search")
+    suspend fun getImporterPrice(
+        @Query("resource_id") resourceId: String = "39f455bf-6db0-4926-859d-017f34eacbcb",
+        @Query("filters") filters: String,
+        @Query("limit") limit: Int = 1
+    ): GovApiResponse<VehicleImporterPriceRecord>
+
+    // 9. Count active vehicles with same make and model
+    @GET("api/3/action/datastore_search")
+    suspend fun getSameModelActiveCount(
+        @Query("resource_id") resourceId: String = "053cea08-09bc-40ec-8f7a-156f0677aff3",
+        @Query("filters") filters: String,
+        @Query("limit") limit: Int = 0
+    ): GovApiResponse<VehicleRecord>
 }
 
 object NetworkClient {
