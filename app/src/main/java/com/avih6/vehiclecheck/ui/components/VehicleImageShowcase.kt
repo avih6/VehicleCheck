@@ -78,7 +78,7 @@ fun VehicleImageShowcase(
                         .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
                         .crossfade(true)
                         .build(),
-                    contentDescription = currentImage.title,
+                    contentDescription = currentImage.altText.ifBlank { "תמונת רכב $hebrewMake $modelName" },
                     modifier = Modifier
                         .fillMaxWidth()
                         .fillMaxHeight(0.78f),
@@ -95,7 +95,7 @@ fun VehicleImageShowcase(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = { showFullscreen = false }) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+                        Icon(Icons.Default.Close, contentDescription = "סגור מסך מלא", tint = Color.White)
                     }
 
                     IconButton(onClick = {
@@ -106,7 +106,7 @@ fun VehicleImageShowcase(
                         }
                         context.startActivity(Intent.createChooser(sendIntent, "שתף תמונת רכב"))
                     }) {
-                        Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.White)
+                        Icon(Icons.Default.Share, contentDescription = "שתף תמונת רכב", tint = Color.White)
                     }
                 }
 
@@ -217,7 +217,7 @@ fun VehicleImageShowcase(
                             .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
                             .crossfade(true)
                             .build(),
-                        contentDescription = currentImage.title,
+                        contentDescription = currentImage.altText.ifBlank { "תמונת רכב $hebrewMake $modelName" },
                         modifier = Modifier
                             .fillMaxSize()
                             .clickable { showFullscreen = true },
@@ -236,7 +236,7 @@ fun VehicleImageShowcase(
                                 .background(Color.Black.copy(alpha = 0.45f), CircleShape)
                                 .size(34.dp)
                         ) {
-                            Icon(Icons.Default.ChevronRight, contentDescription = "Prev", tint = Color.White)
+                            Icon(Icons.Default.ChevronRight, contentDescription = "התמונה הקודמת", tint = Color.White)
                         }
 
                         IconButton(
@@ -249,7 +249,7 @@ fun VehicleImageShowcase(
                                 .background(Color.Black.copy(alpha = 0.45f), CircleShape)
                                 .size(34.dp)
                         ) {
-                            Icon(Icons.Default.ChevronLeft, contentDescription = "Next", tint = Color.White)
+                            Icon(Icons.Default.ChevronLeft, contentDescription = "התמונה הבאה", tint = Color.White)
                         }
                     }
                 } else {
@@ -265,7 +265,7 @@ fun VehicleImageShowcase(
                                 .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
                                 .crossfade(true)
                                 .build(),
-                            contentDescription = "Brand Logo",
+                            contentDescription = "סמל יצרן $hebrewMake",
                             modifier = Modifier.size(75.dp),
                             contentScale = ContentScale.Fit
                         )

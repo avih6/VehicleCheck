@@ -752,7 +752,7 @@ private fun GeneralTabContent(
             ) {
                 Icon(
                     imageVector = Icons.Default.Accessible,
-                    contentDescription = null,
+                    contentDescription = if (hasDisabledPermit) "תו נכה פעיל" else "אין תו נכה",
                     tint = if (hasDisabledPermit) Color(0xFF00629E) else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(30.dp)
                 )

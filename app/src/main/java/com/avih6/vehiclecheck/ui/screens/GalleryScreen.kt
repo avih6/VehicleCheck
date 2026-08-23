@@ -247,7 +247,7 @@ fun GalleryScreen(
                         .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
                         .crossfade(true)
                         .build(),
-                    contentDescription = imageItem.title,
+                    contentDescription = imageItem.altText.ifBlank { imageItem.title },
                     modifier = Modifier
                         .fillMaxWidth()
                         .fillMaxHeight(0.72f),
@@ -267,7 +267,7 @@ fun GalleryScreen(
                         onClick = { selectedImageForViewer = null },
                         modifier = Modifier.handCursor()
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+                        Icon(Icons.Default.Close, contentDescription = "סגור חלון תצוגה מקדימה", tint = Color.White)
                     }
 
                     IconButton(
@@ -281,7 +281,7 @@ fun GalleryScreen(
                         },
                         modifier = Modifier.handCursor()
                     ) {
-                        Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.White)
+                        Icon(Icons.Default.Share, contentDescription = "שתף תמונת רכב", tint = Color.White)
                     }
                 }
 
@@ -639,7 +639,7 @@ fun GalleryScreen(
                                     .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
                                     .crossfade(true)
                                     .build(),
-                                contentDescription = item.title,
+                                contentDescription = item.altText.ifBlank { item.title },
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
                             )

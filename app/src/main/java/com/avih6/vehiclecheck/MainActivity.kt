@@ -480,12 +480,20 @@ private fun openPlayStore(context: Context) {
 }
 
 private fun launchCustomTab(context: Context, url: String) {
+    if (!url.startsWith("https://") && !url.startsWith("http://")) return
     try {
-        val intent = CustomTabsIntent.Builder().build()
+        val intent = CustomTabsIntent.Builder()
+            .setShowTitle(true)
+            .build()
+        intent.intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         intent.launchUrl(context, Uri.parse(url))
     } catch (e: Exception) {
-        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-        context.startActivity(browserIntent)
+        try {
+            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            context.startActivity(browserIntent)
+        } catch (_: Exception) {}
     }
 }
 

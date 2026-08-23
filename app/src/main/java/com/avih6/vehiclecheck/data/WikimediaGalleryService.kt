@@ -14,6 +14,8 @@ data class CarGalleryImage(
     val descriptionUrl: String = "",
     val license: String = "Creative Commons (Wikimedia Commons)",
     val artist: String = "",
+    val description: String = "",
+    val altText: String = "",
     val width: Int = 0,
     val height: Int = 0
 )
@@ -92,6 +94,10 @@ object WikimediaGalleryService {
                         val rawArtist = extMetadata?.optJSONObject("Artist")?.optString("value").orEmpty()
                         val cleanArtist = rawArtist.replace(Regex("<[^>]*>"), "").trim()
 
+                        val rawDesc = extMetadata?.optJSONObject("ImageDescription")?.optString("value").orEmpty()
+                        val cleanDesc = rawDesc.replace(Regex("<[^>]*>"), "").replace("\n", " ").trim()
+                        val altText = if (cleanDesc.isNotBlank()) cleanDesc else "תמונת רכב $title"
+
                         val checkPath = fullUrl.substringBefore("?")
                         val isValidExtension = checkPath.endsWith(".jpg", ignoreCase = true) ||
                                               checkPath.endsWith(".jpeg", ignoreCase = true) ||
@@ -113,6 +119,8 @@ object WikimediaGalleryService {
                                 descriptionUrl = descUrl,
                                 license = license,
                                 artist = cleanArtist,
+                                description = cleanDesc,
+                                altText = altText,
                                 width = w,
                                 height = h
                             ))
