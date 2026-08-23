@@ -47,6 +47,56 @@ data class VehicleRecord(
 )
 
 @Serializable
+data class PersonalImportRecord(
+    @SerialName("_id") val id: Long? = null,
+    @SerialName("mispar_rechev") val licensePlate: Long? = null,
+    @SerialName("shilda") val vin: String? = null,
+    @SerialName("tozeret_cd") val makeCode: Long? = null,
+    @SerialName("tozeret_nm") val make: String? = null,
+    @SerialName("sug_rechev_nm") val vehicleType: String? = null,
+    @SerialName("degem_nm") val model: String? = null,
+    @SerialName("mishkal_kolel") val totalWeight: Int? = null,
+    @SerialName("shnat_yitzur") val year: Int? = null,
+    @SerialName("nefach_manoa") val engineDisplacement: Int? = null,
+    @SerialName("tozeret_eretz_nm") val countryOfOrigin: String? = null,
+    @SerialName("degem_manoa") val engineModel: String? = null,
+    @SerialName("mivchan_acharon_dt") val lastTestDate: String? = null,
+    @SerialName("tokef_dt") val testExpiryDate: String? = null,
+    @SerialName("sug_yevu") val importType: String? = null,
+    @SerialName("moed_aliya_lakvish") val onRoadDate: String? = null,
+    @SerialName("sug_delek_nm") val fuelType: String? = null
+) {
+    fun toVehicleRecord(): VehicleRecord {
+        return VehicleRecord(
+            id = id,
+            licensePlate = licensePlate,
+            make = make,
+            makeCode = makeCode,
+            model = model,
+            modelCode = model,
+            modelCd = null,
+            modelType = if (!importType.isNullOrBlank()) "יבוא אישי ($importType)" else "יבוא אישי",
+            trimLevel = null,
+            year = year,
+            onRoadDate = onRoadDate,
+            lastTestDate = lastTestDate,
+            testExpiryDate = testExpiryDate,
+            ownership = "פרטי",
+            color = null,
+            colorCode = null,
+            fuelType = fuelType,
+            engineModel = engineModel,
+            frontTire = null,
+            rearTire = null,
+            safetyRating = null,
+            emissionGroup = null,
+            vin = vin,
+            registrationDirective = null
+        )
+    }
+}
+
+@Serializable
 data class DeregisteredVehicleRecord(
     @SerialName("_id") val id: Long? = null,
     @SerialName("mispar_rechev") val licensePlateRaw: String? = null,
@@ -106,6 +156,32 @@ data class DeregisteredVehicleRecord(
         )
     }
 }
+
+@Serializable
+data class VehicleRecallRestrictionRecord(
+    @SerialName("_id") val id: Long? = null,
+    @SerialName("MISPAR_RECHEV") val licensePlate: Long? = null,
+    @SerialName("RECALL_ID") val recallId: Long? = null,
+    @SerialName("SUG_RECALL") val recallType: String? = null,
+    @SerialName("SUG_TAKALA") val faultType: String? = null,
+    @SerialName("TEUR_TAKALA") val faultDescription: String? = null,
+    @SerialName("TAARICH_PTICHA") val openDate: String? = null
+)
+
+@Serializable
+data class RecallDetailRecord(
+    @SerialName("_id") val id: Long? = null,
+    @SerialName("RECALL_ID") val recallId: Long? = null,
+    @SerialName("TOZAR_TEUR") val makeName: String? = null,
+    @SerialName("DEGEM") val model: String? = null,
+    @SerialName("SUG_RECALL") val recallType: String? = null,
+    @SerialName("SUG_TAKALA") val faultType: String? = null,
+    @SerialName("TEUR_TAKALA") val faultDescription: String? = null,
+    @SerialName("OFEN_TIKUN") val repairMethod: String? = null,
+    @SerialName("YEVUAN_TEUR") val importerName: String? = null,
+    @SerialName("TELEPHONE") val telephone: String? = null,
+    @SerialName("WEBSITE") val website: String? = null
+)
 
 @Serializable
 data class VehicleTechnicalSpecRecord(
@@ -259,7 +335,9 @@ sealed interface SearchState {
         val permitIssueDate: Long?,
         val isOffRoad: Boolean = false,
         val offRoadDate: String? = null,
-        val stats: ModelStatistics = ModelStatistics(0, 0)
+        val stats: ModelStatistics = ModelStatistics(0, 0),
+        val recalls: List<VehicleRecallRestrictionRecord> = emptyList(),
+        val recallDetail: RecallDetailRecord? = null
     ) : SearchState
     data class NotFound(val plate: String) : SearchState
     data class Error(val message: String) : SearchState

@@ -44,6 +44,8 @@ fun ResultCard(
     isOffRoad: Boolean,
     offRoadDate: String?,
     stats: ModelStatistics,
+    recalls: List<VehicleRecallRestrictionRecord>,
+    recallDetail: RecallDetailRecord?,
     isFavorite: Boolean,
     onToggleFavorite: () -> Unit,
     modifier: Modifier = Modifier
@@ -93,6 +95,108 @@ fun ResultCard(
                         fontWeight = FontWeight.Black,
                         color = Color(0xFFC62828),
                         fontSize = 15.sp
+                    )
+                }
+            }
+        }
+
+        // 0.1 Open Recall Restriction Alert Badge (if vehicle has open recall)
+        if (recalls.isNotEmpty()) {
+            val firstRecall = recalls.first()
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                color = Color(0xFFD32F2F).copy(alpha = 0.12f),
+                border = BorderStroke(1.5.dp, Color(0xFFD32F2F).copy(alpha = 0.7f))
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = Color(0xFFD32F2F),
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "קריאת שירות (ריקול) פתוחה לרכב!",
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFFD32F2F),
+                            fontSize = 15.sp
+                        )
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+
+                    firstRecall.faultDescription?.let {
+                        Text(
+                            text = "תיאור התקלה: $it",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    firstRecall.faultType?.let {
+                        Text(
+                            text = "מכלול תקלה: $it",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    firstRecall.openDate?.let {
+                        Text(
+                            text = "תאריך פתיחה: ${VehicleUtils.formatDate(it)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    recallDetail?.repairMethod?.let {
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = "הנחיות תיקון: $it",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    if (!recallDetail?.telephone.isNullOrBlank() || !recallDetail?.importerName.isNullOrBlank()) {
+                        Spacer(Modifier.height(8.dp))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surface
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "יבואן: ${recallDetail?.importerName ?: ""}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                recallDetail?.telephone?.let { phone ->
+                                    Text(
+                                        text = "📞 $phone",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = "הערה: קריאת ריקול פתוחה מחייבת תיקון במוסך היבואן (ללא עלות) כתנאי לחידוש רישיון הרכב ומעבר טסט.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFFD32F2F),
+                        fontSize = 11.sp
                     )
                 }
             }
@@ -168,7 +272,7 @@ fun ResultCard(
                         }
                         IconButton(onClick = {
                             val shareText = buildComprehensiveShareText(
-                                vehicle, techSpec, importerInfo, extraHistory, formattedPlate, testStatus, hasDisabledPermit, permitIssueDate, isOffRoad, offRoadDate
+                                vehicle, techSpec, importerInfo, extraHistory, formattedPlate, testStatus, hasDisabledPermit, permitIssueDate, isOffRoad, offRoadDate, recalls
                             )
                             val sendIntent = Intent().apply {
                                 action = Intent.ACTION_SEND
@@ -253,7 +357,7 @@ fun ResultCard(
             }
         }
 
-        // 3. Quick Status Cards Row (Disabled Permit, Ownership, Test)
+        // 3. Quick Status Cards Row (Disabled Permit, Ownership, Test, Recall)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -290,6 +394,16 @@ fun ResultCard(
                 value = testTitle,
                 isPositive = testPositive,
                 icon = Icons.Default.CalendarToday,
+                modifier = Modifier.weight(1f)
+            )
+
+            // Recall Pill
+            val hasRecall = recalls.isNotEmpty()
+            StatusPill(
+                title = "ריקול",
+                value = if (hasRecall) "פתוח ⚠️" else "תקין ✅",
+                isPositive = !hasRecall,
+                icon = if (hasRecall) Icons.Default.Warning else Icons.Default.CheckCircle,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -368,6 +482,8 @@ fun ResultCard(
                 testStatus = testStatus,
                 hasDisabledPermit = hasDisabledPermit,
                 permitIssueDate = permitIssueDate,
+                recalls = recalls,
+                recallDetail = recallDetail,
                 stats = stats,
                 onShowAllCounts = { showStatsDialog = true }
             )
@@ -387,6 +503,8 @@ private fun GeneralTabContent(
     testStatus: TestStatus,
     hasDisabledPermit: Boolean,
     permitIssueDate: Long?,
+    recalls: List<VehicleRecallRestrictionRecord>,
+    recallDetail: RecallDetailRecord?,
     stats: ModelStatistics,
     onShowAllCounts: () -> Unit
 ) {
@@ -1002,26 +1120,28 @@ private fun StatusPill(
         )
     ) {
         Column(
-            modifier = Modifier.padding(10.dp).fillMaxWidth(),
+            modifier = Modifier.padding(8.dp).fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = if (isPositive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(18.dp)
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 11.sp
             )
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Bold,
-                color = if (isPositive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                color = if (isPositive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                fontSize = 11.sp
             )
         }
     }
@@ -1069,7 +1189,8 @@ private fun buildComprehensiveShareText(
     hasDisabledPermit: Boolean,
     permitIssueDate: Long?,
     isOffRoad: Boolean,
-    offRoadDate: String?
+    offRoadDate: String?,
+    recalls: List<VehicleRecallRestrictionRecord>
 ): String {
     val statusStr = when (testStatus) {
         is TestStatus.Valid -> "טסט בתוקף (נותרו ${testStatus.daysLeft} ימים)"
@@ -1080,6 +1201,7 @@ private fun buildComprehensiveShareText(
     }
 
     val offRoadAlert = if (isOffRoad) "🚫 *סטטוס רכב: ירד מהכביש (${offRoadDate ?: "בוטל"})*\n" else ""
+    val recallAlert = if (recalls.isNotEmpty()) "⚠️ *קריאת ריקול פתוחה:* ${recalls.first().faultDescription ?: "קיימת קריאת שירות פתוחה"}\n" else ""
     val mileageStr = extraHistory?.lastTestMileage?.let { "\n🛣️ קילומטראז' בטסט: %,d ק\"מ".format(it) } ?: ""
     val hpStr = techSpec?.horsepower?.let { "\n🐎 כוחות סוס: $it כ\"ס" } ?: ""
     val ccStr = techSpec?.engineDisplacement?.let { "\n⚙️ נפח מנוע: %,d סמ\"ק".format(it) } ?: ""
@@ -1089,7 +1211,7 @@ private fun buildComprehensiveShareText(
 
     return """
         📋 *דוח בדיקת רכב מקיף - מספר $formattedPlate*
-        $offRoadAlert🚗 יצרן ודגם: ${vehicle.make ?: ""} ${vehicle.model ?: ""} (${vehicle.trimLevel ?: ""})
+        $offRoadAlert$recallAlert🚗 יצרן ודגם: ${vehicle.make ?: ""} ${vehicle.model ?: ""} (${vehicle.trimLevel ?: ""})
         📅 שנת ייצור: ${vehicle.year ?: "-"} (עלייה לכביש: ${vehicle.onRoadDate ?: "-"})$priceStr
         🛡️ סטטוס טסט: $statusStr
         🗓️ תוקף טסט: ${vehicle.testExpiryDate ?: "-"} (מבחן אחרון: ${vehicle.lastTestDate ?: "-"})$hpStr$ccStr$driveStr

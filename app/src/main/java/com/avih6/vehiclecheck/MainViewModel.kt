@@ -103,6 +103,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     } catch (e2: Exception) {}
                 }
 
+                // Check Personal Import
+                if (activeVehicle == null) {
+                    try {
+                        val impResp = NetworkClient.apiService.getPersonalImportVehicle(filters = filtersStr)
+                        activeVehicle = impResp.result?.records?.firstOrNull()?.toVehicleRecord()
+                    } catch (e: Exception) {}
+                }
+
+                // Check Public Vehicle (Taxis/Buses)
+                if (activeVehicle == null) {
+                    try {
+                        val pub = NetworkClient.apiService.getPublicVehicle(filters = filtersStr)
+                        activeVehicle = pub.result?.records?.firstOrNull()
+                    } catch (e: Exception) {}
+                }
+
                 // Check Heavy vehicle & Two-wheelers fallback
                 if (activeVehicle == null) {
                     try {
@@ -174,7 +190,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
                 val vehicle = finalVehicle
 
-                // 3. Fetch Extra History & Disabled Permit in parallel
+                // 3. Parallel Fetch: Recalls, Extra History, Disabled Permit, Specs, Pricing & Stats
+                val recallsDeferred = async {
+                    try {
+                        val recallFilter = "{\"MISPAR_RECHEV\":$plateLong}"
+                        val resp = NetworkClient.apiService.getRecallRestrictions(filters = recallFilter)
+                        resp.result?.records ?: emptyList()
+                    } catch (e: Exception) { emptyList<VehicleRecallRestrictionRecord>() }
+                }
+
                 val extraHistoryDeferred = async {
                     try {
                         val resp = NetworkClient.apiService.getExtraHistory(filters = filtersStr)
@@ -230,23 +254,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     } catch (e: Exception) { null }
                 }
 
-                // Model Statistics Deferred
                 val statsDeferred = async {
                     try {
                         val makeCd = vehicle.makeCode
                         val modelCd = vehicle.modelCd
                         val year = vehicle.year
                         if (makeCd != null && modelCd != null) {
-                            // Total Active for model across all years
                             val activeTotalFilter = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}"
                             val activeResp = NetworkClient.apiService.getSameModelActiveCount(filters = activeTotalFilter)
                             val totalActive = activeResp.result?.total ?: 0
 
-                            // Specific Year Active
                             val activeYearFilter = if (year != null) "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd,\"shnat_yitzur\":$year}" else activeTotalFilter
                             val activeYearCount = if (year != null) NetworkClient.apiService.getSameModelActiveCount(filters = activeYearFilter).result?.total ?: 0 else totalActive
 
-                            // Inactive count (from 2010+ and 2017+)
                             val inactFilter = if (year != null) "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd,\"shnat_yitzur\":$year}" else "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}"
                             val inactResp = NetworkClient.apiService.getDeregisteredCount("851ecab1-0622-4dbe-a6c7-f950cf82abf9", inactFilter)
                             val inactCount2017 = inactResp.result?.total ?: 0
@@ -274,6 +294,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     } catch (e: Exception) {
                         ModelStatistics(if (isOffRoad) 0 else 1, if (isOffRoad) 1 else 0)
                     }
+                }
+
+                val recalls = recallsDeferred.await()
+                var recallDetail: RecallDetailRecord? = null
+                val firstRecallId = recalls.firstOrNull()?.recallId
+                if (firstRecallId != null) {
+                    try {
+                        val detailResp = NetworkClient.apiService.getRecallDetails(filters = "{\"RECALL_ID\":$firstRecallId}")
+                        recallDetail = detailResp.result?.records?.firstOrNull()
+                    } catch (e: Exception) {}
                 }
 
                 val extraHistory = extraHistoryDeferred.await()
@@ -304,7 +334,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     permitIssueDate = permitRecord?.issueDate,
                     isOffRoad = isOffRoad,
                     offRoadDate = offRoadDateFormatted,
-                    stats = stats
+                    stats = stats,
+                    recalls = recalls,
+                    recallDetail = recallDetail
                 )
 
             } catch (e: Exception) {
@@ -327,7 +359,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleFavoriteByPlate(plate: String, isFavorite: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
-            repository.toggleFavoriteByPlate(plate, isFavorite)
+            repository.toggleFavoriteByPlate(plate, !isFavorite)
         }
     }
 

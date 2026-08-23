@@ -198,6 +198,8 @@ fun SearchScreen(
                             isOffRoad = state.isOffRoad,
                             offRoadDate = state.offRoadDate,
                             stats = state.stats,
+                            recalls = state.recalls,
+                            recallDetail = state.recallDetail,
                             isFavorite = isFav,
                             onToggleFavorite = { viewModel.toggleFavoriteCurrentResult(query, isFav) }
                         )

@@ -114,6 +114,38 @@ interface GovApiService {
         @Query("filters") filters: String,
         @Query("limit") limit: Int = 0
     ): GovApiResponse<DeregisteredVehicleRecord>
+
+    // 14. Recall Restrictions per vehicle (הגבלות ריקול פתוחות ברכב)
+    @GET("api/3/action/datastore_search")
+    suspend fun getRecallRestrictions(
+        @Query("resource_id") resourceId: String = "36bf1404-0be4-49d2-82dc-2f1ead4a8b93",
+        @Query("filters") filters: String,
+        @Query("limit") limit: Int = 5
+    ): GovApiResponse<VehicleRecallRestrictionRecord>
+
+    // 15. Recall Full Details & Importer info (פרטי ריקול והוראות תיקון)
+    @GET("api/3/action/datastore_search")
+    suspend fun getRecallDetails(
+        @Query("resource_id") resourceId: String = "2c33523f-87aa-44ec-a736-edbb0a82975e",
+        @Query("filters") filters: String,
+        @Query("limit") limit: Int = 1
+    ): GovApiResponse<RecallDetailRecord>
+
+    // 16. Personal Import Vehicles (יבוא אישי)
+    @GET("api/3/action/datastore_search")
+    suspend fun getPersonalImportVehicle(
+        @Query("resource_id") resourceId: String = "03adc637-b6fe-402b-9937-7c3d3afc9140",
+        @Query("filters") filters: String,
+        @Query("limit") limit: Int = 1
+    ): GovApiResponse<PersonalImportRecord>
+
+    // 17. Public Transport Vehicles (מוניות, רכב סיור, אוטובוסים)
+    @GET("api/3/action/datastore_search")
+    suspend fun getPublicVehicle(
+        @Query("resource_id") resourceId: String = "cf29862d-ca25-4691-84f6-1be60dcb4a1e",
+        @Query("filters") filters: String,
+        @Query("limit") limit: Int = 1
+    ): GovApiResponse<VehicleRecord>
 }
 
 object NetworkClient {
