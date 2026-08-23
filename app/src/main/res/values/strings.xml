@@ -1,0 +1,76 @@
+﻿<resources>
+    <string name="app_name">בדיקת רכב</string>
+    <string name="app_name_full">בדיקת רכב - מידע וטסט</string>
+    <string name="search_title">בדיקת רכב</string>
+    <string name="search_hint">מספר רכב</string>
+    <string name="search_btn">בדוק עכשיו</string>
+    <string name="search_placeholder">הכנס מספר רכב לבדיקה</string>
+    <string name="search_invalid_plate">מספר הרכב חייב להכיל 7 או 8 ספרות</string>
+    
+    <!-- Test Status -->
+    <string name="test_valid">טסט בתוקף</string>
+    <string name="test_expired">פג תוקף הטסט</string>
+    <string name="test_expiring_soon">טסט יפוג בקרוב</string>
+    <string name="test_days_left">נותרו עוד %1 ימים</string>
+    <string name="test_days_passed">עברו %1 ימים מאז פקיעת הטסט</string>
+    <string name="test_expires_today">הטסט פג תוקף היום!</string>
+    <string name="test_expiry_date">תוקף טסט: %1</string>
+    <string name="last_test_date">מבחן רישוי אחרון: %1</string>
+    
+    <!-- Vehicle Specs -->
+    <string name="spec_identity">פרטי הרכב</string>
+    <string name="spec_technical">מפרט טכני ובטיחות</string>
+    <string name="spec_make_model">יצרן ודגם</string>
+    <string name="spec_year">שנת ייצור</string>
+    <string name="spec_on_road">עלייה לכביש</string>
+    <string name="spec_color">צבע הרכב</string>
+    <string name="spec_ownership">בעלות</string>
+    <string name="spec_fuel">סוג דלק</string>
+    <string name="spec_trim">רמת גימור</string>
+    <string name="spec_engine">דגם מנוע</string>
+    <string name="spec_tires">מידות צמיגים</string>
+    <string name="spec_safety_score">דירוג בטיחות</string>
+    <string name="spec_pollution_group">קבוצת זיהום</string>
+    <string name="spec_vin">מספר שלדה</string>
+    <string name="spec_disabled_permit">תו נכה פעיל</string>
+    <string name="spec_disabled_permit_yes">לרכב זה יש תו נכה פעיל במאגר</string>
+    <string name="spec_disabled_permit_no">אין תו נכה רשום במאגר</string>
+    
+    <!-- Actions -->
+    <string name="btn_favorite_add">הוסף למועדפים</string>
+    <string name="btn_favorite_remove">הסר ממועדפים</string>
+    <string name="btn_share">שתף דוח רכב</string>
+    <string name="btn_copy_plate">העתק מספר רכב</string>
+    <string name="btn_copy_vin">העתק מספר שלדה</string>
+    <string name="copied_to_clipboard">הועתק ללוח</string>
+    <string name="share_report_title">דוח בדיקת רכב %1</string>
+    
+    <!-- Tabs -->
+    <string name="tab_search">חיפוש</string>
+    <string name="tab_history">היסטוריה</string>
+    <string name="tab_info">אודות ומידע</string>
+    
+    <!-- History -->
+    <string name="history_title">היסטוריית חיפושים</string>
+    <string name="history_empty">עדיין לא ביצעת חיפושים</string>
+    <string name="history_clear">נקה היסטוריה</string>
+    <string name="history_clear_confirm">האם למחוק את כל היסטוריית החיפושים?</string>
+    <string name="btn_delete">מחק</string>
+    <string name="btn_cancel">ביטול</string>
+    
+    <!-- Camera Scanner -->
+    <string name="camera_scan_plate">סריקת לוחית רישוי</string>
+    <string name="camera_timeout_msg">המצלמה נסגרה באופן אוטומטי לחסכון בסוללה</string>
+    <string name="ocr_confirm_title">זוהה מספר רכב</string>
+    <string name="ocr_confirm_message">האם לבדוק את מספר הרכב %1</string>
+    <string name="ocr_init_failed">שגיאה באתחול סורק המצלמה</string>
+    <string name="btn_check">בדוק</string>
+    
+    <!-- General -->
+    <string name="network_error">שגיאת תקשורת. בדוק את החיבור לאינטרנט ונסה שוב.</string>
+    <string name="not_found">מספר רכב זה לא נמצא במאגר משרד התחבורה</string>
+    <string name="dataset_source">המידע מבוסס על מאגר כלי רכב פעילים של משרד התחבורה דרך data.gov.il</string>
+    <string name="disclaimer_title">הבהרה משפטית</string>
+    <string name="disclaimer_text">האפליקציה אינה מייצגת גוף ממשלתי רשמי. המידע מוצג כשירות לציבור כפי שהוא (AS-IS) מתוך מאגרי המידע הפתוחים של ממשלת ישראל (data.gov.il).</string>
+    <string name="total_vehicles_gov">סך הכל כלי רכב במאגר: כ-3.8 מיליון</string>
+</resources>
