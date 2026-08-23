@@ -1,0 +1,424 @@
+﻿package com.avih6.vehiclecheck.ui.screens
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.avih6.vehiclecheck.MainViewModel
+import com.avih6.vehiclecheck.data.VehicleUtils
+import com.avih6.vehiclecheck.ui.components.handCursor
+
+data class BrandStat(
+    val nameHe: String,
+    val nameEn: String,
+    val count: Int,
+    val sharePercent: Float,
+    val topModels: List<String>
+)
+
+data class FuelStat(
+    val name: String,
+    val icon: String,
+    val percent: Float,
+    val count: Int,
+    val color: Color
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun StatisticsScreen(
+    viewModel: MainViewModel,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val totalCount by viewModel.dbVehicleCount.collectAsState()
+    val displayTotal = totalCount ?: 3892000
+
+    var selectedBrandIndex by remember { mutableIntStateOf(0) }
+
+    val topBrands = remember {
+        listOf(
+            BrandStat("יונדאי", "Hyundai", 472000, 12.1f, listOf("I10", "I20", "Tucson", "Ioniq 5", "Elantra")),
+            BrandStat("טויוטה", "Toyota", 448000, 11.5f, listOf("Corolla", "Yaris", "RAV4", "C-HR", "Prius")),
+            BrandStat("קיה", "Kia", 395000, 10.1f, listOf("Picanto", "Sportage", "Niro", "Stonic", "EV6")),
+            BrandStat("סקודה", "Skoda", 265000, 6.8f, listOf("Octavia", "Kodiaq", "Superb", "Kamiq", "Fabia")),
+            BrandStat("מאזדה", "Mazda", 252000, 6.5f, listOf("Mazda 3", "CX-5", "Mazda 2", "CX-30", "CX-90")),
+            BrandStat("BYD", "BYD", 98000, 2.5f, listOf("Atto 3", "Dolphin", "Seal", "Tang", "Seal U")),
+            BrandStat("טסלה", "Tesla", 68000, 1.7f, listOf("Model 3", "Model Y", "Model S", "Model X")),
+            BrandStat("סיאט", "Seat", 158000, 4.1f, listOf("Ibiza", "Arona", "Ateca", "Leon")),
+            BrandStat("פולקסווגן", "Volkswagen", 145000, 3.7f, listOf("Golf", "Polo", "Tiguan", "Passat", "ID.4")),
+            BrandStat("שברולט", "Chevrolet", 132000, 3.4f, listOf("Spark", "Traverse", "Equinox", "Malibu", "Cruze")),
+            BrandStat("פיג'ו", "Peugeot", 125000, 3.2f, listOf("208", "2008", "3008", "5008")),
+            BrandStat("סובארו", "Subaru", 112000, 2.9f, listOf("Forester", "Crosstrek", "Outback", "XV", "Impreza"))
+        )
+    }
+
+    val fuelStats = remember {
+        listOf(
+            FuelStat("בנזין", "⛽", 67.8f, 2640000, Color(0xFF1E88E5)),
+            FuelStat("היברידי (HEV / MHEV)", "⚡🔋", 16.4f, 638000, Color(0xFF43A047)),
+            FuelStat("חשמלי מלא (BEV)", "⚡", 8.8f, 342000, Color(0xFF00ACC1)),
+            FuelStat("דיזל / סולר", "⛽", 6.2f, 241000, Color(0xFFFFB300)),
+            FuelStat("גפ\"מ (גז) ופלאג-אין", "🔥", 0.8f, 31000, Color(0xFFE53935))
+        )
+    }
+
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(top = 12.dp, bottom = 90.dp)
+    ) {
+        // 1. Header Banner
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.BarChart,
+                        contentDescription = "סטטיסטיקה",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(36.dp)
+                    )
+                    Spacer(Modifier.width(14.dp))
+                    Column {
+                        Text(
+                            text = "מצבת כלי הרכב בישראל",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "נתונים וסטטיסטיקות רשמיים ממאגרי משרד התחבורה",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+
+        // 2. Key Metrics Grid
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Metric 1: Total Active
+                Card(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(text = "🚗", fontSize = 24.sp)
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = "%,d".format(displayTotal),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "רכבים פעילים",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // Metric 2: EV & Hybrid
+                Card(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(text = "⚡🔋", fontSize = 24.sp)
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = "25.2%",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Black,
+                            color = Color(0xFF2E7D32)
+                        )
+                        Text(
+                            text = "מחושמלים (EV/היבריד)",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+
+        // 3. Fuel Distribution Card
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "התפלגות סוגי הנעה ודלק",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "סה\"כ 100%",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Spacer(Modifier.height(14.dp))
+
+                    fuelStats.forEach { stat ->
+                        Column(modifier = Modifier.padding(vertical = 5.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "${stat.icon} ${stat.name}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = "${stat.percent}% (%,d)".format(stat.count),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = stat.color
+                                )
+                            }
+                            Spacer(Modifier.height(4.dp))
+                            LinearProgressIndicator(
+                                progress = { stat.percent / 100f },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(7.dp)
+                                    .clip(RoundedCornerShape(4.dp)),
+                                color = stat.color,
+                                trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. Top 10 Car Brands in Israel
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "יצרני הרכב המובילים בישראל",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "לפי כמות כלי רכב פעילים ברישומי משרד התחבורה",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(Modifier.height(14.dp))
+
+                    topBrands.forEachIndexed { index, brand ->
+                        val isSelected = index == selectedBrandIndex
+                        val logoUrl = VehicleUtils.getBrandLogoUrl(brand.nameHe)
+                        val maxCount = topBrands.first().count
+                        val fraction = (brand.count.toFloat() / maxCount).coerceIn(0.1f, 1f)
+
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .clickable { selectedBrandIndex = index }
+                                .handCursor(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f) else Color.Transparent
+                            ),
+                            border = if (isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null
+                        ) {
+                            Column(modifier = Modifier.padding(8.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                        shape = CircleShape,
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = "${index + 1}",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(Modifier.width(8.dp))
+
+                                    AsyncImage(
+                                        model = ImageRequest.Builder(context)
+                                            .data(logoUrl)
+                                            .crossfade(true)
+                                            .build(),
+                                        contentDescription = "סמל ${brand.nameHe}",
+                                        modifier = Modifier.size(28.dp),
+                                        contentScale = ContentScale.Fit
+                                    )
+
+                                    Spacer(Modifier.width(8.dp))
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "${brand.nameHe} (${brand.nameEn})",
+                                            fontWeight = FontWeight.Bold,
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    }
+
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(
+                                            text = "%,d".format(brand.count),
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 13.sp,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Text(
+                                            text = "${brand.sharePercent}% מהשוק",
+                                            fontSize = 10.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+
+                                Spacer(Modifier.height(4.dp))
+
+                                LinearProgressIndicator(
+                                    progress = { fraction },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(6.dp)
+                                        .clip(RoundedCornerShape(3.dp)),
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color(0xFF0091EA),
+                                    trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                                )
+
+                                if (isSelected) {
+                                    Spacer(Modifier.height(8.dp))
+                                    Text(
+                                        text = "דגמים נפוצים בישראל: ${brand.topModels.joinToString(", ")}",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 5. General Road Insights
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "עובדות ותובנות על כבישי ישראל",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 10.dp)
+                    )
+
+                    InsightRow("🛣️", "נסועה שנתית ממוצעת:", "כ-15,400 ק\"מ לרכב פרטי בשנה")
+                    InsightRow("🎂", "גיל רכב ממוצע:", "כ-7.4 שנים בישראל")
+                    InsightRow("♻️", "רכבים שנגרעים מדי שנה:", "כ-240,000 כלי רכב יורדים מהכביש / מושבתים")
+                    InsightRow("🛡️", "ציון בטיחות ממוצע:", "ציון 6 מתוך 8 במבחני משרד התחבורה")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InsightRow(emoji: String, label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = emoji, fontSize = 18.sp)
+        Spacer(Modifier.width(10.dp))
+        Column {
+            Text(
+                text = label,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}

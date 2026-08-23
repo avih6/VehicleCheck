@@ -16,6 +16,8 @@ android {
         versionCode = 1
         versionName = "1.0.0"
 
+        resourceConfigurations += listOf("he", "en", "iw")
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -32,6 +34,17 @@ android {
         debug {
             isMinifyEnabled = false
             applicationIdSuffix = ".debug"
+        }
+    }
+    packaging {
+        resources {
+            excludes += listOf(
+                "/META-INF/{AL2.0,LGPL2.1}",
+                "/META-INF/DEPENDENCIES",
+                "/META-INF/LICENSE*",
+                "/META-INF/NOTICE*",
+                "/META-INF/*.version"
+            )
         }
     }
     compileOptions {

@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.browser.customtabs.CustomTabsIntent
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -47,9 +48,12 @@ class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
 
-        MobileAds.initialize(this) {}
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default).launch {
+            MobileAds.initialize(this@MainActivity) {}
+        }
 
         setContent {
             val themeMode by viewModel.themeMode.collectAsState()
@@ -318,7 +322,7 @@ fun MainAppShell(viewModel: MainViewModel) {
                                     contentDescription = stringResource(R.string.tab_search)
                                 )
                             },
-                            label = { Text(stringResource(R.string.tab_search), fontSize = 11.sp) },
+                            label = { Text(stringResource(R.string.tab_search), fontSize = 10.sp) },
                             modifier = Modifier.handCursor()
                         )
                         NavigationBarItem(
@@ -326,11 +330,11 @@ fun MainAppShell(viewModel: MainViewModel) {
                             onClick = { selectedTab = 1 },
                             icon = {
                                 Icon(
-                                    if (selectedTab == 1) Icons.Filled.Warning else Icons.Outlined.WarningAmber,
-                                    contentDescription = "ריקולים"
+                                    if (selectedTab == 1) Icons.Filled.BarChart else Icons.Outlined.BarChart,
+                                    contentDescription = "סטטיסטיקה"
                                 )
                             },
-                            label = { Text("ריקולים", fontSize = 11.sp) },
+                            label = { Text("סטטיסטיקה", fontSize = 10.sp) },
                             modifier = Modifier.handCursor()
                         )
                         NavigationBarItem(
@@ -338,11 +342,11 @@ fun MainAppShell(viewModel: MainViewModel) {
                             onClick = { selectedTab = 2 },
                             icon = {
                                 Icon(
-                                    if (selectedTab == 2) Icons.Filled.Build else Icons.Outlined.Build,
-                                    contentDescription = "קודי תקלה"
+                                    if (selectedTab == 2) Icons.Filled.Warning else Icons.Outlined.WarningAmber,
+                                    contentDescription = "ריקולים"
                                 )
                             },
-                            label = { Text("תקלות", fontSize = 11.sp) },
+                            label = { Text("ריקולים", fontSize = 10.sp) },
                             modifier = Modifier.handCursor()
                         )
                         NavigationBarItem(
@@ -350,11 +354,11 @@ fun MainAppShell(viewModel: MainViewModel) {
                             onClick = { selectedTab = 3 },
                             icon = {
                                 Icon(
-                                    if (selectedTab == 3) Icons.Filled.Image else Icons.Outlined.Image,
-                                    contentDescription = "גלריה"
+                                    if (selectedTab == 3) Icons.Filled.Build else Icons.Outlined.Build,
+                                    contentDescription = "קודי תקלה"
                                 )
                             },
-                            label = { Text("גלריה", fontSize = 11.sp) },
+                            label = { Text("תקלות", fontSize = 10.sp) },
                             modifier = Modifier.handCursor()
                         )
                         NavigationBarItem(
@@ -362,11 +366,23 @@ fun MainAppShell(viewModel: MainViewModel) {
                             onClick = { selectedTab = 4 },
                             icon = {
                                 Icon(
-                                    if (selectedTab == 4) Icons.Filled.History else Icons.Outlined.History,
+                                    if (selectedTab == 4) Icons.Filled.Image else Icons.Outlined.Image,
+                                    contentDescription = "גלריה"
+                                )
+                            },
+                            label = { Text("גלריה", fontSize = 10.sp) },
+                            modifier = Modifier.handCursor()
+                        )
+                        NavigationBarItem(
+                            selected = selectedTab == 5,
+                            onClick = { selectedTab = 5 },
+                            icon = {
+                                Icon(
+                                    if (selectedTab == 5) Icons.Filled.History else Icons.Outlined.History,
                                     contentDescription = stringResource(R.string.tab_history)
                                 )
                             },
-                            label = { Text(stringResource(R.string.tab_history), fontSize = 11.sp) },
+                            label = { Text(stringResource(R.string.tab_history), fontSize = 10.sp) },
                             modifier = Modifier.handCursor()
                         )
                     }
@@ -383,26 +399,30 @@ fun MainAppShell(viewModel: MainViewModel) {
                         viewModel = viewModel,
                         modifier = Modifier.fillMaxSize()
                     )
-                    1 -> com.avih6.vehiclecheck.ui.screens.RecallsScreen(
+                    1 -> com.avih6.vehiclecheck.ui.screens.StatisticsScreen(
+                        viewModel = viewModel,
                         modifier = Modifier.fillMaxSize()
                     )
-                    2 -> com.avih6.vehiclecheck.ui.screens.DtcScreen(
+                    2 -> com.avih6.vehiclecheck.ui.screens.RecallsScreen(
                         modifier = Modifier.fillMaxSize()
                     )
-                    3 -> {
+                    3 -> com.avih6.vehiclecheck.ui.screens.DtcScreen(
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    4 -> {
                         val currentSearchState = viewModel.searchState.collectAsState().value
                         val initialQuery = if (currentSearchState is com.avih6.vehiclecheck.data.SearchState.Success) {
                             val v = currentSearchState.vehicle
                             val (makeEn, modelEn) = com.avih6.vehiclecheck.data.VehicleUtils.getEnglishMakeAndModel(v.make, v.model)
                             "$makeEn $modelEn"
-                        } else "Subaru Forester"
+                        } else "הכל"
 
                         com.avih6.vehiclecheck.ui.screens.GalleryScreen(
                             initialQuery = initialQuery,
                             modifier = Modifier.fillMaxSize()
                         )
                     }
-                    4 -> HistoryScreen(
+                    5 -> HistoryScreen(
                         viewModel = viewModel,
                         onSelectVehicle = { plate ->
                             viewModel.searchPlateDirect(plate)
