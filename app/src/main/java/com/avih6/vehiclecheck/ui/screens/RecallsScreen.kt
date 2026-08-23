@@ -1,4 +1,4 @@
-﻿package com.avih6.vehiclecheck.ui.screens
+package com.avih6.vehiclecheck.ui.screens
 
 import android.content.Intent
 import android.net.Uri
@@ -57,8 +57,12 @@ fun RecallsScreen(
     var selectedFilterYear by remember { mutableStateOf("הכל") }
     var selectedFilterCategory by remember { mutableStateOf("הכל") }
 
-    val filterYears = remember { listOf("הכל", "2026", "2025", "2024", "2023") }
-    val filterCategories = remember { listOf("הכל", "בלמים", "כריות אוויר", "היגוי", "דלק", "מנוע", "חשמל") }
+    val filterYears = remember { 
+        listOf("הכל", "2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019", "2018", "2017", "2016", "2015", "2010-2014", "לפני 2010") 
+    }
+    val filterCategories = remember { 
+        listOf("הכל", "בלמים", "כריות אוויר", "היגוי", "דלק", "מנוע", "חשמל", "מתלים", "חגורות", "תוכנה") 
+    }
 
     fun loadRecalls() {
         scope.launch {
@@ -66,7 +70,7 @@ fun RecallsScreen(
             errorMessage = null
             try {
                 val resp = withContext(Dispatchers.IO) {
-                    NetworkClient.apiService.getAllRecalls(limit = 120, sort = "_id desc")
+                    NetworkClient.apiService.getAllRecalls(limit = 5000, sort = "_id desc")
                 }
                 allRecalls = resp.result?.records ?: emptyList()
                 isLoading = false
@@ -93,8 +97,12 @@ fun RecallsScreen(
                 (item.recallId?.toString()?.contains(q) == true)
             }
 
-            val matchesYear = if (selectedFilterYear == "הכל") true else {
-                item.recallYear?.toString() == selectedFilterYear
+            val yr = item.recallYear ?: 0
+            val matchesYear = when (selectedFilterYear) {
+                "הכל" -> true
+                "2010-2014" -> yr in 2010..2014
+                "לפני 2010" -> yr in 1..2009
+                else -> item.recallYear?.toString() == selectedFilterYear
             }
 
             val matchesCategory = if (selectedFilterCategory == "הכל") true else {
@@ -214,7 +222,7 @@ fun RecallsScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${filteredRecalls.size} קריאות חוזרות",
+                    text = if (filteredRecalls.size == allRecalls.size) "סה\"כ ${allRecalls.size} קריאות חוזרות (כל המאגר)" else "מוצגות ${filteredRecalls.size} מתוך ${allRecalls.size} קריאות",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary

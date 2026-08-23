@@ -138,7 +138,8 @@ interface GovApiService {
         @Query("q") query: String? = null,
         @Query("filters") filters: String? = null,
         @Query("sort") sort: String = "_id desc",
-        @Query("limit") limit: Int = 100
+        @Query("offset") offset: Int = 0,
+        @Query("limit") limit: Int = 5000
     ): GovApiResponse<RecallDetailRecord>
 
     // 16. Personal Import Vehicles (יבוא אישי)

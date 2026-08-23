@@ -1,4 +1,4 @@
-﻿package com.avih6.vehiclecheck.data
+package com.avih6.vehiclecheck.data
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -15,13 +15,31 @@ data class CarGalleryImage(
     val height: Int = 0
 )
 
+data class GalleryPageResult(
+    val images: List<CarGalleryImage>,
+    val nextOffset: Int?
+)
+
 object WikimediaGalleryService {
 
-    suspend fun fetchCarImages(rawMake: String, rawModel: String, limit: Int = 24): List<CarGalleryImage> = withContext(Dispatchers.IO) {
-        val (makeEn, modelEn) = VehicleUtils.getEnglishMakeAndModel(rawMake, rawModel)
-        val query = "$makeEn $modelEn car"
+    suspend fun fetchCarImages(
+        rawMake: String,
+        rawModel: String = "",
+        limit: Int = 30
+    ): List<CarGalleryImage> = withContext(Dispatchers.IO) {
+        fetchGalleryPage(rawMake, rawModel, offset = 0, limit = limit).images
+    }
+
+    suspend fun fetchGalleryPage(
+        rawMake: String,
+        rawModel: String = "",
+        offset: Int = 0,
+        limit: Int = 40
+    ): GalleryPageResult = withContext(Dispatchers.IO) {
+        val query = buildSearchQuery(rawMake, rawModel)
         val encodedQuery = URLEncoder.encode(query, "UTF-8")
-        val urlStr = "https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=$encodedQuery&gsrlimit=$limit&prop=imageinfo&iiprop=url|size&iiurlwidth=900&format=json&origin=*"
+        val offsetParam = if (offset > 0) "&gsroffset=$offset" else ""
+        val urlStr = "https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=$encodedQuery&gsrlimit=$limit$offsetParam&prop=imageinfo&iiprop=url|size&iiurlwidth=800&format=json&origin=*"
 
         try {
             val url = URL(urlStr)
@@ -29,13 +47,15 @@ object WikimediaGalleryService {
             connection.requestMethod = "GET"
             connection.connectTimeout = 8000
             connection.readTimeout = 8000
-            connection.setRequestProperty("User-Agent", "VehicleCheckApp/1.0 (Android; open-source; https://github.com/avih6/VehicleCheck)")
+            connection.setRequestProperty("User-Agent", "VehicleCheckApp/1.0 (Android; open-source; https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
 
             if (connection.responseCode == 200) {
                 val jsonText = connection.inputStream.bufferedReader().use { it.readText() }
                 val root = JSONObject(jsonText)
-                val queryObj = root.optJSONObject("query") ?: return@withContext emptyList()
-                val pagesObj = queryObj.optJSONObject("pages") ?: return@withContext emptyList()
+                
+                val nextOffset = root.optJSONObject("continue")?.optInt("gsroffset")
+                val queryObj = root.optJSONObject("query") ?: return@withContext GalleryPageResult(emptyList(), null)
+                val pagesObj = queryObj.optJSONObject("pages") ?: return@withContext GalleryPageResult(emptyList(), null)
 
                 val results = mutableListOf<CarGalleryImage>()
                 val keys = pagesObj.keys()
@@ -47,6 +67,7 @@ object WikimediaGalleryService {
                         .replace(".jpg", "", ignoreCase = true)
                         .replace(".jpeg", "", ignoreCase = true)
                         .replace(".png", "", ignoreCase = true)
+                        .replace(".webp", "", ignoreCase = true)
                         .replace("_", " ")
 
                     val imageInfoArr = page.optJSONArray("imageinfo")
@@ -63,7 +84,14 @@ object WikimediaGalleryService {
                                               checkPath.endsWith(".png", ignoreCase = true) ||
                                               checkPath.endsWith(".webp", ignoreCase = true)
 
-                        if (thumbUrl.isNotBlank() && isValidExtension) {
+                        // Filter out icon, logo, map, diagram, flag SVGs/PNGs
+                        val lowerTitle = title.lowercase()
+                        val isJunk = lowerTitle.contains("logo") || lowerTitle.contains("icon") ||
+                                     lowerTitle.contains("flag") || lowerTitle.contains("diagram") ||
+                                     lowerTitle.contains("map") || lowerTitle.contains("badge") ||
+                                     lowerTitle.contains("emblem") || lowerTitle.contains("symbol")
+
+                        if (thumbUrl.isNotBlank() && isValidExtension && !isJunk) {
                             results.add(CarGalleryImage(
                                 title = title,
                                 imageUrl = fullUrl,
@@ -74,12 +102,35 @@ object WikimediaGalleryService {
                         }
                     }
                 }
-                results
+                GalleryPageResult(results, nextOffset)
             } else {
-                emptyList()
+                GalleryPageResult(emptyList(), null)
             }
         } catch (e: Exception) {
-            emptyList()
+            GalleryPageResult(emptyList(), null)
+        }
+    }
+
+    private fun buildSearchQuery(rawMake: String, rawModel: String): String {
+        val trimmedMake = rawMake.trim()
+        val trimmedModel = rawModel.trim()
+
+        if (trimmedMake.isBlank() || trimmedMake == "הכל" || trimmedMake.equals("all", ignoreCase = true)) {
+            return if (trimmedModel.isNotBlank()) {
+                "$trimmedModel car vehicle"
+            } else {
+                "automobiles passenger cars vehicle modern"
+            }
+        }
+
+        val (makeEn, modelEn) = VehicleUtils.getEnglishMakeAndModel(trimmedMake, trimmedModel)
+        val brand = if (makeEn != "car") makeEn else trimmedMake
+        val model = if (modelEn != "car") modelEn else trimmedModel
+
+        return when {
+            model.isNotBlank() && !model.equals("car", ignoreCase = true) -> "$brand $model car"
+            brand.isNotBlank() && !brand.equals("car", ignoreCase = true) -> "$brand car vehicle"
+            else -> "automobiles passenger cars vehicle"
         }
     }
 }
