@@ -67,6 +67,19 @@ data class GovCountResult(
 )
 
 @Serializable
+data class GovResourceShowResponse(
+    val success: Boolean = false,
+    val result: GovResourceMetadata? = null
+)
+
+@Serializable
+data class GovResourceMetadata(
+    val id: String? = null,
+    @SerialName("last_modified") val lastModified: String? = null,
+    @SerialName("metadata_modified") val metadataModified: String? = null
+)
+
+@Serializable
 data class VehicleRecord(
     @SerialName("_id") val id: Long? = null,
     @Serializable(with = FlexibleLongSerializer::class) @SerialName("mispar_rechev") val licensePlate: Long? = null,
@@ -426,7 +439,11 @@ sealed interface SearchState {
         val offRoadDate: String? = null,
         val stats: ModelStatistics = ModelStatistics(0, 0),
         val recalls: List<VehicleRecallRestrictionRecord> = emptyList(),
-        val recallDetail: RecallDetailRecord? = null
+        val recallDetail: RecallDetailRecord? = null,
+        val isEngineeringEquipment: Boolean = false,
+        val equipmentDetails: EngineeringEquipmentRecord? = null,
+        val alternateEquipment: EngineeringEquipmentRecord? = null,
+        val alternateVehicle: VehicleRecord? = null
     ) : SearchState
     data class NotFound(val plate: String) : SearchState
     data class Error(val message: String) : SearchState
@@ -481,6 +498,23 @@ object VehicleUtils {
             d.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
         } catch (e: Exception) {
             clean
+        }
+    }
+
+    fun formatDateTime(isoStr: String?): String {
+        if (isoStr.isNullOrBlank()) return ""
+        return try {
+            val clean = isoStr.trim().take(19)
+            val ldt = java.time.LocalDateTime.parse(clean)
+            val zdt = ldt.atZone(java.time.ZoneId.of("UTC")).withZoneSameInstant(java.time.ZoneId.of("Asia/Jerusalem"))
+            zdt.format(DateTimeFormatter.ofPattern("dd/MM/yyyy • HH:mm"))
+        } catch (e: Exception) {
+            try {
+                val d = LocalDate.parse(isoStr.trim().take(10), DateTimeFormatter.ISO_LOCAL_DATE)
+                d.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+            } catch (e2: Exception) {
+                isoStr
+            }
         }
     }
 
@@ -556,6 +590,16 @@ object VehicleUtils {
             m.contains("לינק") || m.contains("lynk") -> "lynk-co"
             m.contains("הונגצ'י") || m.contains("hongqi") -> "hongqi"
             m.contains("ג'נסיס") || m.contains("genesis") -> "genesis"
+            m.contains("קומטסו") || m.contains("קומטס'ו") || m.contains("komatsu") -> "komatsu"
+            m.contains("קטרפילר") || m.contains("קטרפילאר") || m.contains("caterpillar") || m.contains("cat") -> "caterpillar"
+            m.contains("ג'י סי בי") || m.contains("jcb") -> "jcb"
+            m.contains("בובקט") || m.contains("bobcat") -> "bobcat"
+            m.contains("ג'ון דיר") || m.contains("john deere") -> "john-deere"
+            m.contains("סקניה") || m.contains("scania") -> "scania"
+            m.contains("מאן") || m.contains("man") -> "man"
+            m.contains("דאף") || m.contains("daf") -> "daf"
+            m.contains("איווקו") || m.contains("iveco") -> "iveco"
+            m.contains("מאק") || m.contains("mack") -> "mack"
             else -> "car"
         }
     }

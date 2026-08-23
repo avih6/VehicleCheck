@@ -152,7 +152,12 @@ object WikimediaGalleryService {
         val brand = if (makeEn != "car") makeEn else trimmedMake
         val model = if (modelEn != "car") modelEn else trimmedModel
 
+        val isMachinery = listOf("komatsu", "caterpillar", "cat", "jcb", "bobcat", "deere", "excavator", "tractor", "צמ\"ה", "מחפר").any {
+            brand.contains(it, ignoreCase = true) || model.contains(it, ignoreCase = true) || rawMake.contains(it, ignoreCase = true)
+        }
+
         return when {
+            isMachinery -> "$brand $model"
             model.isNotBlank() && !model.equals("car", ignoreCase = true) -> "$brand $model car"
             brand.isNotBlank() && !brand.equals("car", ignoreCase = true) -> "$brand car vehicle"
             else -> "automobiles passenger cars vehicle"

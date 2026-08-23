@@ -82,11 +82,9 @@ fun SearchScreen(
     }
 
     val totalCount by viewModel.dbVehicleCount.collectAsState()
-    val countText = if (totalCount != null && totalCount!! > 0) {
-        "%,d כלי רכב רשומים • מתעדכן יומית".format(totalCount)
-    } else {
-        "3,850,000+ כלי רכב רשומים • מתעדכן יומית"
-    }
+    val lastUpdated by viewModel.dbLastUpdated.collectAsState()
+    val countFormatted = "%,d כלי רכב רשומים".format(totalCount ?: 4165989)
+    val updateText = if (!lastUpdated.isNullOrBlank()) "עודכן: $lastUpdated" else "מתעדכן יומית ממאגרי הממשלה"
 
     Column(
         modifier = modifier
@@ -124,17 +122,17 @@ fun SearchScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(6.dp))
                     Surface(
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                         shape = RoundedCornerShape(6.dp)
                     ) {
                         Text(
-                            text = "⚡ $countText",
+                            text = "$countFormatted • $updateText",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                         )
                     }
                 }
@@ -257,7 +255,12 @@ fun SearchScreen(
                             recalls = state.recalls,
                             recallDetail = state.recallDetail,
                             isFavorite = isFav,
-                            onToggleFavorite = { viewModel.toggleFavoriteCurrentResult(query, isFav) }
+                            onToggleFavorite = { viewModel.toggleFavoriteCurrentResult(query, isFav) },
+                            isEngineeringEquipment = state.isEngineeringEquipment,
+                            equipmentDetails = state.equipmentDetails,
+                            alternateEquipment = state.alternateEquipment,
+                            alternateVehicle = state.alternateVehicle,
+                            onToggleEquipment = { viewModel.toggleEquipmentView() }
                         )
                     }
                 }

@@ -107,15 +107,23 @@ interface GovApiService {
         @Query("limit") limit: Int = 1
     ): GovApiResponse<DeregisteredVehicleRecord>
 
-    // 12b. Deregistered / Cancelled / Off-Road Vehicles Master Registry (מאגר רכבים שנגרעו)
+    // 12b. Deregistered / Inactive Vehicles With Model Code (מאגר רכבים לא פעילים עם קוד דגם)
     @GET("api/3/action/datastore_search")
     suspend fun getDeregisteredMaster(
-        @Query("resource_id") resourceId: String = "f6efe89a-373d-4501-8471-96815686be2b",
+        @Query("resource_id") resourceId: String = "f6efe89a-fb3d-43a4-bb61-9bf12a9b9099",
         @Query("filters") filters: String,
         @Query("limit") limit: Int = 1
     ): GovApiResponse<DeregisteredVehicleRecord>
 
-    // 12c. Heavy Engineering Equipment (צמ"ה - כלי ציוד מכני הנדסי)
+    // 12c. Vintage & Inactive Vehicles Without Model Code (מאגר רכבים ישנים ולא פעילים ללא קוד דגם)
+    @GET("api/3/action/datastore_search")
+    suspend fun getVintageDeregistered(
+        @Query("resource_id") resourceId: String = "6f6acd03-f351-4a8f-8ecf-df792f4f573a",
+        @Query("filters") filters: String,
+        @Query("limit") limit: Int = 1
+    ): GovApiResponse<DeregisteredVehicleRecord>
+
+    // 12d. Heavy Engineering Equipment (צמ"ה - ציוד מכני הנדסי)
     @GET("api/3/action/datastore_search")
     suspend fun getEngineeringEquipment(
         @Query("resource_id") resourceId: String = "58dc4654-16b1-42ed-8170-98fadec153ea",
@@ -123,12 +131,18 @@ interface GovApiService {
         @Query("limit") limit: Int = 1
     ): GovApiResponse<EngineeringEquipmentRecord>
 
-    // 12d. Total Active Vehicles Count in Registry (סך כלי רכב רשומים)
+    // 12e. Total Active Vehicles Count in Registry (סך כלי רכב רשומים)
     @GET("api/3/action/datastore_search")
     suspend fun getTotalActiveVehicles(
         @Query("resource_id") resourceId: String = "053cea08-09bc-40ec-8f7a-156f0677aff3",
         @Query("limit") limit: Int = 0
     ): GovCountResponse
+
+    // 12f. Dataset Metadata & Last Updated Timestamp (תאריך ושעת עדכון אחרון של המאגר)
+    @GET("api/3/action/resource_show")
+    suspend fun getResourceMetadata(
+        @Query("id") resourceId: String = "053cea08-09bc-40ec-8f7a-156f0677aff3"
+    ): GovResourceShowResponse
 
     // 13. Count inactive vehicles of model (Using GovCountResponse)
     @GET("api/3/action/datastore_search")

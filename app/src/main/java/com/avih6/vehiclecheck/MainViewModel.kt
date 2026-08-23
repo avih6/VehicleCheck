@@ -55,6 +55,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _dbVehicleCount = MutableStateFlow<Int?>(null)
     val dbVehicleCount: StateFlow<Int?> = _dbVehicleCount.asStateFlow()
 
+    private val _dbLastUpdated = MutableStateFlow<String?>(null)
+    val dbLastUpdated: StateFlow<String?> = _dbLastUpdated.asStateFlow()
+
     private val _nativeAd = MutableStateFlow<NativeAd?>(null)
     val nativeAd: StateFlow<NativeAd?> = _nativeAd.asStateFlow()
 
@@ -70,6 +73,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val resp = NetworkClient.apiService.getTotalActiveVehicles()
                 if (resp.result != null && resp.result.total > 0) {
                     _dbVehicleCount.value = resp.result.total
+                }
+            } catch (e: Exception) {}
+
+            try {
+                val metaResp = NetworkClient.apiService.getResourceMetadata()
+                val lastMod = metaResp.result?.lastModified ?: metaResp.result?.metadataModified
+                if (!lastMod.isNullOrBlank()) {
+                    _dbLastUpdated.value = VehicleUtils.formatDateTime(lastMod)
                 }
             } catch (e: Exception) {}
         }
@@ -154,8 +165,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 var isOffRoad = false
                 var offRoadDateFormatted: String? = null
                 var finalVehicle: VehicleRecord? = activeVehicle
+                var equipmentRecord: EngineeringEquipmentRecord? = null
 
-                // 2. If not found in active, search deregistered / cancelled datasets!
+                // Always check Heavy Engineering Equipment (צמ"ה) in parallel
+                try {
+                    val respZama = NetworkClient.apiService.getEngineeringEquipment(filters = "{\"mispar_tzama\":$plateLong}")
+                    equipmentRecord = respZama.result?.records?.firstOrNull() ?: run {
+                        NetworkClient.apiService.getEngineeringEquipment(filters = "{\"mispar_tzama\":\"$plateStr\"}").result?.records?.firstOrNull()
+                    }
+                } catch (e: Exception) {}
+
+                // 2. If not found in active, search deregistered / cancelled & vintage datasets!
                 if (finalVehicle == null) {
                     // Try 2010-2016
                     try {
@@ -215,26 +235,42 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         } catch (e: Exception) {}
                     }
 
-                    // Try Heavy Engineering Equipment (צמ"ה)
+                    // Try Vintage & Inactive Pre-2000 Dataset (e.g. 1950s Chevrolet etc.)
                     if (finalVehicle == null) {
                         try {
-                            val respZama = NetworkClient.apiService.getEngineeringEquipment(filters = "{\"mispar_tzama\":$plateLong}")
-                            val match = respZama.result?.records?.firstOrNull() ?: run {
-                                NetworkClient.apiService.getEngineeringEquipment(filters = "{\"mispar_tzama\":\"$plateStr\"}").result?.records?.firstOrNull()
+                            val respVintage = NetworkClient.apiService.getVintageDeregistered(filters = "{\"mispar_rechev\":$plateLong}")
+                            val match = respVintage.result?.records?.firstOrNull() ?: run {
+                                NetworkClient.apiService.getVintageDeregistered(filters = "{\"mispar_rechev\":\"$plateStr\"}").result?.records?.firstOrNull()
                             }
                             if (match != null) {
                                 finalVehicle = match.toVehicleRecord()
-                                isOffRoad = false
+                                isOffRoad = true
+                                offRoadDateFormatted = "רכב היסטורי / נגרע"
                             }
                         } catch (e: Exception) {}
                     }
                 }
 
+                var isEngineering = false
+                var activeEq: EngineeringEquipmentRecord? = null
+                var altEq: EngineeringEquipmentRecord? = null
+
                 if (finalVehicle == null) {
-                    // Save to history so user can easily recheck anytime
-                    repository.saveNotFoundSearch(plateStr)
-                    _searchState.value = SearchState.NotFound(plateStr)
-                    return@launch
+                    if (equipmentRecord != null) {
+                        finalVehicle = equipmentRecord.toVehicleRecord()
+                        isOffRoad = false
+                        isEngineering = true
+                        activeEq = equipmentRecord
+                    } else {
+                        // Save to history so user can easily recheck anytime
+                        repository.saveNotFoundSearch(plateStr)
+                        _searchState.value = SearchState.NotFound(plateStr)
+                        return@launch
+                    }
+                } else {
+                    if (equipmentRecord != null) {
+                        altEq = equipmentRecord
+                    }
                 }
 
                 val vehicle = finalVehicle
@@ -413,7 +449,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     offRoadDate = offRoadDateFormatted,
                     stats = stats,
                     recalls = recalls,
-                    recallDetail = recallDetail
+                    recallDetail = recallDetail,
+                    isEngineeringEquipment = isEngineering,
+                    equipmentDetails = activeEq,
+                    alternateEquipment = altEq,
+                    alternateVehicle = null
                 )
 
             } catch (e: Exception) {
@@ -425,6 +465,36 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 _searchState.value = SearchState.Error(errorMsg)
             }
+        }
+    }
+
+    fun toggleEquipmentView() {
+        val curr = _searchState.value as? SearchState.Success ?: return
+        if (curr.isEngineeringEquipment) {
+            val altVeh = curr.alternateVehicle ?: return
+            val altEq = curr.equipmentDetails
+            val testStatus = VehicleUtils.parseTestStatus(altVeh.testExpiryDate, curr.isOffRoad, curr.offRoadDate)
+            _searchState.value = curr.copy(
+                vehicle = altVeh,
+                testStatus = testStatus,
+                isEngineeringEquipment = false,
+                equipmentDetails = null,
+                alternateEquipment = altEq,
+                alternateVehicle = null
+            )
+        } else {
+            val altEq = curr.alternateEquipment ?: return
+            val altVeh = curr.vehicle
+            val eqVehicle = altEq.toVehicleRecord()
+            val testStatus = VehicleUtils.parseTestStatus(altEq.expirationDate, false, null)
+            _searchState.value = curr.copy(
+                vehicle = eqVehicle,
+                testStatus = testStatus,
+                isEngineeringEquipment = true,
+                equipmentDetails = altEq,
+                alternateEquipment = null,
+                alternateVehicle = altVeh
+            )
         }
     }
 

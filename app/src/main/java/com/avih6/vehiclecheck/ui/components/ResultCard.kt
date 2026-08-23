@@ -48,12 +48,17 @@ fun ResultCard(
     recallDetail: RecallDetailRecord?,
     isFavorite: Boolean,
     onToggleFavorite: () -> Unit,
+    isEngineeringEquipment: Boolean = false,
+    equipmentDetails: EngineeringEquipmentRecord? = null,
+    alternateEquipment: EngineeringEquipmentRecord? = null,
+    alternateVehicle: VehicleRecord? = null,
+    onToggleEquipment: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) }
     var showStatsDialog by remember { mutableStateOf(false) }
-    val tabs = listOf("כללי", "מפרט", "בטיחות", "סביבה", "סטטיסטיקה")
+    val tabs = if (isEngineeringEquipment) listOf("כללי", "מפרט") else listOf("כללי", "מפרט", "בטיחות", "סביבה", "סטטיסטיקה")
 
     val brandLogoUrl = remember(vehicle.make) {
         VehicleUtils.getBrandLogoUrl(vehicle.make)
@@ -71,6 +76,98 @@ fun ResultCard(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        // 0. Alternate Equipment Banner (צמ"ה)
+        alternateEquipment?.let { eq ->
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggleEquipment() }
+                    .handCursor(),
+                shape = RoundedCornerShape(14.dp),
+                color = Color(0xFFFF9800).copy(alpha = 0.12f),
+                border = BorderStroke(1.5.dp, Color(0xFFFF9800).copy(alpha = 0.8f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.Construction,
+                        contentDescription = null,
+                        tint = Color(0xFFFF9800),
+                        modifier = Modifier.size(26.dp)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "מספר רכב זהה קיים בכלי ציוד מכני הנדסי (צמ\"ה)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "${eq.makeName ?: "צמ\"ה"} ${eq.modelName ?: ""} (${eq.vehicleType ?: ""}) — לחץ לצפייה",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFFFF9800),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Icon(
+                        Icons.Default.ChevronLeft,
+                        contentDescription = null,
+                        tint = Color(0xFFFF9800),
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+        }
+
+        // 0. Alternate Motor Vehicle Banner
+        alternateVehicle?.let { altV ->
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggleEquipment() }
+                    .handCursor(),
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.DirectionsCar,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(26.dp)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "מספר רכב זהה קיים במאגר כלי הרכב המנועיים",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "${altV.make ?: ""} ${altV.model ?: ""} (${altV.year ?: ""}) — לחץ לצפייה",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Icon(
+                        Icons.Default.ChevronLeft,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+        }
+
         // 0. Off-Road / Cancellation Alert Badge (if vehicle is cancelled)
         if (isOffRoad) {
             Surface(
@@ -482,24 +579,31 @@ fun ResultCard(
         }
 
         // 6. Tab Content Switcher
-        when (selectedTab) {
-            0 -> GeneralTabContent(
-                vehicle = vehicle,
-                techSpec = techSpec,
-                importerInfo = importerInfo,
-                extraHistory = extraHistory,
-                testStatus = testStatus,
-                hasDisabledPermit = hasDisabledPermit,
-                permitIssueDate = permitIssueDate,
-                recalls = recalls,
-                recallDetail = recallDetail,
-                stats = stats,
-                onShowAllCounts = { showStatsDialog = true }
-            )
-            1 -> TechSpecTabContent(vehicle, techSpec)
-            2 -> SafetyTabContent(vehicle, techSpec)
-            3 -> EnvironmentTabContent(vehicle, techSpec)
-            4 -> StatisticsTabContent(vehicle, stats)
+        if (isEngineeringEquipment) {
+            when (selectedTab) {
+                0 -> EngineeringGeneralTabContent(vehicle, equipmentDetails, testStatus)
+                1 -> EngineeringTechSpecContent(vehicle, equipmentDetails)
+            }
+        } else {
+            when (selectedTab) {
+                0 -> GeneralTabContent(
+                    vehicle = vehicle,
+                    techSpec = techSpec,
+                    importerInfo = importerInfo,
+                    extraHistory = extraHistory,
+                    testStatus = testStatus,
+                    hasDisabledPermit = hasDisabledPermit,
+                    permitIssueDate = permitIssueDate,
+                    recalls = recalls,
+                    recallDetail = recallDetail,
+                    stats = stats,
+                    onShowAllCounts = { showStatsDialog = true }
+                )
+                1 -> TechSpecTabContent(vehicle, techSpec)
+                2 -> SafetyTabContent(vehicle, techSpec)
+                3 -> EnvironmentTabContent(vehicle, techSpec)
+                4 -> StatisticsTabContent(vehicle, stats)
+            }
         }
     }
 }
@@ -1536,6 +1640,153 @@ private fun StatisticsTabContent(
                             )
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EngineeringGeneralTabContent(
+    vehicle: VehicleRecord,
+    equipmentDetails: EngineeringEquipmentRecord?,
+    testStatus: TestStatus
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        // Test Dates Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "מועדי רישוי ומבחני טסט",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 10.dp)
+                )
+
+                vehicle.testExpiryDate?.let {
+                    SpecRow("תוקף רישיון כלי (טסט עד):", VehicleUtils.formatDate(it), isHighlighted = true)
+                }
+                vehicle.onRoadDate?.let {
+                    SpecRow("תאריך רישום ראשוני:", VehicleUtils.formatDate(it))
+                }
+            }
+        }
+
+        // Equipment Basic Info Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "פרטי כלי צמ\"ה",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 10.dp)
+                )
+
+                equipmentDetails?.vehicleType?.let {
+                    SpecRow("סוג ציוד מכני:", it)
+                }
+                equipmentDetails?.horsepower?.let {
+                    SpecRow("הספק מנוע:", "$it כ\"ס")
+                }
+                equipmentDetails?.driveType?.let {
+                    FuelSpecRow("סוג הנעה:", it)
+                }
+                equipmentDetails?.restriction1?.let {
+                    if (it.isNotBlank()) SpecRow("הגבלות תנועה:", it)
+                }
+            }
+        }
+
+        // Identifiers
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "מספרי זיהוי ורישום רשמיים",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 10.dp)
+                )
+
+                val context = LocalContext.current
+                val vin = equipmentDetails?.vin ?: vehicle.vin
+                vin?.let {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "מספר שלדה (VIN):", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = it, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            IconButton(
+                                onClick = {
+                                    val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("VIN", it))
+                                    android.widget.Toast.makeText(context, "מספר שלדה הועתק ללוח", android.widget.Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.size(28.dp).padding(start = 4.dp)
+                            ) {
+                                Icon(Icons.Outlined.ContentCopy, contentDescription = "Copy VIN", modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EngineeringTechSpecContent(
+    vehicle: VehicleRecord,
+    equipmentDetails: EngineeringEquipmentRecord?
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "מפרט טכני ומשקלים",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 10.dp)
+                )
+
+                equipmentDetails?.modelName?.let {
+                    SpecRow("דגם כלי:", it)
+                }
+                equipmentDetails?.makeName?.let {
+                    SpecRow("שם יצרן:", it)
+                }
+                equipmentDetails?.horsepower?.let {
+                    SpecRow("הספק מנוע:", "$it כ\"ס")
+                }
+                equipmentDetails?.totalWeightTon?.let {
+                    SpecRow("משקל כולל:", "$it טון")
+                }
+                equipmentDetails?.weightTon?.let {
+                    SpecRow("משקל עצמי:", "$it טון")
+                }
+                equipmentDetails?.liftingCapacityTon?.let {
+                    SpecRow("כושר הרמה / מטען:", "$it טון")
+                }
+                equipmentDetails?.restriction1?.let {
+                    if (it.isNotBlank()) SpecRow("הגבלת מהירות ותנועה:", it)
                 }
             }
         }
