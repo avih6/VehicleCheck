@@ -1,4 +1,4 @@
-package com.avih6.vehiclecheck.ui.components
+﻿package com.avih6.vehiclecheck.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -41,6 +41,12 @@ fun DtcLookupDialog(
     var query by remember { mutableStateOf("") }
     var result by remember { mutableStateOf<DtcCodeInfo?>(null) }
     val focusManager = LocalFocusManager.current
+
+    val liveSearchResults by remember(query) {
+        derivedStateOf {
+            if (query.isNotBlank()) DtcRepository.searchCodes(query) else emptyList()
+        }
+    }
 
     val popularCodes = remember {
         listOf("P0300", "P0420", "P0171", "P0128", "P0700", "C0035", "B0001", "U0100")
@@ -91,20 +97,51 @@ fun DtcLookupDialog(
                     Spacer(Modifier.size(48.dp))
                 }
 
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(10.dp))
+
+                // Safety Warning Banner
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0)),
+                    border = BorderStroke(1.dp, Color(0xFFFFB74D)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = Color(0xFFE65100),
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "אזהרה: אין לבדוק תקלות בזמן נהיגה! בעת הופעת תקלה יש לעצור במקום בטוח בצד הדרך.",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF5D4037),
+                            lineHeight = 15.sp
+                        )
+                    }
+                }
 
                 // Input Field
                 OutlinedTextField(
                     value = query,
                     onValueChange = { input ->
-                        query = input.uppercase().take(7)
-                        if (query.length >= 4) {
-                            result = DtcRepository.lookupCode(query)
+                        query = input.uppercase().take(10)
+                        if (query.length >= 2) {
+                            val match = DtcRepository.searchCodes(query).firstOrNull()
+                            if (match != null) {
+                                result = match
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("הזן קוד תקלה (למשל: P0420)") },
-                    placeholder = { Text("P0300, P0420, C0035...") },
+                    label = { Text("חיפוש לייב של קוד תקלה או מילת מפתח") },
+                    placeholder = { Text("P0300, P0420, חמצן, misfire...") },
                     leadingIcon = {
                         Icon(Icons.Default.Build, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     },
@@ -138,6 +175,73 @@ fun DtcLookupDialog(
                             label = { Text(code, fontWeight = FontWeight.Bold) },
                             shape = RoundedCornerShape(12.dp)
                         )
+                    }
+                }
+
+                // Live Suggestions List
+                if (query.isNotBlank() && liveSearchResults.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp)) {
+                            Text(
+                                text = "תוצאות חיפוש מהירות (${liveSearchResults.size}):",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                            liveSearchResults.forEach { item ->
+                                val sevColor = Color(item.severity.colorHex)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable { performLookup(item.code) }
+                                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.primaryContainer,
+                                            shape = RoundedCornerShape(6.dp)
+                                        ) {
+                                            Text(
+                                                text = item.code,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                        Spacer(Modifier.width(8.dp))
+                                        Column {
+                                            Text(
+                                                text = item.titleHe,
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontSize = 12.sp,
+                                                maxLines = 1
+                                            )
+                                            Text(
+                                                text = item.categoryHe,
+                                                fontSize = 11.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .size(10.dp)
+                                            .background(sevColor, CircleShape)
+                                    )
+                                }
+                                HorizontalDivider(modifier = Modifier.padding(horizontal = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                            }
+                        }
                     }
                 }
 
@@ -308,7 +412,7 @@ fun DtcLookupDialog(
                         ObdStepItem(
                             stepNumber = "1",
                             title = "איתור שקע ה-OBD2 ברכב",
-                            description = "בכל רכב משנת 2000 ומעלה קיים שקע דיאגנוסטיקה בעל 16 פינים, הממוקם בדרך כלל מתחת להגה או סמוך לתיבת הפיוזים של הנהג."
+                            description = "בכל רכב משנת 2000 ומעלה קיים שקע דיאגנוסטיקה בעל 16 פינים, הממוקם בדרך כלל מתחת להגה או סמוך לדוושות הנהג."
                         )
 
                         ObdStepItem(

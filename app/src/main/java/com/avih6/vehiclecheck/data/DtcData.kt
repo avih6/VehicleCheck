@@ -13,10 +13,10 @@ data class DtcCodeInfo(
 )
 
 enum class DtcSeverity(val titleHe: String, val colorHex: Long) {
-    LOW("נמוכה - ניתן להמשיך בנסיעה", 0xFF4CAF50),
+    LOW("נמוכה - ניתן להמשיך בנסיעה בזהירות", 0xFF4CAF50),
     MEDIUM("בינונית - מומלץ לגשת למוסך בהקדם", 0xFFFFA000),
     HIGH("גבוהה - סכנה לנזק, מומלץ לא לאמץ את הרכב", 0xFFE64A19),
-    CRITICAL("קריטית - עצור בצד וכבה מנוע", 0xFFD32F2F)
+    CRITICAL("קריטית - עצור בצד וכבה מנוע מיד", 0xFFD32F2F)
 }
 
 object DtcRepository {
@@ -24,6 +24,23 @@ object DtcRepository {
 
     init {
         registerKnownCodes()
+    }
+
+    fun searchCodes(query: String): List<DtcCodeInfo> {
+        val q = query.trim().lowercase()
+        if (q.isBlank()) return dtcMap.values.take(8).toList()
+
+        return dtcMap.values.filter { item ->
+            item.code.lowercase().contains(q) ||
+            item.titleHe.lowercase().contains(q) ||
+            item.titleEn.lowercase().contains(q) ||
+            item.categoryHe.lowercase().contains(q) ||
+            item.descriptionHe.lowercase().contains(q)
+        }.sortedByDescending { 
+            if (it.code.lowercase().startsWith(q)) 3
+            else if (it.code.lowercase().contains(q)) 2
+            else 1
+        }.take(12)
     }
 
     fun lookupCode(rawCode: String): DtcCodeInfo {
@@ -220,6 +237,19 @@ object DtcRepository {
             solutions = listOf("ניקוי חיישן MAF בחומר ניקוי ייעודי", "החלפת מסנן אוויר", "חיזוק בנדים וצינור יניקה")
         )
 
+        // P0113 - IAT Sensor Circuit High
+        register(
+            code = "P0113",
+            titleHe = "חיישן טמפרטורת אוויר יניקה (IAT) - מתח גבוה",
+            titleEn = "Intake Air Temperature Sensor 1 Circuit High",
+            categoryHe = "חיישני כניסת אוויר",
+            severity = DtcSeverity.LOW,
+            desc = "החיישן מדווח על טמפרטורת אוויר יניקה קרה במיוחד (קצר/נתק במעגל).",
+            symptoms = listOf("נורת מנוע דולקת", "התנעה קשה"),
+            causes = listOf("קונקטור מנותק בחיישן IAT", "חיישן IAT תקול"),
+            solutions = listOf("חיבור קונקטור או החלפת חיישן IAT")
+        )
+
         // P0128 - Coolant Thermostat Malfunction
         register(
             code = "P0128",
@@ -231,6 +261,58 @@ object DtcRepository {
             symptoms = listOf("מד חום מנוע עולה לאט מאוד או נשאר נמוך", "חימום חלש בתא הנוסעים בחורף", "צריכת דלק מוגברת מעט"),
             causes = listOf("תרמוסטט תקוע פתוח", "חיישן טמפרטורת נוזל קירור (ECT) תקול", "מפלס נוזל קירור נמוך"),
             solutions = listOf("החלפת תרמוסטט מנוע", "בדיקת נוזל קירור וניקוז אוויר")
+        )
+
+        // P0135 - O2 Sensor Heater Circuit (Bank 1 Sensor 1)
+        register(
+            code = "P0135",
+            titleHe = "גוף חימום חיישן חמצן קדמי (בנק 1, חיישן 1)",
+            titleEn = "O2 Sensor Heater Circuit Malfunction (Bank 1 Sensor 1)",
+            categoryHe = "חיישני פליטה וחמצן",
+            severity = DtcSeverity.LOW,
+            desc = "גוף החימום הפנימי של חיישן החמצן אינו פועל כראוי, מה שמאריך את הזמן שלוקח לחיישן להתחמם ולהגיע לקריאה מדויקת.",
+            symptoms = listOf("נורת בדוק מנוע דולקת", "צריכת דלק מעט גבוהה בדקות הראשונות לנסיעה"),
+            causes = listOf("חיישן חמצן בלוי/שרוף", "פיוז חימום חיישן שרוף", "נתק בחיווט"),
+            solutions = listOf("בדיקת פיוזים והחלפת חיישן חמצן קדמי (Upstream O2)")
+        )
+
+        // P0340 - Camshaft Position Sensor Circuit Malfunction
+        register(
+            code = "P0340",
+            titleHe = "תקלה בחיישן מיקום גל זיזים (קמשפט)",
+            titleEn = "Camshaft Position Sensor 'A' Circuit Malfunction",
+            categoryHe = "מערכת תזמון והצתה",
+            severity = DtcSeverity.HIGH,
+            desc = "מחשב הרכב אינו מקבל אות אמין לגבי מיקום שסתומי המנוע ביחס לבוכנות.",
+            symptoms = listOf("התנעה ארוכה מאוד או חוסר התנעה", "מנוע כבה לפתע בנסיעה", "חוסר כוח מורגש"),
+            causes = listOf("חיישן קמשפט פגום", "רצועת/שרשרת טיימינג רופפת או קפצה שן", "חיווט קרוע"),
+            solutions = listOf("בדיקת חיישן קמשפט וטיימינג במוסך")
+        )
+
+        // P0335 - Crankshaft Position Sensor Circuit Malfunction
+        register(
+            code = "P0335",
+            titleHe = "תקלה בחיישן מיקום גל ארכובה (קרנק)",
+            titleEn = "Crankshaft Position Sensor 'A' Circuit Malfunction",
+            categoryHe = "מערכת תזמון והצתה",
+            severity = DtcSeverity.CRITICAL,
+            desc = "חיישן הקרנק מודד את סיבובי המנוע. ללא אות תקין ממנו המנוע לא יניע או יכבה מיידית.",
+            symptoms = listOf("הרכב אינו מניע כלל (סטרטר מסתובב אך אין הנעה)", "המנוע נכבה בפתאומיות תוך כדי נסיעה!"),
+            causes = listOf("חיישן קרנק תקול", "שבבי מתכת או לכלוך על החיישן", "קונקטור רופף"),
+            solutions = listOf("החלפת חיישן גל ארכובה (Crankshaft Sensor)")
+        )
+
+        // P0442 - EVAP System Small Leak Detected
+        register(
+            code = "P0442",
+            titleHe = "דליפה קטנה במערכת מיחזור אדי דלק (EVAP)",
+            titleEn = "Evaporative Emission Control System Leak Detected (Small Leak)",
+            categoryHe = "מערכת בקרת אדי דלק",
+            severity = DtcSeverity.LOW,
+            desc = "מערכת ה-EVAP לוכדת אדי דלק ממיכל הדלק. זוהתה דליפת לחץ קלה במערכת.",
+            symptoms = listOf("נורת בדוק מנוע דולקת", "לעיתים ריח דלק קל ליד הרכב"),
+            causes = listOf("מכסה מיכל דלק לא סגור היטב או אטם גומי סדוק", "צינורית ואקום של ה-EVAP סדוקה", "שסתום טיהור (Purge Valve) דולף"),
+            solutions = listOf("הידוק או החלפת מכסה מיכל דלק", "בדיקת עשן לאיתור דליפות בצנרת ה-EVAP")
         )
 
         // P0500 - Vehicle Speed Sensor Malfunction
@@ -272,6 +354,19 @@ object DtcRepository {
             solutions = listOf("ניקוי או החלפת חיישן ABS קדמי שמאלי", "בדיקת מיסב גלגל")
         )
 
+        // C1201 - Engine Control System Malfunction (ABS disabled)
+        register(
+            code = "C1201",
+            titleHe = "מערכת ABS/VSC הושבתה עקב תקלה במחשב המנוע",
+            titleEn = "Engine Control System Malfunction (ABS / VSC disabled)",
+            categoryHe = "מערכת בקרת יציבות ו-ABS",
+            severity = DtcSeverity.MEDIUM,
+            desc = "מחשב בקרת היציבות והבלמים השבית זמנית חלק מתכונות ה-VSC/ABS כיוון שיש קוד תקלה פעיל במנוע.",
+            symptoms = listOf("נורות Check Engine, ABS ו-TRAC / VSC דולקות ביחד"),
+            causes = listOf("תקלת מנוע ראשית (כגון P0420 או P0300) שגורמת לכיבוי ה-TRAC"),
+            solutions = listOf("תיקון ואיפוס קוד התקלה הראשי במנוע")
+        )
+
         // B0001 - Driver Frontal Stage 1 Deployment Control
         register(
             code = "B0001",
@@ -285,6 +380,19 @@ object DtcRepository {
             solutions = listOf("בדיקת מגעים והחלפת סליל הגה (Clock Spring) במוסך מורשה")
         )
 
+        // B1000 - ECU Malfunction
+        register(
+            code = "B1000",
+            titleHe = "תקלת זיכרון / חומרה במחשב כריות אוויר",
+            titleEn = "Electronic Control Unit (ECU) Malfunction",
+            categoryHe = "מערכת בטיחות ונוחות",
+            severity = DtcSeverity.CRITICAL,
+            desc = "מחשב ה-SRS זיהה שגיאה פנימית בזיכרון לאחר תאונה או כתוצאה ממתח מצבר לא תקין.",
+            symptoms = listOf("נורת כריות אוויר דולקת קבוע"),
+            causes = listOf("נעילת מחשב לאחר פתיחת כריות", "מתח מצבר חריג"),
+            solutions = listOf("איפוס או החלפת מודול כריות אוויר במוסך")
+        )
+
         // U0100 - Lost Communication With ECM/PCM
         register(
             code = "U0100",
@@ -296,6 +404,19 @@ object DtcRepository {
             symptoms = listOf("הרכב אינו מניע או כבה", "לוח מחוונים מציג קווים במקום ספרות", "נורות אזהרה רבות דולקות בו-זמנית"),
             causes = listOf("מתח מצבר נמוך או הארקה ראשית רופפת", "פיוז מחשב מנוע שרוף", "נתק בקווי תקשורת CAN-Bus"),
             solutions = listOf("בדיקת מצבר והארקות", "בדיקת פיוזים וממסרי מחשב מנוע")
+        )
+
+        // U0121 - Lost Communication With Anti-Lock Brake System (ABS)
+        register(
+            code = "U0121",
+            titleHe = "אובדן תקשורת עם מחשב ה-ABS",
+            titleEn = "Lost Communication With Anti-Lock Brake System (ABS) Module",
+            categoryHe = "רשת תקשורת מחשבים (CAN-Bus)",
+            severity = DtcSeverity.HIGH,
+            desc = "מחשב המנוע אינו מצליח לתקשר עם מודול הבלמים ו-ABS ברשת ה-CAN.",
+            symptoms = listOf("נורת ABS דולקת", "מד מהירות לא פעיל"),
+            causes = listOf("פיוז ABS שרוף", "קונקטור ABS מלוכלך/רופף", "תקלת מחשב ABS"),
+            solutions = listOf("בדיקת מתח והארקה למחשב ה-ABS")
         )
     }
 }

@@ -2,7 +2,9 @@
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -18,6 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
@@ -27,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.avih6.vehiclecheck.data.DtcCodeInfo
 import com.avih6.vehiclecheck.data.DtcRepository
+import com.avih6.vehiclecheck.data.DtcSeverity
 
 @Composable
 fun DtcScreen(
@@ -34,20 +38,23 @@ fun DtcScreen(
 ) {
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    var query by remember { mutableStateOf("P0420") }
-    var result by remember { mutableStateOf<DtcCodeInfo?>(DtcRepository.lookupCode("P0420")) }
+    var query by remember { mutableStateOf("") }
+    var selectedResult by remember { mutableStateOf<DtcCodeInfo?>(DtcRepository.lookupCode("P0420")) }
+
+    val liveSearchResults by remember(query) {
+        derivedStateOf {
+            if (query.isNotBlank()) DtcRepository.searchCodes(query) else emptyList()
+        }
+    }
 
     val popularCodes = remember {
         listOf("P0300", "P0420", "P0171", "P0128", "P0700", "C0035", "B0001", "U0100")
     }
 
-    fun performLookup(code: String) {
-        val clean = code.trim().uppercase()
-        if (clean.isNotBlank()) {
-            query = clean
-            result = DtcRepository.lookupCode(clean)
-            keyboardController?.hide()
-        }
+    fun selectCode(code: String) {
+        query = code
+        selectedResult = DtcRepository.lookupCode(code)
+        keyboardController?.hide()
     }
 
     Column(
@@ -57,57 +64,62 @@ fun DtcScreen(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Title Header
+        // Critical Safety Warning Banner
         Card(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 14.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF3E0)),
+            border = BorderStroke(1.dp, Color(0xFFFFB74D)),
             shape = RoundedCornerShape(14.dp)
         ) {
             Row(
-                modifier = Modifier.padding(14.dp),
+                modifier = Modifier.padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Default.Build,
+                    imageVector = Icons.Default.Warning,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(28.dp)
+                    tint = Color(0xFFE65100),
+                    modifier = Modifier.size(26.dp)
                 )
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(10.dp))
                 Column {
                     Text(
-                        text = "מפענח קודי תקלה ברכב (DTC / OBD2)",
-                        style = MaterialTheme.typography.titleMedium,
+                        text = "אזהרת בטיחות חשובה לנהג",
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = Color(0xFFE65100)
                     )
                     Text(
-                        text = "איתור משמעות קודי תקלות מחשב, חומרה ודרכי טיפול",
+                        text = "אין להשתמש באפליקציה או לבדוק תקלות בזמן נהיגה! בעת הופעת נורת אזהרה, עצור תמיד במקום בטוח בצד הדרך, כבה את המנוע, ורק אז בצע בדיקה או פנה לסיוע מקצועי.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = Color(0xFF5D4037),
+                        lineHeight = 16.sp
                     )
                 }
             }
         }
 
-        // Input Field
+        // Search Input Field
         OutlinedTextField(
             value = query,
             onValueChange = { input ->
-                query = input.uppercase().take(7)
-                if (query.length >= 4) {
-                    result = DtcRepository.lookupCode(query)
+                query = input.uppercase().take(10)
+                if (query.length >= 2) {
+                    val match = DtcRepository.searchCodes(query).firstOrNull()
+                    if (match != null) {
+                        selectedResult = match
+                    }
                 }
             },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("הזן קוד תקלה (למשל: P0420)") },
-            placeholder = { Text("P0300, P0420, C0035, B0001...") },
+            label = { Text("חיפוש לייב של קוד תקלה או מילת מפתח") },
+            placeholder = { Text("למשל: P0300, P0420, חמצן, misfire...") },
             leadingIcon = {
                 Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             },
             trailingIcon = {
                 if (query.isNotEmpty()) {
-                    IconButton(onClick = { query = ""; result = null }) {
+                    IconButton(onClick = { query = ""; selectedResult = null }) {
                         Icon(Icons.Default.Clear, contentDescription = "Clear")
                     }
                 }
@@ -117,7 +129,9 @@ fun DtcScreen(
                 capitalization = KeyboardCapitalization.Characters,
                 imeAction = ImeAction.Search
             ),
-            keyboardActions = KeyboardActions(onSearch = { performLookup(query) }),
+            keyboardActions = KeyboardActions(onSearch = {
+                if (query.isNotBlank()) selectCode(query)
+            }),
             shape = RoundedCornerShape(16.dp)
         )
 
@@ -130,19 +144,86 @@ fun DtcScreen(
         ) {
             items(popularCodes) { code ->
                 FilterChip(
-                    selected = query == code,
-                    onClick = { performLookup(code) },
+                    selected = (selectedResult?.code == code),
+                    onClick = { selectCode(code) },
                     label = { Text(code, fontWeight = FontWeight.Bold) },
                     shape = RoundedCornerShape(12.dp)
                 )
             }
         }
 
+        // Live Instant Search Suggestions Dropdown
+        if (query.isNotBlank() && liveSearchResults.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f))
+            ) {
+                Column(modifier = Modifier.padding(8.dp)) {
+                    Text(
+                        text = "תוצאות חיפוש מהירות (${liveSearchResults.size}):",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                    liveSearchResults.forEach { item ->
+                        val sevColor = Color(item.severity.colorHex)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { selectCode(item.code) }
+                                .padding(horizontal = 8.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    shape = RoundedCornerShape(6.dp)
+                                ) {
+                                    Text(
+                                        text = item.code,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                                Spacer(Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        text = item.titleHe,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 12.sp,
+                                        maxLines = 1
+                                    )
+                                    Text(
+                                        text = item.categoryHe,
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .background(sevColor, CircleShape)
+                            )
+                        }
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                    }
+                }
+            }
+        }
+
         Spacer(Modifier.height(16.dp))
 
-        // Lookup Result Display
-        if (result != null) {
-            val info = result!!
+        // Selected Code Full Breakdown Result Display
+        if (selectedResult != null) {
+            val info = selectedResult!!
             val severityColor = Color(info.severity.colorHex)
 
             Card(
