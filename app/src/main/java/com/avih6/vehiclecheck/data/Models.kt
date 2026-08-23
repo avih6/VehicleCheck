@@ -1,10 +1,47 @@
 package com.avih6.vehiclecheck.data
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonDecoder
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.jsonPrimitive
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+
+object FlexibleLongSerializer : KSerializer<Long?> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("FlexibleLong", PrimitiveKind.STRING)
+    override fun serialize(encoder: Encoder, value: Long?) {
+        if (value != null) encoder.encodeLong(value) else encoder.encodeNull()
+    }
+    override fun deserialize(decoder: Decoder): Long? {
+        val jsonDecoder = decoder as? JsonDecoder ?: return null
+        val element = jsonDecoder.decodeJsonElement()
+        if (element is JsonNull) return null
+        val str = element.jsonPrimitive.content.trim()
+        return str.filter { it.isDigit() || it == '-' }.toLongOrNull()
+    }
+}
+
+object FlexibleIntSerializer : KSerializer<Int?> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("FlexibleInt", PrimitiveKind.STRING)
+    override fun serialize(encoder: Encoder, value: Int?) {
+        if (value != null) encoder.encodeInt(value) else encoder.encodeNull()
+    }
+    override fun deserialize(decoder: Decoder): Int? {
+        val jsonDecoder = decoder as? JsonDecoder ?: return null
+        val element = jsonDecoder.decodeJsonElement()
+        if (element is JsonNull) return null
+        val str = element.jsonPrimitive.content.trim()
+        return str.filter { it.isDigit() || it == '-' }.toIntOrNull()
+    }
+}
 
 @Serializable
 data class GovApiResponse<T>(
@@ -32,29 +69,29 @@ data class GovCountResult(
 @Serializable
 data class VehicleRecord(
     @SerialName("_id") val id: Long? = null,
-    @SerialName("mispar_rechev") val licensePlate: Long? = null,
+    @Serializable(with = FlexibleLongSerializer::class) @SerialName("mispar_rechev") val licensePlate: Long? = null,
     @SerialName("tozeret_nm") val make: String? = null,
-    @SerialName("tozeret_cd") val makeCode: Long? = null,
+    @Serializable(with = FlexibleLongSerializer::class) @SerialName("tozeret_cd") val makeCode: Long? = null,
     @SerialName("kinuy_mishari") val model: String? = null,
     @SerialName("degem_nm") val modelCode: String? = null,
-    @SerialName("degem_cd") val modelCd: Long? = null,
+    @Serializable(with = FlexibleLongSerializer::class) @SerialName("degem_cd") val modelCd: Long? = null,
     @SerialName("sug_degem") val modelType: String? = null,
     @SerialName("ramat_gimur") val trimLevel: String? = null,
-    @SerialName("shnat_yitzur") val year: Int? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("shnat_yitzur") val year: Int? = null,
     @SerialName("moed_aliya_lakvish") val onRoadDate: String? = null,
     @SerialName("mivchan_acharon_dt") val lastTestDate: String? = null,
     @SerialName("tokef_dt") val testExpiryDate: String? = null,
     @SerialName("baalut") val ownership: String? = null,
     @SerialName("tzeva_rechev") val color: String? = null,
-    @SerialName("tzeva_cd") val colorCode: Int? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("tzeva_cd") val colorCode: Int? = null,
     @SerialName("sug_delek_nm") val fuelType: String? = null,
     @SerialName("degem_manoa") val engineModel: String? = null,
     @SerialName("zmig_kidmi") val frontTire: String? = null,
     @SerialName("zmig_ahori") val rearTire: String? = null,
-    @SerialName("ramat_eivzur_betihuty") val safetyRating: Int? = null,
-    @SerialName("kvutzat_zihum") val emissionGroup: Int? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("ramat_eivzur_betihuty") val safetyRating: Int? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("kvutzat_zihum") val emissionGroup: Int? = null,
     @SerialName("misgeret") val vin: String? = null,
-    @SerialName("horaat_rishum") val registrationDirective: Long? = null
+    @Serializable(with = FlexibleLongSerializer::class) @SerialName("horaat_rishum") val registrationDirective: Long? = null
 )
 
 @Serializable
@@ -437,6 +474,10 @@ object VehicleUtils {
             m.contains("מיצובישי") || m.contains("mitsubishi") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Mitsubishi_logo.svg/512px-Mitsubishi_logo.svg.png"
             m.contains("בי ואי די") || m.contains("byd") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/BYD_Auto_2022_logo.svg/512px-BYD_Auto_2022_logo.svg.png"
             m.contains("אם ג'י") || m.contains("mg") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/MG_Motor_logo_%282021%29.svg/512px-MG_Motor_logo_%282021%29.svg.png"
+            m.contains("פורד") || m.contains("ford") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Ford_motor_company_Logo.svg/512px-Ford_motor_company_Logo.svg.png"
+            m.contains("שברולט") || m.contains("chevrolet") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Chevrolet_logo.png/512px-Chevrolet_logo.png"
+            m.contains("לנד רובר") || m.contains("land rover") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Land_Rover_logo_black.svg/512px-Land_Rover_logo_black.svg.png"
+            m.contains("ג'ילי") || m.contains("geely") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Geely_Auto_logo_2023.svg/512px-Geely_Auto_logo_2023.svg.png"
             m.contains("קופרה") || m.contains("cupra") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Cupra_Logo.svg/512px-Cupra_Logo.svg.png"
             m.contains("ג'יפ") || m.contains("jeep") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Jeep_logo.svg/512px-Jeep_logo.svg.png"
             m.contains("פורשה") || m.contains("porsche") -> "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Porsche_Wappen.svg/512px-Porsche_Wappen.svg.png"

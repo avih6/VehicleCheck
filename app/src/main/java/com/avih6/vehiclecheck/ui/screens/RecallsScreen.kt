@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -34,6 +35,8 @@ import coil.request.ImageRequest
 import com.avih6.vehiclecheck.data.NetworkClient
 import com.avih6.vehiclecheck.data.RecallDetailRecord
 import com.avih6.vehiclecheck.data.VehicleUtils
+import com.avih6.vehiclecheck.ui.components.HoverTooltipIconButton
+import com.avih6.vehiclecheck.ui.components.handCursor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -51,8 +54,8 @@ fun RecallsScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     var searchQuery by remember { mutableStateOf("") }
-    var selectedFilterYear by remember { mutableStateOf<String>("הכל") }
-    var selectedFilterCategory by remember { mutableStateOf<String>("הכל") }
+    var selectedFilterYear by remember { mutableStateOf("הכל") }
+    var selectedFilterCategory by remember { mutableStateOf("הכל") }
 
     val filterYears = remember { listOf("הכל", "2026", "2025", "2024", "2023") }
     val filterCategories = remember { listOf("הכל", "בלמים", "כריות אוויר", "היגוי", "דלק", "מנוע", "חשמל") }
@@ -106,55 +109,24 @@ fun RecallsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .padding(horizontal = 16.dp, vertical = 6.dp)
     ) {
-        // Government Source Header
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
-            border = BorderStroke(1.dp, Color(0xFFEF9A9A)),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Row(
-                modifier = Modifier.padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.WarningAmber,
-                    contentDescription = null,
-                    tint = Color(0xFFC62828),
-                    modifier = Modifier.size(28.dp)
-                )
-                Spacer(Modifier.width(10.dp))
-                Column {
-                    Text(
-                        text = "מאגר קריאות חוזרות (ריקולים) רשמי",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFC62828)
-                    )
-                    Text(
-                        text = "מידע רשמי ומעודכן בזמן אמת ממשרד התחבורה ויבואני הרכב",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF37474F)
-                    )
-                }
-            }
-        }
-
-        // Search Box
+        // Compact Search Bar
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("חיפוש לפי יצרן, דגם, סוג תקלה או מספר ריקול") },
-            placeholder = { Text("למשל: TOYOTA, FORD, כריות אוויר, בלמים...") },
+            label = { Text("חיפוש יצרן, דגם, תקלה או מספר ריקול") },
+            placeholder = { Text("למשל: FORD, TOYOTA, בלמים, כריות אוויר...") },
             leadingIcon = {
                 Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { searchQuery = "" }) {
+                    HoverTooltipIconButton(
+                        onClick = { searchQuery = "" },
+                        tooltipText = "נקה חיפוש"
+                    ) {
                         Icon(Icons.Default.Clear, contentDescription = "Clear")
                     }
                 }
@@ -167,34 +139,31 @@ fun RecallsScreen(
 
         Spacer(Modifier.height(8.dp))
 
-        // Year Filters
+        // Combined Filter Chips (Years & Categories)
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             items(filterYears) { yr ->
                 FilterChip(
                     selected = selectedFilterYear == yr,
                     onClick = { selectedFilterYear = yr },
-                    label = { Text(yr, fontWeight = FontWeight.Bold) },
-                    shape = RoundedCornerShape(12.dp)
+                    label = { Text(if (yr == "הכל") "כל השנים" else yr, fontWeight = FontWeight.Bold, fontSize = 13.sp) },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.handCursor()
                 )
             }
-        }
-
-        Spacer(Modifier.height(6.dp))
-
-        // Category Filters
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(filterCategories) { cat ->
+            item {
+                VerticalDivider(modifier = Modifier.height(24.dp).padding(horizontal = 4.dp))
+            }
+            items(filterCategories.drop(1)) { cat ->
                 FilterChip(
                     selected = selectedFilterCategory == cat,
-                    onClick = { selectedFilterCategory = cat },
+                    onClick = { selectedFilterCategory = if (selectedFilterCategory == cat) "הכל" else cat },
                     label = { Text(cat, fontSize = 12.sp) },
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.handCursor()
                 )
             }
         }
@@ -204,14 +173,18 @@ fun RecallsScreen(
         // Content
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator()
+                    Spacer(Modifier.height(12.dp))
+                    Text("טוען קריאות שירות רשמיות...", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         } else if (errorMessage != null) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(errorMessage!!, color = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.height(12.dp))
-                    Button(onClick = { loadRecalls() }) {
+                    Button(onClick = { loadRecalls() }, modifier = Modifier.handCursor()) {
                         Text("נסה שוב")
                     }
                 }
@@ -223,27 +196,40 @@ fun RecallsScreen(
                         Icons.Outlined.CheckCircle,
                         contentDescription = null,
                         tint = Color(0xFF2E7D32),
-                        modifier = Modifier.size(56.dp)
+                        modifier = Modifier.size(64.dp)
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(12.dp))
                     Text(
-                        text = "לא נמצאו קריאות חוזרות התואמות לחיפוש.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "לא נמצאו קריאות שירות התואמות לחיפוש.",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
         } else {
-            Text(
-                text = "נמצאו ${filteredRecalls.size} ריקולים (מסודרים לפי החדשים ביותר):",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 6.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${filteredRecalls.size} קריאות חוזרות",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "מקור: משרד התחבורה",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(top = 8.dp, bottom = 100.dp)
             ) {
                 items(filteredRecalls, key = { it.id ?: it.recallId ?: it.hashCode().toLong() }) { item ->
                     RecallFeedCard(item = item)
@@ -260,12 +246,13 @@ private fun RecallFeedCard(item: RecallDetailRecord) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
-        border = BorderStroke(1.dp, Color(0xFFEF5350).copy(alpha = 0.5f))
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = BorderStroke(1.5.dp, Color(0xFFEF5350).copy(alpha = 0.4f))
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Header Row: Badge + Recall ID & Year
+        Column(modifier = Modifier.padding(18.dp)) {
+            // Header: Top Badges (Recall ID + Year)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -273,158 +260,255 @@ private fun RecallFeedCard(item: RecallDetailRecord) {
             ) {
                 Surface(
                     color = Color(0xFFD32F2F),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text(
-                        text = "קריאת שירות #${item.recallId ?: ""}",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.WarningAmber,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = "קריאת שירות #${item.recallId ?: ""}",
+                            color = Color.White,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 13.sp
+                        )
+                    }
                 }
 
                 item.recallYear?.let { yr ->
                     Surface(
                         color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(10.dp)
                     ) {
                         Text(
                             text = "שנת $yr",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                         )
                     }
                 }
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(14.dp))
 
-            // Brand Logo + Make + Models
+            // Brand Section: Large Emblem + Make + Big Models text
             Row(
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(brandLogoUrl)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = item.makeName,
-                    modifier = Modifier.size(40.dp),
-                    contentScale = ContentScale.Fit
-                )
-                Spacer(Modifier.width(10.dp))
-                Column {
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.size(54.dp).padding(2.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize().padding(6.dp)) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(brandLogoUrl)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = item.makeName,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                }
+
+                Spacer(Modifier.width(14.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = item.makeName ?: "יצרן רכב",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Black,
+                        fontSize = 20.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "דגמים: ${item.model ?: "כל הדגמים"}",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
 
-            // Production Dates
+            // Production Dates Range
             if (!item.buildStart.isNullOrBlank() || !item.buildEnd.isNullOrBlank()) {
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = "תאריכי ייצור מושפעים: ${item.buildStart ?: ""} עד ${item.buildEnd ?: ""}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Spacer(Modifier.height(8.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "תאריכי ייצור מושפעים: ${item.buildStart ?: ""} עד ${item.buildEnd ?: ""}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
             }
 
             // Fault category pill
             item.faultType?.let { fType ->
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(8.dp))
                 Surface(
                     color = Color(0xFFFFF3E0),
-                    shape = RoundedCornerShape(6.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, Color(0xFFFFB74D))
                 ) {
-                    Text(
-                        text = "מכלול: $fType",
-                        color = Color(0xFFE65100),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Icon(Icons.Default.Build, contentDescription = null, tint = Color(0xFFE65100), modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = "מכלול: $fType",
+                            color = Color(0xFFE65100),
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 12.sp
+                        )
+                    }
                 }
             }
 
             HorizontalDivider(
-                modifier = Modifier.padding(vertical = 10.dp),
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                modifier = Modifier.padding(vertical = 12.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
             )
 
-            // Fault description
+            // Fault Description (Large, clear, comfortable line height)
             Text(
                 text = "תיאור התקלה:",
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.bodyMedium
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 15.sp,
+                color = MaterialTheme.colorScheme.onSurface
             )
+            Spacer(Modifier.height(4.dp))
             Text(
-                text = item.faultDescription ?: "לא צוין תיאור",
+                text = item.faultDescription ?: "לא צוין תיאור לתקלה זו.",
                 style = MaterialTheme.typography.bodyMedium,
+                fontSize = 14.sp,
+                lineHeight = 22.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            // Repair Method
+            // Repair Method Container
             item.repairMethod?.let { repair ->
-                Spacer(Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("אופן הטיפול: ", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                    Text(repair, style = MaterialTheme.typography.bodySmall, color = Color(0xFF2E7D32), fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(10.dp))
+                Surface(
+                    color = Color(0xFFE8F5E9),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, Color(0xFFA5D6A7)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Column {
+                            Text("אופן הטיפול הנדרש:", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1B5E20))
+                            Text(repair, fontSize = 13.sp, color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
 
-            // Importer Contact Actions
+            // Importer Contact Bar
             if (!item.telephone.isNullOrBlank() || !item.website.isNullOrBlank() || !item.importerName.isNullOrBlank()) {
-                Spacer(Modifier.height(10.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Spacer(Modifier.height(14.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "יבואן: ${item.importerName ?: ""}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    Row {
-                        item.telephone?.let { phone ->
-                            FilledTonalIconButton(
-                                onClick = {
-                                    val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))
-                                    try { context.startActivity(dialIntent) } catch (e: Exception) {}
-                                },
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Icon(Icons.Default.Phone, contentDescription = "Call", modifier = Modifier.size(18.dp))
-                            }
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "יבואן רשמי:",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = item.importerName ?: "שירות היבואן",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
 
-                        Spacer(Modifier.width(6.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            item.telephone?.let { phone ->
+                                HoverTooltipIconButton(
+                                    onClick = {
+                                        val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))
+                                        try { context.startActivity(dialIntent) } catch (e: Exception) {}
+                                    },
+                                    tooltipText = "חייג ליבואן ($phone)",
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                Icons.Default.Phone,
+                                                contentDescription = "Call",
+                                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
 
-                        item.website?.let { site ->
-                            val fullUrl = if (!site.startsWith("http://") && !site.startsWith("https://")) "https://$site" else site
-                            FilledTonalIconButton(
-                                onClick = {
-                                    val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse(fullUrl))
-                                    try { context.startActivity(webIntent) } catch (e: Exception) {}
-                                },
-                                modifier = Modifier.size(36.dp)
-                            ) {
-                                Icon(Icons.Default.Language, contentDescription = "Website", modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+
+                            item.website?.let { site ->
+                                val fullUrl = if (!site.startsWith("http://") && !site.startsWith("https://")) "https://$site" else site
+                                HoverTooltipIconButton(
+                                    onClick = {
+                                        val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse(fullUrl))
+                                        try { context.startActivity(webIntent) } catch (e: Exception) {}
+                                    },
+                                    tooltipText = "פתח אתר יבואן",
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.secondaryContainer,
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                Icons.Default.Language,
+                                                contentDescription = "Website",
+                                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
