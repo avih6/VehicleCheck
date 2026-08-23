@@ -122,54 +122,26 @@ fun SearchScreen(
             modifier = Modifier.padding(bottom = 12.dp)
         )
 
-        // License Plate Input Field
-        OutlinedTextField(
+        // License Plate Input Field (matching DisabledPermitCheck design)
+        com.avih6.vehiclecheck.ui.components.LicensePlateInput(
             value = query,
             onValueChange = { viewModel.onQueryChange(it) },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            placeholder = { Text("לדוגמה: 12345678") },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Search
-            ),
-            keyboardActions = KeyboardActions(
-                onSearch = {
-                    keyboardController?.hide()
-                    viewModel.search()
+            onVoiceClick = {
+                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, "he-IL")
+                    putExtra(RecognizerIntent.EXTRA_PROMPT, "אמור את מספר הרכב")
                 }
-            ),
-            visualTransformation = LicensePlateTransformation(),
-            singleLine = true,
-            leadingIcon = {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 4.dp)) {
-                    IconButton(onClick = { showCameraScanner = true }) {
-                        Icon(Icons.Default.PhotoCamera, contentDescription = "Camera OCR", tint = MaterialTheme.colorScheme.primary)
-                    }
-                    IconButton(onClick = {
-                        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "he-IL")
-                            putExtra(RecognizerIntent.EXTRA_PROMPT, "אמור את מספר הרכב")
-                        }
-                        try {
-                            speechLauncher.launch(intent)
-                        } catch (e: Exception) {}
-                    }) {
-                        Icon(Icons.Default.Mic, contentDescription = "Voice Input", tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
+                try {
+                    speechLauncher.launch(intent)
+                } catch (e: Exception) {}
             },
-            trailingIcon = {
-                if (query.isNotEmpty()) {
-                    IconButton(onClick = { viewModel.onQueryChange("") }) {
-                        Icon(Icons.Default.Clear, contentDescription = "Clear")
-                    }
-                }
-            }
+            onCameraClick = { showCameraScanner = true },
+            onClear = { viewModel.onQueryChange("") },
+            modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(8.dp))
 
         // Search Button
         Button(
@@ -190,7 +162,7 @@ fun SearchScreen(
             )
         }
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(16.dp))
 
         // Search State Presentation
         AnimatedContent(
@@ -216,6 +188,7 @@ fun SearchScreen(
 
                         ResultCard(
                             vehicle = state.vehicle,
+                            extraHistory = state.extraHistory,
                             formattedPlate = state.formattedPlate,
                             testStatus = state.testStatus,
                             hasDisabledPermit = state.hasDisabledPermit,

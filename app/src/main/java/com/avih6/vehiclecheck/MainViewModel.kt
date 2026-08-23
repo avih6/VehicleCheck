@@ -70,17 +70,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _searchState.value = SearchState.Loading
             try {
                 val plateNum = plateStr.toLongOrNull() ?: 0L
-                val filterJson = "{\"mispar_rechev\": }"
-                val permitFilterJson = "{\"MISPAR RECHEV\": }"
+                val filterJson = "{\"mispar_rechev\": $plateNum}"
+                val permitFilterJson = "{\"MISPAR RECHEV\": $plateNum}"
 
-                // 1. Check primary private vehicle dataset
+                // 1. Primary private vehicle dataset
                 val primaryDeferred = async {
                     try {
                         NetworkClient.apiService.getPrivateVehicle(filters = filterJson)
                     } catch (e: Exception) { null }
                 }
 
-                // 2. Cross-check disabled permit dataset in parallel
+                // 2. Extra History & Mileage dataset
+                val extraDeferred = async {
+                    try {
+                        NetworkClient.apiService.getExtraHistory(filters = filterJson)
+                    } catch (e: Exception) { null }
+                }
+
+                // 3. Cross-check disabled permit dataset
                 val permitDeferred = async {
                     try {
                         NetworkClient.apiService.getDisabledPermit(filters = permitFilterJson)
@@ -113,6 +120,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     } catch (e: Exception) { null }
                 }
 
+                val extraHistory = extraDeferred.await()?.result?.records?.firstOrNull()
                 val hasPermit = (permitDeferred.await()?.result?.records?.isNotEmpty() == true)
 
                 if (vehicle != null) {
@@ -124,6 +132,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
                     _searchState.value = SearchState.Success(
                         vehicle = vehicle,
+                        extraHistory = extraHistory,
                         formattedPlate = formatted,
                         testStatus = testStatus,
                         hasDisabledPermit = hasPermit
@@ -169,7 +178,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (isAdLoading || _nativeAd.value != null) return
         isAdLoading = true
 
-        val adLoader = AdLoader.Builder(context, "ca-app-pub-3940256099942544/2247696110") // Google Test Native Unit
+        val adLoader = AdLoader.Builder(context, "ca-app-pub-3940256099942544/2247696110")
             .forNativeAd { ad: NativeAd ->
                 _nativeAd.value?.destroy()
                 _nativeAd.value = ad
