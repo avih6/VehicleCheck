@@ -30,7 +30,7 @@ fun AdBanner(modifier: Modifier = Modifier) {
         factory = { context ->
             AdView(context).apply {
                 setAdSize(AdSize.BANNER)
-                adUnitId = "ca-app-pub-3940256099942544/6300978111" // Google Sample Banner Ad
+                adUnitId = "ca-app-pub-3940256099942544/6300978111"
                 loadAd(AdRequest.Builder().build())
             }
         }
@@ -46,7 +46,7 @@ fun NativeAdView(nativeAd: NativeAd, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 4.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
         shape = MaterialTheme.shapes.medium
     ) {
@@ -74,7 +74,6 @@ private fun populateNativeAdView(nativeAd: NativeAd, adView: NativeAdView, textC
     adView.starRatingView = adView.findViewById(R.id.ad_stars)
     adView.storeView = adView.findViewById(R.id.ad_store)
     adView.advertiserView = adView.findViewById(R.id.ad_advertiser)
-    adView.mediaView = adView.findViewById(R.id.ad_media)
 
     val headline = adView.headlineView as? TextView
     headline?.text = nativeAd.headline

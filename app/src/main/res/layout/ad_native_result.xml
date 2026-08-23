@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <com.google.android.gms.ads.nativead.NativeAdView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
@@ -76,7 +76,7 @@
                 android:textSize="12sp" />
         </LinearLayout>
 
-        <!-- Optional hidden elements for programmatic mapping -->
+        <!-- Hidden optional elements without MediaView -->
         <TextView
             android:id="@+id/ad_advertiser"
             android:layout_width="0dp"
@@ -98,12 +98,6 @@
 
         <TextView
             android:id="@+id/ad_store"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:visibility="gone" />
-
-        <com.google.android.gms.ads.nativead.MediaView
-            android:id="@+id/ad_media"
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:visibility="gone" />

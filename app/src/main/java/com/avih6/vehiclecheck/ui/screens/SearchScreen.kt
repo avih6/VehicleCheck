@@ -1,4 +1,4 @@
-﻿package com.avih6.vehiclecheck.ui.screens
+package com.avih6.vehiclecheck.ui.screens
 
 import android.app.Activity
 import android.content.Intent
@@ -139,6 +139,7 @@ fun SearchScreen(
                     viewModel.search()
                 }
             ),
+            visualTransformation = LicensePlateTransformation(),
             singleLine = true,
             leadingIcon = {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 4.dp)) {
@@ -208,6 +209,11 @@ fun SearchScreen(
                     }
                     val isFav = favorites.any { it.licensePlate == query }
                     Column {
+                        nativeAd?.let { ad ->
+                            NativeAdView(nativeAd = ad)
+                            Spacer(Modifier.height(12.dp))
+                        }
+
                         ResultCard(
                             vehicle = state.vehicle,
                             formattedPlate = state.formattedPlate,
@@ -216,11 +222,6 @@ fun SearchScreen(
                             isFavorite = isFav,
                             onToggleFavorite = { viewModel.toggleFavoriteCurrentResult(query, isFav) }
                         )
-
-                        nativeAd?.let { ad ->
-                            Spacer(Modifier.height(12.dp))
-                            NativeAdView(nativeAd = ad)
-                        }
                     }
                 }
                 is SearchState.NotFound -> {
@@ -301,5 +302,60 @@ private fun BulletPoint(text: String) {
         Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(8.dp))
         Text(text = text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+class LicensePlateTransformation : androidx.compose.ui.text.input.VisualTransformation {
+    override fun filter(text: androidx.compose.ui.text.AnnotatedString): androidx.compose.ui.text.input.TransformedText {
+        val digits = text.text
+        val out = StringBuilder()
+
+        val offsetMapping = when (digits.length) {
+            7 -> {
+                for (i in digits.indices) {
+                    out.append(digits[i])
+                    if (i == 1 || i == 4) out.append("-")
+                }
+                object : androidx.compose.ui.text.input.OffsetMapping {
+                    override fun originalToTransformed(offset: Int): Int {
+                        if (offset <= 2) return offset
+                        if (offset <= 5) return offset + 1
+                        return offset + 2
+                    }
+                    override fun transformedToOriginal(offset: Int): Int {
+                        if (offset <= 2) return offset
+                        if (offset <= 6) return offset - 1
+                        return offset - 2
+                    }
+                }
+            }
+            8 -> {
+                for (i in digits.indices) {
+                    out.append(digits[i])
+                    if (i == 2 || i == 4) out.append("-")
+                }
+                object : androidx.compose.ui.text.input.OffsetMapping {
+                    override fun originalToTransformed(offset: Int): Int {
+                        if (offset <= 3) return offset
+                        if (offset <= 5) return offset + 1
+                        return offset + 2
+                    }
+                    override fun transformedToOriginal(offset: Int): Int {
+                        if (offset <= 3) return offset
+                        if (offset <= 6) return offset - 1
+                        return offset - 2
+                    }
+                }
+            }
+            else -> {
+                out.append(digits)
+                androidx.compose.ui.text.input.OffsetMapping.Identity
+            }
+        }
+
+        return androidx.compose.ui.text.input.TransformedText(
+            androidx.compose.ui.text.AnnotatedString(out.toString()),
+            offsetMapping
+        )
     }
 }
