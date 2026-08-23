@@ -53,7 +53,7 @@ fun ResultCard(
     val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) }
     var showStatsDialog by remember { mutableStateOf(false) }
-    val tabs = listOf("כללי", "מפרט טכני", "בטיחות", "סביבה")
+    val tabs = listOf("כללי", "מפרט", "בטיחות", "סביבה", "סטטיסטיקה")
 
     val brandLogoUrl = remember(vehicle.make) {
         VehicleUtils.getBrandLogoUrl(vehicle.make)
@@ -459,10 +459,11 @@ fun ResultCard(
             }
         }
 
-        // 5. Navigation Tab Bar (כללי, מפרט טכני, בטיחות, סביבה)
-        TabRow(
+        // 5. Navigation Tab Bar (כללי, מפרט, בטיחות, סביבה, סטטיסטיקה)
+        ScrollableTabRow(
             selectedTabIndex = selectedTab,
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+            edgePadding = 0.dp,
             modifier = Modifier.clip(RoundedCornerShape(12.dp))
         ) {
             tabs.forEachIndexed { index, title ->
@@ -498,6 +499,7 @@ fun ResultCard(
             1 -> TechSpecTabContent(vehicle, techSpec)
             2 -> SafetyTabContent(vehicle, techSpec)
             3 -> EnvironmentTabContent(vehicle, techSpec)
+            4 -> StatisticsTabContent(vehicle, stats)
         }
     }
 }
@@ -1307,4 +1309,202 @@ private fun buildComprehensiveShareText(
         
         נבדק באפליקציית בדיקת רכב מתוך מאגר משרד התחבורה.
     """.trimIndent()
+}
+
+@Composable
+private fun StatisticsTabContent(
+    vehicle: VehicleRecord,
+    stats: ModelStatistics
+) {
+    val context = LocalContext.current
+    val brandLogoUrl = VehicleUtils.getBrandLogoUrl(vehicle.make)
+
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        // 1. Model & Brand Header Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(brandLogoUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "Brand Emblem",
+                    modifier = Modifier.size(72.dp).padding(4.dp),
+                    contentScale = ContentScale.Fit
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "${vehicle.make.orEmpty()} ${vehicle.model.orEmpty()}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Black,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = "שנת ייצור: ${vehicle.year ?: ""} • רמת גימור: ${vehicle.trimLevel ?: "סטנדרט"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // 2. Active vs Inactive Ratio Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "יחס כלי רכב פעילים מול מבוטלים / נגרעים מהכביש",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(14.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "%,d".format(stats.totalInactive),
+                            fontWeight = FontWeight.Black,
+                            fontSize = 18.sp,
+                            color = Color(0xFFEF5350)
+                        )
+                        Text(
+                            text = "לא פעילים (נגרעו)",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier.size(90.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            progress = { (stats.activePercentage / 100f).coerceIn(0f, 1f) },
+                            modifier = Modifier.fillMaxSize(),
+                            color = Color(0xFF0091EA),
+                            trackColor = Color(0xFFEF5350).copy(alpha = 0.3f),
+                            strokeWidth = 7.dp,
+                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "%.1f%%".format(stats.activePercentage),
+                                fontWeight = FontWeight.Black,
+                                fontSize = 15.sp
+                            )
+                            Text(
+                                text = "פעילים",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "%,d".format(stats.totalActive),
+                            fontWeight = FontWeight.Black,
+                            fontSize = 18.sp,
+                            color = Color(0xFF0091EA)
+                        )
+                        Text(
+                            text = "פעילים בכביש",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+
+        // 3. Breakdown By Year Table/Bars
+        if (stats.breakdownByYear.isNotEmpty()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "התפלגות כלי רכב פעילים לפי שנתוני ייצור",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+
+                    stats.breakdownByYear.forEach { yearItem ->
+                        val isCurrentVehicleYear = yearItem.year == vehicle.year
+                        val maxCount = stats.breakdownByYear.maxOfOrNull { it.activeCount }?.coerceAtLeast(1) ?: 1
+                        val fraction = (yearItem.activeCount.toFloat() / maxCount).coerceIn(0.05f, 1f)
+
+                        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "שנת ${yearItem.year}",
+                                        fontWeight = if (isCurrentVehicleYear) FontWeight.Black else FontWeight.Bold,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = if (isCurrentVehicleYear) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                    )
+                                    if (isCurrentVehicleYear) {
+                                        Spacer(Modifier.width(6.dp))
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.primary,
+                                            shape = RoundedCornerShape(4.dp)
+                                        ) {
+                                            Text(
+                                                text = "רכב זה",
+                                                color = Color.White,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Text(
+                                    text = "%,d פעילים".format(yearItem.activeCount),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = if (isCurrentVehicleYear) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            Spacer(Modifier.height(4.dp))
+
+                            // Progress bar
+                            LinearProgressIndicator(
+                                progress = { fraction },
+                                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                                color = if (isCurrentVehicleYear) MaterialTheme.colorScheme.primary else Color(0xFF0091EA),
+                                trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
