@@ -1,4 +1,4 @@
-package com.avih6.vehiclecheck.data
+﻿package com.avih6.vehiclecheck.data
 
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -11,7 +11,7 @@ import retrofit2.http.Query
 import java.util.concurrent.TimeUnit
 
 interface GovApiService {
-    // 1. Private & Commercial Vehicles (up to 3.5t)
+    // 1. Private & Commercial Active Vehicles
     @GET("api/3/action/datastore_search")
     suspend fun getPrivateVehicle(
         @Query("resource_id") resourceId: String = "053cea08-09bc-40ec-8f7a-156f0677aff3",
@@ -46,7 +46,7 @@ interface GovApiService {
     // 5. Heavy Vehicles / Trucks / Buses
     @GET("api/3/action/datastore_search")
     suspend fun getHeavyVehicle(
-        @Query("resource_id") resourceId: String = "cd3acc5c-03c3-4c42-ac1a-d7240f2e022f",
+        @Query("resource_id") resourceId: String = "cd3acc5c-03c3-4c89-9c54-d40f93c0d790",
         @Query("filters") filters: String,
         @Query("limit") limit: Int = 1
     ): GovApiResponse<VehicleRecord>
@@ -54,7 +54,7 @@ interface GovApiService {
     // 6. Two-Wheelers / Motorcycles
     @GET("api/3/action/datastore_search")
     suspend fun getTwoWheeler(
-        @Query("resource_id") resourceId: String = "bf9df4e2-d90d-4c0a-a40b-5426e6f6630f",
+        @Query("resource_id") resourceId: String = "bf9df4e2-d90d-4c0a-a400-19e15af8e95f",
         @Query("filters") filters: String,
         @Query("limit") limit: Int = 1
     ): GovApiResponse<VehicleRecord>
@@ -82,6 +82,38 @@ interface GovApiService {
         @Query("filters") filters: String,
         @Query("limit") limit: Int = 0
     ): GovApiResponse<VehicleRecord>
+
+    // 10. Deregistered / Cancelled / Off-Road Vehicles (2010-2016)
+    @GET("api/3/action/datastore_search")
+    suspend fun getDeregisteredVehicle2010(
+        @Query("resource_id") resourceId: String = "4e6b9724-4c1e-43f0-909a-154d4cc4e046",
+        @Query("filters") filters: String,
+        @Query("limit") limit: Int = 1
+    ): GovApiResponse<DeregisteredVehicleRecord>
+
+    // 11. Deregistered / Cancelled / Off-Road Vehicles (2017+)
+    @GET("api/3/action/datastore_search")
+    suspend fun getDeregisteredVehicle2017(
+        @Query("resource_id") resourceId: String = "851ecab1-0622-4dbe-a6c7-f950cf82abf9",
+        @Query("filters") filters: String,
+        @Query("limit") limit: Int = 1
+    ): GovApiResponse<DeregisteredVehicleRecord>
+
+    // 12. Deregistered / Cancelled / Off-Road Vehicles (2000-2009)
+    @GET("api/3/action/datastore_search")
+    suspend fun getDeregisteredVehicle2000(
+        @Query("resource_id") resourceId: String = "ec8cbc34-72e1-4b69-9c48-22821ba0bd6c",
+        @Query("filters") filters: String,
+        @Query("limit") limit: Int = 1
+    ): GovApiResponse<DeregisteredVehicleRecord>
+
+    // 13. Count inactive vehicles of model
+    @GET("api/3/action/datastore_search")
+    suspend fun getDeregisteredCount(
+        @Query("resource_id") resourceId: String,
+        @Query("filters") filters: String,
+        @Query("limit") limit: Int = 0
+    ): GovApiResponse<DeregisteredVehicleRecord>
 }
 
 object NetworkClient {

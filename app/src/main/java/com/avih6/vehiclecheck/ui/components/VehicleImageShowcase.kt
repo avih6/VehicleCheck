@@ -1,18 +1,15 @@
-﻿package com.avih6.vehiclecheck.ui.components
+package com.avih6.vehiclecheck.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.RotateRight
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.RotateRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,6 +37,10 @@ fun VehicleImageShowcase(
         VehicleUtils.getEnglishMakeAndModel(hebrewMake, modelName)
     }
 
+    val brandLogoUrl = remember(hebrewMake) {
+        VehicleUtils.getBrandLogoUrl(hebrewMake)
+    }
+
     val angles = remember {
         listOf("01", "05", "09", "13", "17", "21", "25", "29")
     }
@@ -49,10 +50,9 @@ fun VehicleImageShowcase(
     var isImageLoading by remember { mutableStateOf(true) }
 
     val angle = angles[selectedAngleIndex]
-    val modelYear = year ?: 2022
 
-    val imageUrl = remember(makeEn, modelEn, modelYear, angle) {
-        "https://cdn.imagin.studio/getimage?customer=hrjavascript-mastery&make=$makeEn&modelFamily=$modelEn&modelYear=$modelYear&zoomType=fullscreen&angle=$angle"
+    val imageUrl = remember(makeEn, modelEn, angle) {
+        "https://cdn.imagin.studio/getimage?customer=hrjavascript-mastery&make=$makeEn&modelFamily=$modelEn&zoomType=fullscreen&angle=$angle"
     }
 
     Card(
@@ -105,11 +105,14 @@ fun VehicleImageShowcase(
                         verticalArrangement = Arrangement.Center,
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.DirectionsCar,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                            modifier = Modifier.size(64.dp)
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(brandLogoUrl)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "Brand Logo",
+                            modifier = Modifier.size(70.dp),
+                            contentScale = ContentScale.Fit
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
@@ -177,7 +180,7 @@ fun VehicleImageShowcase(
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        Icons.Default.RotateRight,
+                        Icons.AutoMirrored.Filled.RotateRight,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(13.dp)

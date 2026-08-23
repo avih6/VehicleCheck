@@ -4,7 +4,6 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -21,16 +19,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.avih6.vehiclecheck.data.*
-import com.avih6.vehiclecheck.ui.theme.*
 
 @Composable
 fun ResultCard(
@@ -42,19 +41,63 @@ fun ResultCard(
     testStatus: TestStatus,
     hasDisabledPermit: Boolean,
     permitIssueDate: Long?,
-    sameModelActiveCount: Int,
+    isOffRoad: Boolean,
+    offRoadDate: String?,
+    stats: ModelStatistics,
     isFavorite: Boolean,
     onToggleFavorite: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var selectedTab by remember { mutableIntStateOf(0) }
+    var showStatsDialog by remember { mutableStateOf(false) }
     val tabs = listOf("כללי", "מפרט טכני", "בטיחות", "סביבה")
+
+    val brandLogoUrl = remember(vehicle.make) {
+        VehicleUtils.getBrandLogoUrl(vehicle.make)
+    }
+
+    if (showStatsDialog) {
+        VehicleStatsDialog(
+            vehicle = vehicle,
+            stats = stats,
+            onDismiss = { showStatsDialog = false }
+        )
+    }
 
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        // 0. Off-Road / Cancellation Alert Badge (if vehicle is cancelled)
+        if (isOffRoad) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = Color(0xFFC62828).copy(alpha = 0.15f),
+                border = BorderStroke(1.5.dp, Color(0xFFC62828).copy(alpha = 0.6f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.Cancel,
+                        contentDescription = null,
+                        tint = Color(0xFFC62828),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = if (!offRoadDate.isNullOrBlank()) "ירד מהכביש בתאריך: $offRoadDate" else "רכב זה ירד מהכביש (רישוי מבוטל)",
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFFC62828),
+                        fontSize = 15.sp
+                    )
+                }
+            }
+        }
+
         // 1. Vehicle 360 Showcase Image
         VehicleImageShowcase(
             hebrewMake = vehicle.make,
@@ -68,7 +111,10 @@ fun ResultCard(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
         ) {
-            Column(modifier = Modifier.padding(14.dp)) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -83,7 +129,7 @@ fun ResultCard(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
                         ) {
                             Text(
                                 text = formattedPlate,
@@ -122,7 +168,7 @@ fun ResultCard(
                         }
                         IconButton(onClick = {
                             val shareText = buildComprehensiveShareText(
-                                vehicle, techSpec, importerInfo, extraHistory, formattedPlate, testStatus, hasDisabledPermit, permitIssueDate
+                                vehicle, techSpec, importerInfo, extraHistory, formattedPlate, testStatus, hasDisabledPermit, permitIssueDate, isOffRoad, offRoadDate
                             )
                             val sendIntent = Intent().apply {
                                 action = Intent.ACTION_SEND
@@ -140,13 +186,29 @@ fun ResultCard(
                     }
                 }
 
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(14.dp))
+
+                // Brand 3D Metallic Logo
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(brandLogoUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "Brand Logo",
+                    modifier = Modifier
+                        .size(75.dp)
+                        .padding(2.dp),
+                    contentScale = ContentScale.Fit
+                )
+
+                Spacer(Modifier.height(8.dp))
 
                 val title = listOfNotNull(vehicle.make, vehicle.model).joinToString(" ").ifBlank { "פרטי רכב" }
                 Text(
                     text = "${vehicle.year ?: ""} $title",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Black,
+                    textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurface
                 )
 
@@ -155,14 +217,15 @@ fun ResultCard(
                         Text(
                             text = "רמת גימור: $trim",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
 
                 // Mileage in last test badge
                 extraHistory?.lastTestMileage?.let { km ->
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(10.dp))
                     Surface(
                         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
                         shape = RoundedCornerShape(8.dp)
@@ -219,7 +282,8 @@ fun ResultCard(
                 is TestStatus.Valid -> "בתוקף"
                 is TestStatus.ExpiringSoon -> "יפוג בקרוב"
                 is TestStatus.Expired -> "פג תוקף"
-                TestStatus.Unknown -> "לא ידוע"
+                is TestStatus.OffRoad -> "ירד מהכביש"
+                TestStatus.Unknown -> "אין מידע"
             }
             StatusPill(
                 title = "טסט",
@@ -296,7 +360,17 @@ fun ResultCard(
 
         // 6. Tab Content Switcher
         when (selectedTab) {
-            0 -> GeneralTabContent(vehicle, techSpec, importerInfo, extraHistory, testStatus, hasDisabledPermit, permitIssueDate, sameModelActiveCount)
+            0 -> GeneralTabContent(
+                vehicle = vehicle,
+                techSpec = techSpec,
+                importerInfo = importerInfo,
+                extraHistory = extraHistory,
+                testStatus = testStatus,
+                hasDisabledPermit = hasDisabledPermit,
+                permitIssueDate = permitIssueDate,
+                stats = stats,
+                onShowAllCounts = { showStatsDialog = true }
+            )
             1 -> TechSpecTabContent(vehicle, techSpec)
             2 -> SafetyTabContent(vehicle, techSpec)
             3 -> EnvironmentTabContent(vehicle, techSpec)
@@ -313,51 +387,85 @@ private fun GeneralTabContent(
     testStatus: TestStatus,
     hasDisabledPermit: Boolean,
     permitIssueDate: Long?,
-    sameModelActiveCount: Int
+    stats: ModelStatistics,
+    onShowAllCounts: () -> Unit
 ) {
     val context = LocalContext.current
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        // Active Same Model Vehicles Count Card
-        if (sameModelActiveCount > 0) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+        // Active vs Inactive Same Model Vehicles Count Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                Text(
+                    text = "כמות כלי רכב הפעילים, הקיימים מאותו סוג הרכב",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(14.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     Text(
-                        text = "כמות כלי רכב פעילים מדגם זה בישראל",
+                        text = "${stats.totalInactive} לא פעילים",
                         fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(Modifier.height(10.dp))
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                        border = BorderStroke(3.dp, MaterialTheme.colorScheme.primary),
-                        modifier = Modifier.size(80.dp)
+
+                    // Circular Progress Ring
+                    Box(
+                        modifier = Modifier.size(80.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = "$sameModelActiveCount",
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 18.sp,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Text(
-                                    text = "פעילים",
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
+                        CircularProgressIndicator(
+                            progress = { (stats.activePercentage / 100f).coerceIn(0f, 1f) },
+                            modifier = Modifier.fillMaxSize(),
+                            color = Color(0xFF0091EA),
+                            trackColor = Color(0xFFEF5350),
+                            strokeWidth = 6.dp,
+                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "%.1f%%".format(stats.activePercentage),
+                                fontWeight = FontWeight.Black,
+                                fontSize = 13.sp
+                            )
+                            Text(
+                                text = "פעילים",
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
+
+                    Text(
+                        text = "${stats.totalActive} פעילים",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF0091EA)
+                    )
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                TextButton(onClick = onShowAllCounts) {
+                    Text(
+                        text = "הצג את כל הכמויות",
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0091EA)
+                    )
                 }
             }
         }
@@ -959,15 +1067,19 @@ private fun buildComprehensiveShareText(
     formattedPlate: String,
     testStatus: TestStatus,
     hasDisabledPermit: Boolean,
-    permitIssueDate: Long?
+    permitIssueDate: Long?,
+    isOffRoad: Boolean,
+    offRoadDate: String?
 ): String {
     val statusStr = when (testStatus) {
         is TestStatus.Valid -> "טסט בתוקף (נותרו ${testStatus.daysLeft} ימים)"
         is TestStatus.ExpiringSoon -> "טסט יפוג בקרוב (נותרו ${testStatus.daysLeft} ימים)"
         is TestStatus.Expired -> "פג תוקף טסט (לפני ${testStatus.daysPassed} ימים)"
+        is TestStatus.OffRoad -> "ירד מהכביש בתאריך: ${offRoadDate ?: "בוטל"}"
         TestStatus.Unknown -> "לא ידוע"
     }
 
+    val offRoadAlert = if (isOffRoad) "🚫 *סטטוס רכב: ירד מהכביש (${offRoadDate ?: "בוטל"})*\n" else ""
     val mileageStr = extraHistory?.lastTestMileage?.let { "\n🛣️ קילומטראז' בטסט: %,d ק\"מ".format(it) } ?: ""
     val hpStr = techSpec?.horsepower?.let { "\n🐎 כוחות סוס: $it כ\"ס" } ?: ""
     val ccStr = techSpec?.engineDisplacement?.let { "\n⚙️ נפח מנוע: %,d סמ\"ק".format(it) } ?: ""
@@ -977,7 +1089,7 @@ private fun buildComprehensiveShareText(
 
     return """
         📋 *דוח בדיקת רכב מקיף - מספר $formattedPlate*
-        🚗 יצרן ודגם: ${vehicle.make ?: ""} ${vehicle.model ?: ""} (${vehicle.trimLevel ?: ""})
+        $offRoadAlert🚗 יצרן ודגם: ${vehicle.make ?: ""} ${vehicle.model ?: ""} (${vehicle.trimLevel ?: ""})
         📅 שנת ייצור: ${vehicle.year ?: "-"} (עלייה לכביש: ${vehicle.onRoadDate ?: "-"})$priceStr
         🛡️ סטטוס טסט: $statusStr
         🗓️ תוקף טסט: ${vehicle.testExpiryDate ?: "-"} (מבחן אחרון: ${vehicle.lastTestDate ?: "-"})$hpStr$ccStr$driveStr

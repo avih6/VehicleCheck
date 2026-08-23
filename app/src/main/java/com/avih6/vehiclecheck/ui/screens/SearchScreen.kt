@@ -195,7 +195,9 @@ fun SearchScreen(
                             testStatus = state.testStatus,
                             hasDisabledPermit = state.hasDisabledPermit,
                             permitIssueDate = state.permitIssueDate,
-                            sameModelActiveCount = state.sameModelActiveCount,
+                            isOffRoad = state.isOffRoad,
+                            offRoadDate = state.offRoadDate,
+                            stats = state.stats,
                             isFavorite = isFav,
                             onToggleFavorite = { viewModel.toggleFavoriteCurrentResult(query, isFav) }
                         )

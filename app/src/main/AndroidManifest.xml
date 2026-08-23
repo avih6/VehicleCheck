@@ -23,7 +23,7 @@
         android:theme="@style/Theme.VehicleCheck"
         tools:targetApi="36">
 
-        <!-- AdMob App ID -->
+        <!-- AdMob App ID -->ו
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-6647546375254792~7501067091" />

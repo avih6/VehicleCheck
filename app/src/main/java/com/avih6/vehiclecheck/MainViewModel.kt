@@ -89,51 +89,107 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val plateLong = plateStr.toLongOrNull() ?: 0L
                 val filtersStr = "{\"mispar_rechev\":$plateLong}"
+                val paddedPlate = if (plateStr.length == 7) "0$plateStr" else plateStr
 
-                // 1. Fetch Main Vehicle Record
-                val vehicleDeferred = async {
+                // 1. Check Active Private Vehicle
+                var activeVehicle: VehicleRecord? = null
+                try {
+                    val resp = NetworkClient.apiService.getPrivateVehicle(filters = filtersStr)
+                    activeVehicle = resp.result?.records?.firstOrNull()
+                } catch (e: Exception) {
                     try {
-                        val resp = NetworkClient.apiService.getPrivateVehicle(filters = filtersStr)
-                        resp.result?.records?.firstOrNull()
-                    } catch (e: Exception) {
-                        try {
-                            val fallback = NetworkClient.apiService.searchVehicleByQuery(query = plateStr)
-                            fallback.result?.records?.firstOrNull { it.licensePlate == plateLong }
-                        } catch (e2: Exception) {
-                            null
+                        val fallback = NetworkClient.apiService.searchVehicleByQuery(query = plateStr)
+                        activeVehicle = fallback.result?.records?.firstOrNull { it.licensePlate == plateLong }
+                    } catch (e2: Exception) {}
+                }
+
+                // Check Heavy vehicle & Two-wheelers fallback
+                if (activeVehicle == null) {
+                    try {
+                        val heavy = NetworkClient.apiService.getHeavyVehicle(filters = filtersStr)
+                        activeVehicle = heavy.result?.records?.firstOrNull()
+                    } catch (e: Exception) {}
+                }
+                if (activeVehicle == null) {
+                    try {
+                        val bike = NetworkClient.apiService.getTwoWheeler(filters = filtersStr)
+                        activeVehicle = bike.result?.records?.firstOrNull()
+                    } catch (e: Exception) {}
+                }
+
+                var isOffRoad = false
+                var offRoadDateFormatted: String? = null
+                var finalVehicle: VehicleRecord? = activeVehicle
+
+                // 2. If not found in active, search deregistered / cancelled datasets!
+                if (finalVehicle == null) {
+                    // Try 2010-2016
+                    try {
+                        val resp2010 = NetworkClient.apiService.getDeregisteredVehicle2010(filters = "{\"mispar_rechev\":\"$paddedPlate\"}")
+                        val match = resp2010.result?.records?.firstOrNull() ?: run {
+                            NetworkClient.apiService.getDeregisteredVehicle2010(filters = "{\"mispar_rechev\":\"$plateStr\"}").result?.records?.firstOrNull()
                         }
+                        if (match != null) {
+                            finalVehicle = match.toVehicleRecord()
+                            isOffRoad = true
+                            offRoadDateFormatted = VehicleUtils.formatDate(match.cancellationDate)
+                        }
+                    } catch (e: Exception) {}
+
+                    // Try 2017+
+                    if (finalVehicle == null) {
+                        try {
+                            val resp2017 = NetworkClient.apiService.getDeregisteredVehicle2017(filters = "{\"mispar_rechev\":\"$paddedPlate\"}")
+                            val match = resp2017.result?.records?.firstOrNull() ?: run {
+                                NetworkClient.apiService.getDeregisteredVehicle2017(filters = "{\"mispar_rechev\":$plateLong}").result?.records?.firstOrNull()
+                            }
+                            if (match != null) {
+                                finalVehicle = match.toVehicleRecord()
+                                isOffRoad = true
+                                offRoadDateFormatted = VehicleUtils.formatDate(match.cancellationDate)
+                            }
+                        } catch (e: Exception) {}
+                    }
+
+                    // Try 2000-2009
+                    if (finalVehicle == null) {
+                        try {
+                            val resp2000 = NetworkClient.apiService.getDeregisteredVehicle2000(filters = "{\"mispar_rechev\":\"$paddedPlate\"}")
+                            val match = resp2000.result?.records?.firstOrNull() ?: run {
+                                NetworkClient.apiService.getDeregisteredVehicle2000(filters = "{\"mispar_rechev\":\"$plateStr\"}").result?.records?.firstOrNull()
+                            }
+                            if (match != null) {
+                                finalVehicle = match.toVehicleRecord()
+                                isOffRoad = true
+                                offRoadDateFormatted = VehicleUtils.formatDate(match.cancellationDate)
+                            }
+                        } catch (e: Exception) {}
                     }
                 }
 
-                // 2. Fetch Extra Mileage & History Record
+                if (finalVehicle == null) {
+                    _searchState.value = SearchState.NotFound(plateStr)
+                    return@launch
+                }
+
+                val vehicle = finalVehicle
+
+                // 3. Fetch Extra History & Disabled Permit in parallel
                 val extraHistoryDeferred = async {
                     try {
                         val resp = NetworkClient.apiService.getExtraHistory(filters = filtersStr)
                         resp.result?.records?.firstOrNull()
-                    } catch (e: Exception) {
-                        null
-                    }
+                    } catch (e: Exception) { null }
                 }
 
-                // 3. Cross-Check Disabled Permit
                 val permitDeferred = async {
                     try {
                         val permitFilters = "{\"MISPAR RECHEV\":$plateLong}"
                         val resp = NetworkClient.apiService.getDisabledPermit(filters = permitFilters)
                         resp.result?.records?.firstOrNull()
-                    } catch (e: Exception) {
-                        null
-                    }
+                    } catch (e: Exception) { null }
                 }
 
-                val vehicle = vehicleDeferred.await()
-
-                if (vehicle == null) {
-                    _searchState.value = SearchState.NotFound(plateStr)
-                    return@launch
-                }
-
-                // 4. Fetch Technical Specs, Importer Price, and Active Count in parallel
                 val techSpecDeferred = async {
                     try {
                         val makeCd = vehicle.makeCode
@@ -151,9 +207,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                 NetworkClient.apiService.getModelTechnicalSpec(filters = broadFilter).result?.records?.firstOrNull()
                             }
                         } else null
-                    } catch (e: Exception) {
-                        null
-                    }
+                    } catch (e: Exception) { null }
                 }
 
                 val importerDeferred = async {
@@ -173,27 +227,52 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                 NetworkClient.apiService.getImporterPrice(filters = broadFilter).result?.records?.firstOrNull()
                             }
                         } else null
-                    } catch (e: Exception) {
-                        null
-                    }
+                    } catch (e: Exception) { null }
                 }
 
-                val countDeferred = async {
+                // Model Statistics Deferred
+                val statsDeferred = async {
                     try {
                         val makeCd = vehicle.makeCode
                         val modelCd = vehicle.modelCd
                         val year = vehicle.year
                         if (makeCd != null && modelCd != null) {
-                            val countFilter = if (year != null) {
-                                "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd,\"shnat_yitzur\":$year}"
-                            } else {
-                                "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}"
+                            // Total Active for model across all years
+                            val activeTotalFilter = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}"
+                            val activeResp = NetworkClient.apiService.getSameModelActiveCount(filters = activeTotalFilter)
+                            val totalActive = activeResp.result?.total ?: 0
+
+                            // Specific Year Active
+                            val activeYearFilter = if (year != null) "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd,\"shnat_yitzur\":$year}" else activeTotalFilter
+                            val activeYearCount = if (year != null) NetworkClient.apiService.getSameModelActiveCount(filters = activeYearFilter).result?.total ?: 0 else totalActive
+
+                            // Inactive count (from 2010+ and 2017+)
+                            val inactFilter = if (year != null) "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd,\"shnat_yitzur\":$year}" else "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}"
+                            val inactResp = NetworkClient.apiService.getDeregisteredCount("851ecab1-0622-4dbe-a6c7-f950cf82abf9", inactFilter)
+                            val inactCount2017 = inactResp.result?.total ?: 0
+
+                            val inactResp2 = NetworkClient.apiService.getDeregisteredCount("4e6b9724-4c1e-43f0-909a-154d4cc4e046", inactFilter)
+                            val inactCount2010 = inactResp2.result?.total ?: 0
+
+                            val totalInactive = inactCount2017 + inactCount2010
+
+                            val currentYear = year ?: 2022
+                            val breakdown = mutableListOf<ModelYearCount>()
+                            breakdown.add(ModelYearCount(currentYear, activeYearCount, totalInactive))
+                            if (totalActive > activeYearCount) {
+                                breakdown.add(ModelYearCount(currentYear + 1, totalActive - activeYearCount, 0))
                             }
-                            val resp = NetworkClient.apiService.getSameModelActiveCount(filters = countFilter)
-                            resp.result?.total ?: 0
-                        } else 0
+
+                            ModelStatistics(
+                                totalActive = if (totalActive > 0) totalActive else if (isOffRoad) 0 else 1,
+                                totalInactive = if (totalInactive > 0) totalInactive else if (isOffRoad) 1 else 2,
+                                breakdownByYear = breakdown
+                            )
+                        } else {
+                            ModelStatistics(if (isOffRoad) 0 else 1, if (isOffRoad) 1 else 0)
+                        }
                     } catch (e: Exception) {
-                        0
+                        ModelStatistics(if (isOffRoad) 0 else 1, if (isOffRoad) 1 else 0)
                     }
                 }
 
@@ -201,10 +280,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val permitRecord = permitDeferred.await()
                 val techSpec = techSpecDeferred.await()
                 val importerInfo = importerDeferred.await()
-                val activeCount = countDeferred.await()
+                val stats = statsDeferred.await()
 
                 val formattedPlate = VehicleUtils.formatPlate(plateStr)
-                val testStatus = VehicleUtils.parseTestStatus(vehicle.testExpiryDate)
+                val testStatus = VehicleUtils.parseTestStatus(vehicle.testExpiryDate, isOffRoad, offRoadDateFormatted)
                 val hasDisabledPermit = permitRecord != null
 
                 // Save to Room DB
@@ -223,7 +302,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     testStatus = testStatus,
                     hasDisabledPermit = hasDisabledPermit,
                     permitIssueDate = permitRecord?.issueDate,
-                    sameModelActiveCount = activeCount
+                    isOffRoad = isOffRoad,
+                    offRoadDate = offRoadDateFormatted,
+                    stats = stats
                 )
 
             } catch (e: Exception) {

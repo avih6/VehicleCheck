@@ -25,12 +25,13 @@ import com.google.android.gms.ads.nativead.NativeAdView
 
 @Composable
 fun AdBanner(modifier: Modifier = Modifier) {
+    val adUnitId = if (com.avih6.vehiclecheck.BuildConfig.DEBUG) "ca-app-pub-3940256099942544/6300978111" else "ca-app-pub-6647546375254792/8250052303"
     AndroidView(
         modifier = modifier.fillMaxWidth(),
         factory = { context ->
             AdView(context).apply {
                 setAdSize(AdSize.BANNER)
-                adUnitId = "ca-app-pub-3940256099942544/6300978111"
+                this.adUnitId = adUnitId
                 loadAd(AdRequest.Builder().build())
             }
         }
@@ -71,7 +72,7 @@ private fun populateNativeAdView(nativeAd: NativeAd, adView: NativeAdView, textC
     adView.bodyView = adView.findViewById(R.id.ad_body)
     adView.callToActionView = adView.findViewById(R.id.ad_call_to_action)
     adView.iconView = adView.findViewById(R.id.ad_app_icon)
-    adView.mediaView = adView.findViewById(R.id.ad_media)
+    adView.mediaView = null
     adView.priceView = adView.findViewById(R.id.ad_price)
     adView.starRatingView = adView.findViewById(R.id.ad_stars)
     adView.storeView = adView.findViewById(R.id.ad_store)
@@ -97,18 +98,16 @@ private fun populateNativeAdView(nativeAd: NativeAd, adView: NativeAdView, textC
         (adView.callToActionView as Button).text = nativeAd.callToAction
     }
 
-    // Media / Icon handling
-    if (nativeAd.mediaContent != null) {
-        adView.mediaView?.setMediaContent(nativeAd.mediaContent!!)
-        adView.mediaView?.visibility = View.VISIBLE
-        adView.iconView?.visibility = View.GONE
-    } else if (nativeAd.icon != null) {
-        (adView.iconView as? ImageView)?.setImageDrawable(nativeAd.icon?.drawable)
-        adView.iconView?.visibility = View.VISIBLE
-        adView.mediaView?.visibility = View.GONE
+    // Icon handling
+    val iconImageView = adView.iconView as? ImageView
+    if (nativeAd.icon != null && nativeAd.icon?.drawable != null) {
+        iconImageView?.setImageDrawable(nativeAd.icon?.drawable)
+        iconImageView?.visibility = View.VISIBLE
+    } else if (nativeAd.images.isNotEmpty() && nativeAd.images[0].drawable != null) {
+        iconImageView?.setImageDrawable(nativeAd.images[0].drawable)
+        iconImageView?.visibility = View.VISIBLE
     } else {
-        adView.mediaView?.visibility = View.GONE
-        adView.iconView?.visibility = View.GONE
+        iconImageView?.visibility = View.GONE
     }
 
     adView.setNativeAd(nativeAd)

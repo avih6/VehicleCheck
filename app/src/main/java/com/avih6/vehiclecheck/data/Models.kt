@@ -47,6 +47,67 @@ data class VehicleRecord(
 )
 
 @Serializable
+data class DeregisteredVehicleRecord(
+    @SerialName("_id") val id: Long? = null,
+    @SerialName("mispar_rechev") val licensePlateRaw: String? = null,
+    @SerialName("tozeret_cd") val makeCodeRaw: String? = null,
+    @SerialName("tozeret_nm") val make: String? = null,
+    @SerialName("degem_cd") val modelCodeRaw: String? = null,
+    @SerialName("degem_nm") val modelCode: String? = null,
+    @SerialName("sug_rechev_nm") val vehicleType: String? = null,
+    @SerialName("moed_aliya_lakvish") val onRoadDate: String? = null,
+    @SerialName("bitul_dt") val cancellationDate: String? = null,
+    @SerialName("misgeret") val vin: String? = null,
+    @SerialName("degem_manoa") val engineModel: String? = null,
+    @SerialName("mispar_manoa") val engineNumber: String? = null,
+    @SerialName("mishkal_kolel") val totalWeightRaw: String? = null,
+    @SerialName("ramat_gimur") val trimLevel: String? = null,
+    @SerialName("shnat_yitzur") val yearRaw: String? = null,
+    @SerialName("baalut") val ownership: String? = null,
+    @SerialName("tzeva_rechev") val color: String? = null,
+    @SerialName("zmig_kidmi") val frontTire: String? = null,
+    @SerialName("zmig_ahori") val rearTire: String? = null,
+    @SerialName("sug_delek_nm") val fuelType: String? = null,
+    @SerialName("horaat_rishum") val registrationDirectiveRaw: String? = null,
+    @SerialName("kinuy_mishari") val model: String? = null
+) {
+    fun toVehicleRecord(): VehicleRecord {
+        val plate = licensePlateRaw?.filter { it.isDigit() }?.toLongOrNull()
+        val year = yearRaw?.filter { it.isDigit() }?.toIntOrNull()
+        val makeCd = makeCodeRaw?.filter { it.isDigit() }?.toLongOrNull()
+        val modelCd = modelCodeRaw?.filter { it.isDigit() }?.toLongOrNull()
+        val directive = registrationDirectiveRaw?.filter { it.isDigit() }?.toLongOrNull()
+
+        return VehicleRecord(
+            id = id,
+            licensePlate = plate,
+            make = make,
+            makeCode = makeCd,
+            model = if (!model.isNullOrBlank()) model else modelCode,
+            modelCode = modelCode,
+            modelCd = modelCd,
+            modelType = vehicleType,
+            trimLevel = trimLevel,
+            year = year,
+            onRoadDate = onRoadDate,
+            lastTestDate = null,
+            testExpiryDate = null,
+            ownership = ownership,
+            color = color,
+            colorCode = null,
+            fuelType = fuelType,
+            engineModel = engineModel,
+            frontTire = frontTire,
+            rearTire = rearTire,
+            safetyRating = null,
+            emissionGroup = null,
+            vin = vin,
+            registrationDirective = directive
+        )
+    }
+}
+
+@Serializable
 data class VehicleTechnicalSpecRecord(
     @SerialName("_id") val id: Long? = null,
     @SerialName("tozeret_cd") val makeCode: Long? = null,
@@ -158,10 +219,29 @@ data class DisabledPermitRecord(
     @SerialName("SUG TAV") val permitType: Long? = null
 )
 
+data class ModelYearCount(
+    val year: Int,
+    val activeCount: Int,
+    val inactiveCount: Int
+) {
+    val totalCount: Int get() = activeCount + inactiveCount
+    val activePercentage: Float get() = if (totalCount > 0) (activeCount.toFloat() / totalCount) * 100f else 100f
+}
+
+data class ModelStatistics(
+    val totalActive: Int,
+    val totalInactive: Int,
+    val breakdownByYear: List<ModelYearCount> = emptyList()
+) {
+    val totalVehicles: Int get() = totalActive + totalInactive
+    val activePercentage: Float get() = if (totalVehicles > 0) (totalActive.toFloat() / totalVehicles) * 100f else 100f
+}
+
 sealed interface TestStatus {
     data class Valid(val daysLeft: Long) : TestStatus
     data class ExpiringSoon(val daysLeft: Long) : TestStatus
     data class Expired(val daysPassed: Long) : TestStatus
+    data class OffRoad(val offRoadDate: String) : TestStatus
     object Unknown : TestStatus
 }
 
@@ -177,14 +257,19 @@ sealed interface SearchState {
         val testStatus: TestStatus,
         val hasDisabledPermit: Boolean,
         val permitIssueDate: Long?,
-        val sameModelActiveCount: Int = 0
+        val isOffRoad: Boolean = false,
+        val offRoadDate: String? = null,
+        val stats: ModelStatistics = ModelStatistics(0, 0)
     ) : SearchState
     data class NotFound(val plate: String) : SearchState
     data class Error(val message: String) : SearchState
 }
 
 object VehicleUtils {
-    fun parseTestStatus(testExpiryDateStr: String?): TestStatus {
+    fun parseTestStatus(testExpiryDateStr: String?, isOffRoad: Boolean = false, offRoadDate: String? = null): TestStatus {
+        if (isOffRoad) {
+            return TestStatus.OffRoad(offRoadDate ?: "בוטל")
+        }
         if (testExpiryDateStr.isNullOrBlank()) return TestStatus.Unknown
         return try {
             val expiryDate = LocalDate.parse(testExpiryDateStr.trim().take(10), DateTimeFormatter.ISO_LOCAL_DATE)
@@ -219,39 +304,89 @@ object VehicleUtils {
         }
     }
 
+    fun formatDate(raw: String?): String {
+        if (raw.isNullOrBlank()) return ""
+        val clean = raw.trim().take(10)
+        return try {
+            val d = LocalDate.parse(clean, DateTimeFormatter.ISO_LOCAL_DATE)
+            d.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+        } catch (e: Exception) {
+            clean
+        }
+    }
+
+    fun getBrandLogoUrl(hebrewMake: String?): String {
+        val m = hebrewMake.orEmpty().lowercase()
+        val brand = when {
+            m.contains("סובארו") || m.contains("subaru") -> "subaru"
+            m.contains("דייהטסו") || m.contains("daihatsu") -> "daihatsu"
+            m.contains("טויוטה") || m.contains("toyota") -> "toyota"
+            m.contains("יונדאי") || m.contains("hyundai") -> "hyundai"
+            m.contains("קיה") || m.contains("kia") -> "kia"
+            m.contains("מאזדה") || m.contains("mazda") -> "mazda"
+            m.contains("סקודה") || m.contains("skoda") -> "skoda"
+            m.contains("מרצדס") || m.contains("mercedes") -> "mercedes-benz"
+            m.contains("ב.מ.וו") || m.contains("bmw") -> "bmw"
+            m.contains("אאודי") || m.contains("audi") -> "audi"
+            m.contains("פולקסווגן") || m.contains("volkswagen") -> "volkswagen"
+            m.contains("רנו") || m.contains("renault") -> "renault"
+            m.contains("פיג'ו") || m.contains("peugeot") -> "peugeot"
+            m.contains("סיטרואן") || m.contains("citroen") -> "citroen"
+            m.contains("ניסאן") || m.contains("nissan") -> "nissan"
+            m.contains("הונדה") || m.contains("honda") -> "honda"
+            m.contains("שברולט") || m.contains("chevrolet") -> "chevrolet"
+            m.contains("פורד") || m.contains("ford") -> "ford"
+            m.contains("סוזוקי") || m.contains("suzuki") -> "suzuki"
+            m.contains("סיאט") || m.contains("seat") -> "seat"
+            m.contains("וולוו") || m.contains("volvo") -> "volvo"
+            m.contains("מיצובישי") || m.contains("mitsubishi") -> "mitsubishi"
+            m.contains("טסלה") || m.contains("tesla") -> "tesla"
+            m.contains("בי ואי די") || m.contains("byd") -> "byd"
+            m.contains("ג'ילי") || m.contains("geely") -> "geely"
+            m.contains("אם ג'י") || m.contains("mg") -> "mg"
+            m.contains("קופרה") || m.contains("cupra") -> "cupra"
+            m.contains("ג'יפ") || m.contains("jeep") -> "jeep"
+            m.contains("לנד רובר") || m.contains("land rover") -> "land-rover"
+            m.contains("פורשה") || m.contains("porsche") -> "porsche"
+            else -> "car"
+        }
+        return "https://raw.githubusercontent.com/filippofilip95/car-logos-dataset/master/logos/optimized/$brand.png"
+    }
+
     fun getEnglishMakeAndModel(hebrewMake: String?, model: String?): Pair<String, String> {
-        val m = hebrewMake.orEmpty()
+        val m = hebrewMake.orEmpty().lowercase()
         val makeEn = when {
-            m.contains("סובארו") || m.contains("SUBARU", ignoreCase = true) -> "subaru"
-            m.contains("טויוטה") || m.contains("TOYOTA", ignoreCase = true) -> "toyota"
-            m.contains("יונדאי") || m.contains("HYUNDAI", ignoreCase = true) -> "hyundai"
-            m.contains("קיה") || m.contains("KIA", ignoreCase = true) -> "kia"
-            m.contains("מאזדה") || m.contains("MAZDA", ignoreCase = true) -> "mazda"
-            m.contains("סקודה") || m.contains("SKODA", ignoreCase = true) -> "skoda"
-            m.contains("מרצדס") || m.contains("MERCEDES", ignoreCase = true) -> "mercedes-benz"
-            m.contains("ב.מ.וו") || m.contains("BMW", ignoreCase = true) -> "bmw"
-            m.contains("אאודי") || m.contains("AUDI", ignoreCase = true) -> "audi"
-            m.contains("פולקסווגן") || m.contains("VOLKSWAGEN", ignoreCase = true) -> "volkswagen"
-            m.contains("רנו") || m.contains("RENAULT", ignoreCase = true) -> "renault"
-            m.contains("פיג'ו") || m.contains("PEUGEOT", ignoreCase = true) -> "peugeot"
-            m.contains("סיטרואן") || m.contains("CITROEN", ignoreCase = true) -> "citroen"
-            m.contains("ניסאן") || m.contains("NISSAN", ignoreCase = true) -> "nissan"
-            m.contains("הונדה") || m.contains("HONDA", ignoreCase = true) -> "honda"
-            m.contains("שברולט") || m.contains("CHEVROLET", ignoreCase = true) -> "chevrolet"
-            m.contains("פורד") || m.contains("FORD", ignoreCase = true) -> "ford"
-            m.contains("סוזוקי") || m.contains("SUZUKI", ignoreCase = true) -> "suzuki"
-            m.contains("סיאט") || m.contains("SEAT", ignoreCase = true) -> "seat"
-            m.contains("וולוו") || m.contains("VOLVO", ignoreCase = true) -> "volvo"
-            m.contains("מיצובישי") || m.contains("MITSUBISHI", ignoreCase = true) -> "mitsubishi"
-            m.contains("טסלה") || m.contains("TESLA", ignoreCase = true) -> "tesla"
-            m.contains("בי ואי די") || m.contains("BYD", ignoreCase = true) -> "byd"
-            m.contains("ג'ילי") || m.contains("GEELY", ignoreCase = true) -> "geely"
-            m.contains("אם ג'י") || m.contains("MG", ignoreCase = true) -> "mg"
-            m.contains("קופרה") || m.contains("CUPRA", ignoreCase = true) -> "cupra"
-            m.contains("ג'יפ") || m.contains("JEEP", ignoreCase = true) -> "jeep"
-            m.contains("לנד רובר") || m.contains("LAND ROVER", ignoreCase = true) -> "land-rover"
-            m.contains("פורשה") || m.contains("PORSCHE", ignoreCase = true) -> "porsche"
-            else -> m.filter { it.isLetter() }.lowercase()
+            m.contains("סובארו") || m.contains("subaru") -> "subaru"
+            m.contains("דייהטסו") || m.contains("daihatsu") -> "daihatsu"
+            m.contains("טויוטה") || m.contains("toyota") -> "toyota"
+            m.contains("יונדאי") || m.contains("hyundai") -> "hyundai"
+            m.contains("קיה") || m.contains("kia") -> "kia"
+            m.contains("מאזדה") || m.contains("mazda") -> "mazda"
+            m.contains("סקודה") || m.contains("skoda") -> "skoda"
+            m.contains("מרצדס") || m.contains("mercedes") -> "mercedes-benz"
+            m.contains("ב.מ.וו") || m.contains("bmw") -> "bmw"
+            m.contains("אאודי") || m.contains("audi") -> "audi"
+            m.contains("פולקסווגן") || m.contains("volkswagen") -> "volkswagen"
+            m.contains("רנו") || m.contains("renault") -> "renault"
+            m.contains("פיג'ו") || m.contains("peugeot") -> "peugeot"
+            m.contains("סיטרואן") || m.contains("citroen") -> "citroen"
+            m.contains("ניסאן") || m.contains("nissan") -> "nissan"
+            m.contains("הונדה") || m.contains("honda") -> "honda"
+            m.contains("שברולט") || m.contains("chevrolet") -> "chevrolet"
+            m.contains("פורד") || m.contains("ford") -> "ford"
+            m.contains("סוזוקי") || m.contains("suzuki") -> "suzuki"
+            m.contains("סיאט") || m.contains("seat") -> "seat"
+            m.contains("וולוו") || m.contains("volvo") -> "volvo"
+            m.contains("מיצובישי") || m.contains("mitsubishi") -> "mitsubishi"
+            m.contains("טסלה") || m.contains("tesla") -> "tesla"
+            m.contains("בי ואי די") || m.contains("byd") -> "byd"
+            m.contains("ג'ילי") || m.contains("geely") -> "geely"
+            m.contains("אם ג'י") || m.contains("mg") -> "mg"
+            m.contains("קופרה") || m.contains("cupra") -> "cupra"
+            m.contains("ג'יפ") || m.contains("jeep") -> "jeep"
+            m.contains("לנד רובר") || m.contains("land rover") -> "land-rover"
+            m.contains("פורשה") || m.contains("porsche") -> "porsche"
+            else -> m.filter { it.isLetter() }
         }
 
         val mod = model.orEmpty().lowercase()
