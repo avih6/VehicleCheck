@@ -1,4 +1,4 @@
-﻿package com.avih6.vehiclecheck.data
+package com.avih6.vehiclecheck.data
 
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -129,6 +129,16 @@ interface GovApiService {
         @Query("resource_id") resourceId: String = "2c33523f-87aa-44ec-a736-edbb0a82975e",
         @Query("filters") filters: String,
         @Query("limit") limit: Int = 1
+    ): GovApiResponse<RecallDetailRecord>
+
+    // 15b. All Recalls Feed with Filtering & Sorting (מאגר כל הריקולים הרשמיים)
+    @GET("api/3/action/datastore_search")
+    suspend fun getAllRecalls(
+        @Query("resource_id") resourceId: String = "2c33523f-87aa-44ec-a736-edbb0a82975e",
+        @Query("q") query: String? = null,
+        @Query("filters") filters: String? = null,
+        @Query("sort") sort: String = "_id desc",
+        @Query("limit") limit: Int = 100
     ): GovApiResponse<RecallDetailRecord>
 
     // 16. Personal Import Vehicles (יבוא אישי)

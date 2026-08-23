@@ -1,4 +1,4 @@
-﻿package com.avih6.vehiclecheck.data
+package com.avih6.vehiclecheck.data
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -183,12 +183,17 @@ data class VehicleRecallRestrictionRecord(
 data class RecallDetailRecord(
     @SerialName("_id") val id: Long? = null,
     @SerialName("RECALL_ID") val recallId: Long? = null,
+    @SerialName("TOZAR_CD") val makeCode: Long? = null,
     @SerialName("TOZAR_TEUR") val makeName: String? = null,
     @SerialName("DEGEM") val model: String? = null,
+    @SerialName("SHNAT_RECALL") val recallYear: Int? = null,
+    @SerialName("BUILD_BEGIN_A") val buildStart: String? = null,
+    @SerialName("BUILD_END_A") val buildEnd: String? = null,
     @SerialName("SUG_RECALL") val recallType: String? = null,
     @SerialName("SUG_TAKALA") val faultType: String? = null,
     @SerialName("TEUR_TAKALA") val faultDescription: String? = null,
     @SerialName("OFEN_TIKUN") val repairMethod: String? = null,
+    @SerialName("TKINA_EU") val euStandard: String? = null,
     @SerialName("YEVUAN_TEUR") val importerName: String? = null,
     @SerialName("TELEPHONE") val telephone: String? = null,
     @SerialName("WEBSITE") val website: String? = null

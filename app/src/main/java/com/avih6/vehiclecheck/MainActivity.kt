@@ -208,8 +208,9 @@ fun MainAppShell(viewModel: MainViewModel) {
                         Text(
                             text = when (selectedTab) {
                                 0 -> stringResource(R.string.search_title)
-                                1 -> "פענוח קודי תקלה (DTC)"
-                                2 -> "גלריית רכבים"
+                                1 -> "קריאות חוזרות (ריקולים)"
+                                2 -> "פענוח קודי תקלה (DTC)"
+                                3 -> "גלריית רכבים"
                                 else -> stringResource(R.string.history_title)
                             },
                             style = MaterialTheme.typography.titleLarge.copy(
@@ -304,40 +305,51 @@ fun MainAppShell(viewModel: MainViewModel) {
                                     contentDescription = stringResource(R.string.tab_search)
                                 )
                             },
-                            label = { Text(stringResource(R.string.tab_search)) }
+                            label = { Text(stringResource(R.string.tab_search), fontSize = 11.sp) }
                         )
                         NavigationBarItem(
                             selected = selectedTab == 1,
                             onClick = { selectedTab = 1 },
                             icon = {
                                 Icon(
-                                    if (selectedTab == 1) Icons.Filled.Build else Icons.Outlined.Build,
-                                    contentDescription = "קודי תקלה"
+                                    if (selectedTab == 1) Icons.Filled.Warning else Icons.Outlined.WarningAmber,
+                                    contentDescription = "ריקולים"
                                 )
                             },
-                            label = { Text("קודי תקלה") }
+                            label = { Text("ריקולים", fontSize = 11.sp) }
                         )
                         NavigationBarItem(
                             selected = selectedTab == 2,
                             onClick = { selectedTab = 2 },
                             icon = {
                                 Icon(
-                                    if (selectedTab == 2) Icons.Filled.Image else Icons.Outlined.Image,
-                                    contentDescription = "גלריה"
+                                    if (selectedTab == 2) Icons.Filled.Build else Icons.Outlined.Build,
+                                    contentDescription = "קודי תקלה"
                                 )
                             },
-                            label = { Text("גלריה") }
+                            label = { Text("תקלות", fontSize = 11.sp) }
                         )
                         NavigationBarItem(
                             selected = selectedTab == 3,
                             onClick = { selectedTab = 3 },
                             icon = {
                                 Icon(
-                                    if (selectedTab == 3) Icons.Filled.History else Icons.Outlined.History,
+                                    if (selectedTab == 3) Icons.Filled.Image else Icons.Outlined.Image,
+                                    contentDescription = "גלריה"
+                                )
+                            },
+                            label = { Text("גלריה", fontSize = 11.sp) }
+                        )
+                        NavigationBarItem(
+                            selected = selectedTab == 4,
+                            onClick = { selectedTab = 4 },
+                            icon = {
+                                Icon(
+                                    if (selectedTab == 4) Icons.Filled.History else Icons.Outlined.History,
                                     contentDescription = stringResource(R.string.tab_history)
                                 )
                             },
-                            label = { Text(stringResource(R.string.tab_history)) }
+                            label = { Text(stringResource(R.string.tab_history), fontSize = 11.sp) }
                         )
                     }
                 }
@@ -353,10 +365,13 @@ fun MainAppShell(viewModel: MainViewModel) {
                         viewModel = viewModel,
                         modifier = Modifier.fillMaxSize()
                     )
-                    1 -> com.avih6.vehiclecheck.ui.screens.DtcScreen(
+                    1 -> com.avih6.vehiclecheck.ui.screens.RecallsScreen(
                         modifier = Modifier.fillMaxSize()
                     )
-                    2 -> {
+                    2 -> com.avih6.vehiclecheck.ui.screens.DtcScreen(
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    3 -> {
                         val currentSearchState = viewModel.searchState.collectAsState().value
                         val initialQuery = if (currentSearchState is com.avih6.vehiclecheck.data.SearchState.Success) {
                             val v = currentSearchState.vehicle
@@ -369,7 +384,7 @@ fun MainAppShell(viewModel: MainViewModel) {
                             modifier = Modifier.fillMaxSize()
                         )
                     }
-                    3 -> HistoryScreen(
+                    4 -> HistoryScreen(
                         viewModel = viewModel,
                         onSelectVehicle = { plate ->
                             viewModel.searchPlateDirect(plate)
