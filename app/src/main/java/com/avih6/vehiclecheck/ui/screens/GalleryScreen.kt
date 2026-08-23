@@ -41,6 +41,11 @@ import com.avih6.vehiclecheck.ui.components.HoverTooltipIconButton
 import com.avih6.vehiclecheck.ui.components.handCursor
 import kotlinx.coroutines.launch
 
+import com.avih6.vehiclecheck.data.NetworkClient
+import com.avih6.vehiclecheck.data.VehicleUtils
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
 @Composable
 fun GalleryScreen(
     initialQuery: String = "הכל",
@@ -58,8 +63,9 @@ fun GalleryScreen(
     var isLoadingMore by remember { mutableStateOf(false) }
     var nextOffset by remember { mutableStateOf<Int?>(null) }
     var selectedImageForViewer by remember { mutableStateOf<CarGalleryImage?>(null) }
+    var detectedPlateVehicleInfo by remember { mutableStateOf<String?>(null) }
 
-    val popularManufacturers = remember {
+    val fallbackManufacturers = remember {
         listOf(
             "הכל", "טויוטה", "יונדאי", "קיה", "מאזדה", "סקודה", "טסלה", "סובארו",
             "מרצדס", "ב.מ.וו", "אאודי", "פולקסווגן", "BYD", "ג'ילי", "MG", "קופרה",
@@ -68,10 +74,61 @@ fun GalleryScreen(
         )
     }
 
+    var dynamicManufacturers by remember { mutableStateOf<List<String>>(fallbackManufacturers) }
+
+    // Load full list of certified car makes dynamically from Government Database
+    LaunchedEffect(Unit) {
+        scope.launch {
+            try {
+                val resp = withContext(Dispatchers.IO) {
+                    NetworkClient.apiService.getAllRecalls(limit = 4000, sort = "_id desc")
+                }
+                val records = resp.result?.records ?: emptyList()
+                val liveMakes = records.mapNotNull { it.makeName?.trim() }
+                    .filter { it.isNotBlank() && it.length > 1 }
+                    .distinct()
+                    .sorted()
+
+                if (liveMakes.isNotEmpty()) {
+                    dynamicManufacturers = listOf("הכל") + liveMakes
+                }
+            } catch (_: Exception) {
+                // Fallback to rich default list if offline
+            }
+        }
+    }
+
     fun loadInitialImages(brandOrQuery: String) {
         scope.launch {
             isLoading = true
             nextOffset = null
+            detectedPlateVehicleInfo = null
+
+            val cleanDigits = brandOrQuery.filter { it.isDigit() }
+            if (cleanDigits.length in 5..8) {
+                // Smart Government database license plate lookup
+                try {
+                    val vehResp = withContext(Dispatchers.IO) {
+                        NetworkClient.apiService.getPrivateVehicle(filters = "{\"mispar_rechev\": $cleanDigits}")
+                    }
+                    val veh = vehResp.result?.records?.firstOrNull()
+                    if (veh != null) {
+                        val make = veh.make.orEmpty()
+                        val model = veh.model.orEmpty()
+                        val yr = veh.year?.toString().orEmpty()
+                        detectedPlateVehicleInfo = "$make $model $yr".trim()
+                        
+                        val page = WikimediaGalleryService.fetchGalleryPage(make, model, offset = 0, limit = 40)
+                        images = page.images
+                        nextOffset = page.nextOffset
+                        isLoading = false
+                        return@launch
+                    }
+                } catch (_: Exception) {
+                    // Fallback to text query
+                }
+            }
+
             val words = brandOrQuery.trim().split(" ")
             val make = words.firstOrNull() ?: ""
             val model = if (words.size > 1) words.drop(1).joinToString(" ") else ""
@@ -87,7 +144,14 @@ fun GalleryScreen(
         if (isLoadingMore || isLoading) return
         scope.launch {
             isLoadingMore = true
-            val currentQuery = if (searchQuery.isNotBlank()) searchQuery else selectedBrand
+            val currentQuery = if (detectedPlateVehicleInfo != null) {
+                detectedPlateVehicleInfo!!
+            } else if (searchQuery.isNotBlank()) {
+                searchQuery
+            } else {
+                selectedBrand
+            }
+
             val words = currentQuery.trim().split(" ")
             val make = words.firstOrNull() ?: ""
             val model = if (words.size > 1) words.drop(1).joinToString(" ") else ""
@@ -195,8 +259,8 @@ fun GalleryScreen(
             value = searchQuery,
             onValueChange = { searchQuery = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("חיפוש כל יצרן, דגם או שנה (עברית/אנגלית)") },
-            placeholder = { Text("למשל: טויוטה קורולה, Tesla Model Y, סובארו...") },
+            label = { Text("חיפוש מספר רכב, יצרן או דגם (עברית/אנגלית)") },
+            placeholder = { Text("למשל: 12-345-67, טויוטה קורולה, Tesla Model Y...") },
             leadingIcon = {
                 Icon(Icons.Default.Image, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             },
@@ -241,15 +305,46 @@ fun GalleryScreen(
             shape = RoundedCornerShape(16.dp)
         )
 
+        // Live Gov Vehicle Identification Badge
+        if (detectedPlateVehicleInfo != null) {
+            Spacer(Modifier.height(6.dp))
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.DirectionsCar,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "זוהה ממאגר משרד התחבורה: $detectedPlateVehicleInfo",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        }
+
         Spacer(Modifier.height(8.dp))
 
-        // All Manufacturers Filter Chips
+        // All Manufacturers Filter Chips (Automatically loaded from Gov database)
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            items(popularManufacturers) { brand ->
+            items(dynamicManufacturers) { brand ->
                 FilterChip(
                     selected = (searchQuery.isBlank() && selectedBrand == brand) || (searchQuery.trim().equals(brand, ignoreCase = true)),
                     onClick = {
