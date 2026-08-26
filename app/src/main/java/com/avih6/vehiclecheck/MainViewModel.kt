@@ -144,15 +144,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 if (activeVehicle == null) {
                     try {
                         val pub = NetworkClient.apiService.getPublicVehicle(filters = filtersStr)
-                        activeVehicle = pub.result?.records?.firstOrNull()
+                        activeVehicle = pub.result?.records?.firstOrNull() ?: run {
+                            NetworkClient.apiService.getPublicVehicle(filters = "{\"mispar_rechev\":\"$plateStr\"}").result?.records?.firstOrNull()
+                        } ?: run {
+                            NetworkClient.apiService.getPublicVehicle(filters = "{\"mispar_rechev\":\"$paddedPlate\"}").result?.records?.firstOrNull()
+                        }
                     } catch (e: Exception) {}
                 }
 
-                // Check Heavy vehicle & Two-wheelers fallback
+                // Check Heavy vehicle (includes Trucks & Buses)
                 if (activeVehicle == null) {
                     try {
                         val heavy = NetworkClient.apiService.getHeavyVehicle(filters = filtersStr)
-                        activeVehicle = heavy.result?.records?.firstOrNull()
+                        activeVehicle = heavy.result?.records?.firstOrNull() ?: run {
+                            NetworkClient.apiService.getHeavyVehicle(filters = "{\"mispar_rechev\":\"$plateStr\"}").result?.records?.firstOrNull()
+                        } ?: run {
+                            NetworkClient.apiService.getHeavyVehicle(filters = "{\"mispar_rechev\":\"$paddedPlate\"}").result?.records?.firstOrNull()
+                        }
                     } catch (e: Exception) {}
                 }
                 if (activeVehicle == null) {

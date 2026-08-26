@@ -789,6 +789,38 @@ private fun GeneralTabContent(
             }
         }
 
+        // Tires & Wheels Card
+        val hasTireInfo = !vehicle.frontTire.isNullOrBlank() || !vehicle.rearTire.isNullOrBlank() || techSpec?.tpms == 1 || techSpec?.alloyWheels == 1
+        if (hasTireInfo) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "מפרט צמיגים וגלגלים",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 10.dp)
+                    )
+
+                    vehicle.frontTire?.let {
+                        if (it.isNotBlank()) SpecRow("צמיג קדמי מאושר:", it)
+                    }
+                    vehicle.rearTire?.let {
+                        if (it.isNotBlank()) SpecRow("צמיג אחורי מאושר:", it)
+                    }
+                    if (techSpec?.tpms == 1) {
+                        SpecRow("חיישני לחץ אוויר בצמיגים (TPMS):", "מותקן ומאושר")
+                    }
+                    if (techSpec?.alloyWheels == 1) {
+                        SpecRow("ג'נטים / גלגלי סגסוגת קלה:", "כן")
+                    }
+                }
+            }
+        }
+
         // Identifiers & Codes Card with Copy
         Card(
             modifier = Modifier.fillMaxWidth(),
