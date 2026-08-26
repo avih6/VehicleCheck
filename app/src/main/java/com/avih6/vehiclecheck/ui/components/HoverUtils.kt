@@ -6,9 +6,9 @@ import androidx.compose.foundation.border
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 
@@ -69,8 +69,8 @@ fun Modifier.tvFocusable(
     shape: androidx.compose.ui.graphics.Shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
     borderWidth: androidx.compose.ui.unit.Dp = 2.dp,
     focusedBorderColor: androidx.compose.ui.graphics.Color? = null
-): Modifier = androidx.compose.ui.composed {
-    var isFocused by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+): Modifier = composed {
+    var isFocused by remember { mutableStateOf(false) }
     val focusColor = focusedBorderColor ?: MaterialTheme.colorScheme.primary
     
     this.onFocusChanged { state ->
