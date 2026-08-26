@@ -716,18 +716,23 @@ private fun GeneralTabContent(
                     modifier = Modifier.padding(bottom = 10.dp)
                 )
 
-                vehicle.testExpiryDate?.let {
-                    SpecRow("תוקף רישיון רכב (טסט עד):", it, isHighlighted = true)
-                }
-                vehicle.lastTestDate?.let {
-                    SpecRow("מבחן רישוי אחרון שבוצע:", it)
-                }
-                vehicle.onRoadDate?.let {
-                    SpecRow("מועד עלייה לכביש:", it)
-                }
-                extraHistory?.firstRegistrationDate?.let {
-                    SpecRow("תאריך רישום ראשוני:", it)
-                }
+                SpecRow(
+                    label = "תוקף רישיון רכב (טסט עד):",
+                    value = vehicle.testExpiryDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע",
+                    isHighlighted = vehicle.testExpiryDate != null
+                )
+                SpecRow(
+                    label = "מבחן רישוי אחרון שבוצע:",
+                    value = vehicle.lastTestDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע"
+                )
+                SpecRow(
+                    label = "מועד עלייה לכביש:",
+                    value = vehicle.onRoadDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע"
+                )
+                SpecRow(
+                    label = "תאריך רישום ראשוני:",
+                    value = extraHistory?.firstRegistrationDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע"
+                )
             }
         }
 
@@ -1433,9 +1438,9 @@ private fun buildComprehensiveShareText(
     return """
         📋 *דוח בדיקת רכב מקיף - מספר $formattedPlate*
         $offRoadAlert$recallAlert🚗 יצרן ודגם: ${vehicle.make ?: ""} ${vehicle.model ?: ""} (${vehicle.trimLevel ?: ""})
-        📅 שנת ייצור: ${vehicle.year ?: "-"} (עלייה לכביש: ${vehicle.onRoadDate ?: "-"})$priceStr
+        📅 שנת ייצור: ${vehicle.year ?: "-"} (עלייה לכביש: ${vehicle.onRoadDate?.let { VehicleUtils.formatDate(it) } ?: "-"})$priceStr
         🛡️ סטטוס טסט: $statusStr
-        🗓️ תוקף טסט: ${vehicle.testExpiryDate ?: "-"} (מבחן אחרון: ${vehicle.lastTestDate ?: "-"})$hpStr$ccStr$driveStr
+        🗓️ תוקף טסט: ${vehicle.testExpiryDate?.let { VehicleUtils.formatDate(it) } ?: "-"} (מבחן אחרון: ${vehicle.lastTestDate?.let { VehicleUtils.formatDate(it) } ?: "-"})$hpStr$ccStr$driveStr
         ⛽ דלק: ${vehicle.fuelType ?: "-"}$mileageStr
         🎨 צבע: ${vehicle.color ?: "-"}
         👤 בעלות: ${vehicle.ownership ?: "-"}
@@ -1667,12 +1672,15 @@ private fun EngineeringGeneralTabContent(
                     modifier = Modifier.padding(bottom = 10.dp)
                 )
 
-                vehicle.testExpiryDate?.let {
-                    SpecRow("תוקף רישיון כלי (טסט עד):", VehicleUtils.formatDate(it), isHighlighted = true)
-                }
-                vehicle.onRoadDate?.let {
-                    SpecRow("תאריך רישום ראשוני:", VehicleUtils.formatDate(it))
-                }
+                SpecRow(
+                    label = "תוקף רישיון כלי (טסט עד):",
+                    value = vehicle.testExpiryDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע",
+                    isHighlighted = vehicle.testExpiryDate != null
+                )
+                SpecRow(
+                    label = "תאריך רישום ראשוני:",
+                    value = vehicle.onRoadDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע"
+                )
             }
         }
 

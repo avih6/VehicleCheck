@@ -497,6 +497,16 @@ object VehicleUtils {
             val d = LocalDate.parse(clean, DateTimeFormatter.ISO_LOCAL_DATE)
             d.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
         } catch (e: Exception) {
+            try {
+                val parts = clean.split("-")
+                if (parts.size == 2) {
+                    val year = parts[0].toIntOrNull()
+                    val month = parts[1].toIntOrNull()
+                    if (year != null && month != null && month in 1..12) {
+                        return "%02d/%d".format(month, year)
+                    }
+                }
+            } catch (ignored: Exception) {}
             clean
         }
     }
@@ -675,7 +685,6 @@ object VehicleUtils {
     fun getColorVisual(colorName: String?): Pair<Long, Long?> {
         val c = colorName.orEmpty().trim().lowercase()
         return when {
-            c.contains("לבן") || c.contains("שנהב") || c.contains("פנינה") -> Pair(0xFFFFFFFFL, 0xFFBDBDBDL)
             c.contains("שחור") -> Pair(0xFF1E1E1EL, null)
             c.contains("אפור") || c.contains("גרפיט") || c.contains("עכבר") -> Pair(0xFF757575L, null)
             c.contains("כסוף") || c.contains("כסף") -> Pair(0xFFC0C0C0L, 0xFF9E9E9EL)
@@ -690,6 +699,7 @@ object VehicleUtils {
             c.contains("זהב") -> Pair(0xFFFFD700L, 0xFFFBC02DL)
             c.contains("סגול") || c.contains("חציל") -> Pair(0xFF6A1B9AL, null)
             c.contains("ורוד") -> Pair(0xFFE91E63L, null)
+            c.contains("לבן") || c.contains("שנהב") || c.contains("פנינה") -> Pair(0xFFFFFFFFL, 0xFFBDBDBDL)
             else -> Pair(0xFF9E9E9EL, null)
         }
     }
