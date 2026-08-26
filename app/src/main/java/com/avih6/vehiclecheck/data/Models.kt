@@ -357,11 +357,11 @@ data class VehicleTechnicalSpecRecord(
     @SerialName("kamut_NOX_hway") val hwayNOX: Double? = null,
     @SerialName("kamut_HC_hway") val hwayHC: Double? = null,
     @SerialName("kamut_PM10_hway") val hwayPM10: Double? = null,
-    @SerialName("CO_WLTP") val wltpCO: Double? = null,
-    @SerialName("CO2_WLTP") val wltpCO2: Double? = null,
-    @SerialName("NOX_WLTP") val wltpNOX: Double? = null,
-    @SerialName("HC_WLTP") val wltpHC: Double? = null,
-    @SerialName("PM_WLTP") val wltpPM: Double? = null
+    @SerialName("co_wltp") val wltpCO: Double? = null,
+    @SerialName("co2_wltp") val wltpCO2: Double? = null,
+    @SerialName("nox_wltp") val wltpNOX: Double? = null,
+    @SerialName("hc_wltp") val wltpHC: Double? = null,
+    @SerialName("pm_wltp") val wltpPM: Double? = null
 )
 
 @Serializable
@@ -680,6 +680,49 @@ object VehicleUtils {
     fun getCountryFlagUrl(countryName: String?): String? {
         val iso = getCountryIsoCode(countryName) ?: return null
         return "https://flagcdn.com/w80/$iso.png"
+    }
+
+    fun convertSpokenHebrewToDigits(text: String): String {
+        val cleanText = text.trim().lowercase()
+        val wordToDigit = listOf(
+            "אפס" to "0",
+            "אחת" to "1",
+            "אחד" to "1",
+            "שתיים" to "2",
+            "שתים" to "2",
+            "שני" to "2",
+            "שנים" to "2",
+            "שלושה" to "3",
+            "שלוש" to "3",
+            "שלש" to "3",
+            "ארבעה" to "4",
+            "ארבע" to "4",
+            "חמישה" to "5",
+            "חמש" to "5",
+            "שישה" to "6",
+            "שש" to "6",
+            "שבעה" to "7",
+            "שבע" to "7",
+            "שמונה" to "8",
+            "שמנה" to "8",
+            "תשעה" to "9",
+            "תשע" to "9",
+            "zero" to "0",
+            "one" to "1",
+            "two" to "2",
+            "three" to "3",
+            "four" to "4",
+            "five" to "5",
+            "six" to "6",
+            "seven" to "7",
+            "eight" to "8",
+            "nine" to "9"
+        )
+        val words = cleanText.split(Regex("[\\s\\-\\.,]+"))
+        val mappedWords = words.map { word ->
+            wordToDigit.firstOrNull { it.first == word }?.second ?: word
+        }
+        return mappedWords.joinToString("")
     }
 
     fun getColorVisual(colorName: String?): Pair<Long, Long?> {

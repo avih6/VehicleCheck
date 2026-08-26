@@ -1,4 +1,4 @@
-﻿package com.avih6.vehiclecheck.ui.components
+package com.avih6.vehiclecheck.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -140,7 +140,7 @@ fun VehicleStatsDialog(
                                     color = MaterialTheme.colorScheme.error
                                 )
                                 Text(
-                                    text = "לא פעילים",
+                                    text = if (stats.totalInactive == 1) "לא פעיל" else "לא פעילים",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -165,7 +165,7 @@ fun VehicleStatsDialog(
                                         fontSize = 14.sp
                                     )
                                     Text(
-                                        text = "פעילים",
+                                        text = if (stats.totalActive == 1) "פעיל" else "פעילים",
                                         fontSize = 11.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -180,7 +180,7 @@ fun VehicleStatsDialog(
                                     color = Color(0xFF0091EA)
                                 )
                                 Text(
-                                    text = "פעילים",
+                                    text = if (stats.totalActive == 1) "פעיל" else "פעילים",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

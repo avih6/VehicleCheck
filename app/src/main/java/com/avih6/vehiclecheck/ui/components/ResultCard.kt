@@ -396,19 +396,38 @@ fun ResultCard(
 
                 Spacer(Modifier.height(14.dp))
 
-                // Brand Pure Metallic Emblem (High Resolution, No Text)
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(brandLogoUrl)
-                        .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = "Brand Emblem",
-                    modifier = Modifier
-                        .size(85.dp)
-                        .padding(2.dp),
-                    contentScale = ContentScale.Fit
-                )
+                // Brand Pure Metallic Emblem (High Resolution, No Text) with local fallback in case of load failure
+                var logoLoadFailed by remember(brandLogoUrl) { mutableStateOf(false) }
+                if (logoLoadFailed) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        shape = CircleShape,
+                        modifier = Modifier.size(54.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = if (isEngineeringEquipment) Icons.Default.Construction else Icons.Default.DirectionsCar,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+                } else {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(brandLogoUrl)
+                            .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "Brand Emblem",
+                        modifier = Modifier
+                            .size(80.dp)
+                            .padding(2.dp),
+                        contentScale = ContentScale.Fit,
+                        onError = { logoLoadFailed = true }
+                    )
+                }
 
                 Spacer(Modifier.height(8.dp))
 
@@ -650,7 +669,7 @@ private fun GeneralTabContent(
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     Text(
-                        text = "${stats.totalInactive} לא פעילים",
+                        text = "${stats.totalInactive} " + if (stats.totalInactive == 1) "לא פעיל" else "לא פעילים",
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -683,7 +702,7 @@ private fun GeneralTabContent(
                     }
 
                     Text(
-                        text = "${stats.totalActive} פעילים",
+                        text = "${stats.totalActive} " + if (stats.totalActive == 1) "פעיל" else "פעילים",
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color(0xFF0091EA)
@@ -1627,7 +1646,7 @@ private fun StatisticsTabContent(
                                 }
 
                                 Text(
-                                    text = "%,d פעילים".format(yearItem.activeCount),
+                                    text = if (yearItem.activeCount == 1) "1 פעיל" else "%,d פעילים".format(yearItem.activeCount),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp,
                                     color = if (isCurrentVehicleYear) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant

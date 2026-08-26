@@ -57,8 +57,10 @@ fun RecallsScreen(
     var selectedFilterYear by remember { mutableStateOf("הכל") }
     var selectedFilterCategory by remember { mutableStateOf("הכל") }
 
-    val filterYears = remember { 
-        listOf("הכל", "2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019", "2018", "2017", "2016", "2015", "2010-2014", "לפני 2010") 
+    val filterYears = remember {
+        val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+        val dynamicYears = (currentYear downTo 2015).map { it.toString() }
+        listOf("הכל") + dynamicYears + listOf("2010-2014", "לפני 2010")
     }
     val filterCategories = remember { 
         listOf("הכל", "בלמים", "כריות אוויר", "היגוי", "דלק", "מנוע", "חשמל", "מתלים", "חגורות", "תוכנה") 

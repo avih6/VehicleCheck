@@ -60,7 +60,8 @@ fun SearchScreen(
         if (result.resultCode == Activity.RESULT_OK) {
             val spokenText = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
             if (!spokenText.isNullOrBlank()) {
-                viewModel.searchPlateDirect(spokenText)
+                val parsedDigits = VehicleUtils.convertSpokenHebrewToDigits(spokenText)
+                viewModel.searchPlateDirect(parsedDigits)
             }
         }
     }
@@ -84,7 +85,7 @@ fun SearchScreen(
     val totalCount by viewModel.dbVehicleCount.collectAsState()
     val lastUpdated by viewModel.dbLastUpdated.collectAsState()
     val countFormatted = "%,d כלי רכב רשומים".format(totalCount ?: 4165989)
-    val updateText = if (!lastUpdated.isNullOrBlank()) "עודכן: $lastUpdated" else "מתעדכן יומית ממאגרי הממשלה"
+    val updateText = if (!lastUpdated.isNullOrBlank()) "עודכן: $lastUpdated" else "עודכן: -"
 
     Column(
         modifier = modifier

@@ -253,46 +253,31 @@ fun VehicleImageShowcase(
                         }
                     }
                 } else {
-                    // Fallback to Brand Emblem
+                    // Fallback to generic vehicle / machinery placeholder
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        var imageLoadFailed by remember { mutableStateOf(false) }
                         val isMachinery = listOf("komatsu", "caterpillar", "cat", "jcb", "bobcat", "deere", "צמ\"ה", "מחפר", "שופל").any {
                             hebrewMake.orEmpty().contains(it, ignoreCase = true) || modelName.orEmpty().contains(it, ignoreCase = true)
                         }
 
-                        if (imageLoadFailed || isMachinery) {
-                            Surface(
-                                color = if (isMachinery) Color(0xFFFF9800).copy(alpha = 0.15f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                                shape = CircleShape,
-                                modifier = Modifier.size(64.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = if (isMachinery) Icons.Default.Construction else Icons.Default.DirectionsCar,
-                                        contentDescription = null,
-                                        tint = if (isMachinery) Color(0xFFFF9800) else MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(36.dp)
-                                    )
-                                }
+                        Surface(
+                            color = if (isMachinery) Color(0xFFFF9800).copy(alpha = 0.15f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                            shape = CircleShape,
+                            modifier = Modifier.size(64.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = if (isMachinery) Icons.Default.Construction else Icons.Default.DirectionsCar,
+                                    contentDescription = null,
+                                    tint = if (isMachinery) Color(0xFFFF9800) else MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(36.dp)
+                                )
                             }
-                        } else {
-                            AsyncImage(
-                                model = ImageRequest.Builder(context)
-                                    .data(brandLogoUrl)
-                                    .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
-                                    .crossfade(true)
-                                    .build(),
-                                contentDescription = "סמל יצרן $hebrewMake",
-                                modifier = Modifier.size(75.dp),
-                                contentScale = ContentScale.Fit,
-                                onError = { imageLoadFailed = true }
-                            )
                         }
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(10.dp))
                         Text(
                             text = listOfNotNull(hebrewMake, modelName).joinToString(" "),
                             style = MaterialTheme.typography.titleMedium,
