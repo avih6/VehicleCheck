@@ -75,6 +75,8 @@ object WikimediaGalleryService {
                         .replace(".png", "", ignoreCase = true)
                         .replace(".webp", "", ignoreCase = true)
                         .replace("_", " ")
+                        .replace(Regex("\\s+"), " ")
+                        .trim()
 
                     val imageInfoArr = page.optJSONArray("imageinfo")
                     if (imageInfoArr != null && imageInfoArr.length() > 0) {
@@ -92,7 +94,12 @@ object WikimediaGalleryService {
                         val license = if (!licName.isNullOrBlank()) licName else "Creative Commons (Wikimedia Commons)"
 
                         val rawArtist = extMetadata?.optJSONObject("Artist")?.optString("value").orEmpty()
-                        val cleanArtist = rawArtist.replace(Regex("<[^>]*>"), "").trim()
+                        val cleanArtist = rawArtist
+                            .replace(Regex("<[^>]*>"), "")
+                            .replace("\n", " ")
+                            .replace("\r", " ")
+                            .replace(Regex("\\s+"), " ")
+                            .trim()
 
                         val rawDesc = extMetadata?.optJSONObject("ImageDescription")?.optString("value").orEmpty()
                         val cleanDesc = rawDesc.replace(Regex("<[^>]*>"), "").replace("\n", " ").trim()
@@ -104,7 +111,7 @@ object WikimediaGalleryService {
                                               checkPath.endsWith(".png", ignoreCase = true) ||
                                               checkPath.endsWith(".webp", ignoreCase = true)
 
-                        // Filter out icon, logo, map, diagram, flag SVGs/PNGs, interiors, historic, etc.
+                        // Filter out icon, logo, map, diagram, flag SVGs/PNGs, interiors, historic, graphs, charts, tables
                         val lowerTitle = title.lowercase()
                         val isJunk = lowerTitle.contains("logo") || lowerTitle.contains("icon") ||
                                      lowerTitle.contains("flag") || lowerTitle.contains("diagram") ||
@@ -119,7 +126,11 @@ object WikimediaGalleryService {
                                      lowerTitle.contains("antique") || lowerTitle.contains("classic") ||
                                      lowerTitle.contains("pre-war") || lowerTitle.contains("drawing") ||
                                      lowerTitle.contains("sketch") || lowerTitle.contains("blueprint") ||
-                                     lowerTitle.contains("patent")
+                                     lowerTitle.contains("patent") || lowerTitle.contains("graph") ||
+                                     lowerTitle.contains("chart") || lowerTitle.contains("table") ||
+                                     lowerTitle.contains("plot") || lowerTitle.contains("rank") ||
+                                     lowerTitle.contains("stats") || lowerTitle.contains("curve") ||
+                                     lowerTitle.contains("infographic")
 
                         if (thumbUrl.isNotBlank() && isValidExtension && !isJunk) {
                             results.add(CarGalleryImage(
@@ -149,7 +160,7 @@ object WikimediaGalleryService {
     private fun buildSearchQuery(rawMake: String, rawModel: String): String {
         val trimmedMake = rawMake.trim()
         val trimmedModel = rawModel.trim()
-        val exclusions = " -logo -icon -badge -flag -diagram -map -emblem -symbol -drawing -blueprint -sketch -dashboard -interior -seats -engine -steering -bundesarchiv -museum -vintage -antique -classic -pre-war"
+        val exclusions = " -logo -icon -badge -flag -diagram -map -emblem -symbol -drawing -blueprint -sketch -dashboard -interior -seats -engine -steering -bundesarchiv -museum -vintage -antique -classic -pre-war -graph -chart -table -plot -ranking -stats -curve -infographic"
 
         if (trimmedMake.isBlank() || trimmedMake == "הכל" || trimmedMake.equals("all", ignoreCase = true)) {
             return if (trimmedModel.isNotBlank()) {

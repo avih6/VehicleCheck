@@ -328,7 +328,9 @@ fun GalleryScreen(
                                 color = Color.White,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center
+                                textAlign = TextAlign.Center,
+                                maxLines = 2,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                             )
 
                             Spacer(Modifier.height(4.dp))
@@ -342,7 +344,9 @@ fun GalleryScreen(
                                     Text(
                                         text = "יוצר: ${currentImage.artist} • ",
                                         color = Color.LightGray,
-                                        fontSize = 11.sp
+                                        fontSize = 11.sp,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                     )
                                 }
                                 Text(
