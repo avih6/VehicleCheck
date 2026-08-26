@@ -685,21 +685,80 @@ object VehicleUtils {
     fun getColorVisual(colorName: String?): Pair<Long, Long?> {
         val c = colorName.orEmpty().trim().lowercase()
         return when {
-            c.contains("שחור") -> Pair(0xFF1E1E1EL, null)
-            c.contains("אפור") || c.contains("גרפיט") || c.contains("עכבר") -> Pair(0xFF757575L, null)
-            c.contains("כסוף") || c.contains("כסף") -> Pair(0xFFC0C0C0L, 0xFF9E9E9EL)
-            c.contains("תכלת") || c.contains("טורקיז") -> Pair(0xFF03A9F4L, null)
-            c.contains("כחול") || c.contains("נייבי") -> Pair(0xFF1565C0L, null)
-            c.contains("אדום") || c.contains("בורדו") || c.contains("יין") -> Pair(0xFFC62828L, null)
-            c.contains("ירוק") || c.contains("זית") -> Pair(0xFF2E7D32L, null)
-            c.contains("צהוב") -> Pair(0xFFFFD600L, 0xFFFBC02DL)
-            c.contains("כתום") -> Pair(0xFFFF6D00L, null)
-            c.contains("חום") || c.contains("ברונזה") -> Pair(0xFF6D4C41L, null)
-            c.contains("בז'") || c.contains("בז") || c.contains("קרם") || c.contains("שמפניה") -> Pair(0xFFF5F5DCL, 0xFFBDBDBDL)
-            c.contains("זהב") -> Pair(0xFFFFD700L, 0xFFFBC02DL)
-            c.contains("סגול") || c.contains("חציל") -> Pair(0xFF6A1B9AL, null)
-            c.contains("ורוד") -> Pair(0xFFE91E63L, null)
-            c.contains("לבן") || c.contains("שנהב") || c.contains("פנינה") -> Pair(0xFFFFFFFFL, 0xFFBDBDBDL)
+            // Black
+            c.contains("שחור") -> Pair(0xFF121212L, null)
+            
+            // Silver
+            c.contains("כסוף") || c.contains("כסף") -> Pair(0xFFDCDCDCL, 0xFFB0B0B0L)
+            
+            // Graphite / Dark Grey / Mouse Grey
+            c.contains("גרפיט") || c.contains("עכבר") || c.contains("אפור כהה") -> Pair(0xFF4E5154L, null)
+            
+            // Light Grey
+            c.contains("אפור בהיר") -> Pair(0xFFD3D3D3L, 0xFFB0B0B0L)
+            
+            // Generic Grey
+            c.contains("אפור") -> Pair(0xFF808080L, null)
+            
+            // Gold
+            c.contains("זהב") -> Pair(0xFFFFD700L, 0xFFDAA520L)
+            
+            // Copper / Bronze
+            c.contains("נחושת") -> Pair(0xFFB87333L, null)
+            c.contains("ברונזה") -> Pair(0xFFCD7F32L, null)
+            
+            // Mustard / Yellow
+            c.contains("חרדל") -> Pair(0xFFE1AD01L, null)
+            c.contains("צהוב") -> Pair(0xFFFFEB3BL, 0xFFFBC02DL)
+            
+            // Orange
+            c.contains("כתום") || c.contains("אורנג") -> Pair(0xFFFF9800L, null)
+            
+            // Burgundy / Wine / Dark Red
+            c.contains("בורדו") || c.contains("יין") -> Pair(0xFF800020L, null)
+            c.contains("אדום כהה") -> Pair(0xFFB71C1CL, null)
+            c.contains("אדום בהיר") -> Pair(0xFFEF5350L, null)
+            c.contains("אדום") -> Pair(0xFFE53935L, null)
+            
+            // Eggplant / Dark Purple
+            c.contains("חציל") -> Pair(0xFF301934L, null)
+            c.contains("סגול") -> Pair(0xFF7E57C2L, null)
+            
+            // Navy / Dark Blue
+            c.contains("נייבי") || c.contains("כחול כהה") -> Pair(0xFF1A237EL, null)
+            c.contains("כחול בהיר") -> Pair(0xFF90CAF9L, 0xFF64B5F6L)
+            c.contains("תכלת") -> Pair(0xFF4FC3F7L, null)
+            c.contains("טורקיז") -> Pair(0xFF00BEC4L, null)
+            c.contains("כחול") -> Pair(0xFF1E88E5L, null)
+            
+            // Bottle Green / Dark Green
+            c.contains("בקבוק") || c.contains("ירוק כהה") -> Pair(0xFF1B5E20L, null)
+            c.contains("זית") -> Pair(0xFF556B2FL, null)
+            c.contains("ירוק בהיר") || c.contains("ליים") -> Pair(0xFF8BC34AL, null)
+            c.contains("ירוק") -> Pair(0xFF4CAF50L, null)
+            
+            // Dark Brown
+            c.contains("חום כהה") -> Pair(0xFF3E2723L, null)
+            c.contains("חום בהיר") -> Pair(0xFF8D6E63L, null)
+            c.contains("חום") -> Pair(0xFF5D4037L, null)
+            
+            // Champagne
+            c.contains("שמפניה") -> Pair(0xFFF0E68CL, 0xFFD2B48CL)
+            
+            // Beige / Cream
+            c.contains("בז'") || c.contains("בז") || c.contains("קרם") -> Pair(0xFFF5F5DCL, 0xFFD3D3D3L)
+            
+            // Off-White / Ivory
+            c.contains("שנהב") || c.contains("אוף וויט") || c.contains("אוף-וויט") || c.contains("אופוייט") -> Pair(0xFFFAF9F6L, 0xFFD3D3D3L)
+            
+            // Pink
+            c.contains("ורוד כהה") || c.contains("פוקסיה") -> Pair(0xFFD81B60L, null)
+            c.contains("ורוד") -> Pair(0xFFF48FB1L, null)
+            
+            // White / Pearl
+            c.contains("לבן") || c.contains("פנינה") -> Pair(0xFFFFFFFFL, 0xFFBDBDBDL)
+            
+            // Default Grey
             else -> Pair(0xFF9E9E9EL, null)
         }
     }
