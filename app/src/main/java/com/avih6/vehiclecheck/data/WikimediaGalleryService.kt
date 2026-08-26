@@ -111,7 +111,7 @@ object WikimediaGalleryService {
                                               checkPath.endsWith(".png", ignoreCase = true) ||
                                               checkPath.endsWith(".webp", ignoreCase = true)
 
-                        // Filter out icon, logo, map, diagram, flag SVGs/PNGs, interiors, historic, graphs, charts, tables
+                        // Filter out icon, logo, map, diagram, flag SVGs/PNGs, interiors, historic, graphs, charts, tables, buildings, factories
                         val lowerTitle = title.lowercase()
                         val isJunk = lowerTitle.contains("logo") || lowerTitle.contains("icon") ||
                                      lowerTitle.contains("flag") || lowerTitle.contains("diagram") ||
@@ -130,7 +130,16 @@ object WikimediaGalleryService {
                                      lowerTitle.contains("chart") || lowerTitle.contains("table") ||
                                      lowerTitle.contains("plot") || lowerTitle.contains("rank") ||
                                      lowerTitle.contains("stats") || lowerTitle.contains("curve") ||
-                                     lowerTitle.contains("infographic")
+                                     lowerTitle.contains("infographic") || lowerTitle.contains("factory") ||
+                                     lowerTitle.contains("plant") || lowerTitle.contains("dealership") ||
+                                     lowerTitle.contains("showroom") || lowerTitle.contains("workshop") ||
+                                     lowerTitle.contains("garage") || lowerTitle.contains("building") ||
+                                     lowerTitle.contains("facade") || lowerTitle.contains("office") ||
+                                     lowerTitle.contains("advertisement") || lowerTitle.contains("poster") ||
+                                     lowerTitle.contains("exhibit") || lowerTitle.contains("fair") ||
+                                     lowerTitle.contains("assembly line") || lowerTitle.contains("assembly-line") ||
+                                     lowerTitle.contains("production line") || lowerTitle.contains("historical") ||
+                                     lowerTitle.contains("history") || lowerTitle.contains("historic")
 
                         if (thumbUrl.isNotBlank() && isValidExtension && !isJunk) {
                             results.add(CarGalleryImage(
@@ -160,7 +169,7 @@ object WikimediaGalleryService {
     private fun buildSearchQuery(rawMake: String, rawModel: String): String {
         val trimmedMake = rawMake.trim()
         val trimmedModel = rawModel.trim()
-        val exclusions = " -logo -icon -badge -flag -diagram -map -emblem -symbol -drawing -blueprint -sketch -dashboard -interior -seats -engine -steering -bundesarchiv -museum -vintage -antique -classic -pre-war -graph -chart -table -plot -ranking -stats -curve -infographic"
+        val exclusions = " -logo -icon -badge -flag -diagram -map -emblem -symbol -drawing -blueprint -sketch -dashboard -interior -seats -engine -steering -bundesarchiv -museum -vintage -antique -classic -pre-war -graph -chart -table -plot -ranking -stats -curve -infographic -factory -plant -dealership -showroom -workshop -garage -office -building -facade -advertisement -ad -poster -exhibit -fair -production -assembly -historical -history -historic"
 
         if (trimmedMake.isBlank() || trimmedMake == "הכל" || trimmedMake.equals("all", ignoreCase = true)) {
             return if (trimmedModel.isNotBlank()) {
