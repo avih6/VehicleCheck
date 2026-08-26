@@ -25,7 +25,7 @@ import com.google.android.gms.ads.nativead.NativeAdView
 
 @Composable
 fun AdBanner(modifier: Modifier = Modifier) {
-    val adUnitId = if (com.avih6.vehiclecheck.BuildConfig.DEBUG) "ca-app-pub-3940256099942544/6300978111" else "ca-app-pub-6647546375254792/8250052303"
+    val adUnitId = if (com.avih6.vehiclecheck.BuildConfig.DEBUG) "ca-app-pub-3940256099942544/6300978111" else "ca-app-pub-2696004741445434/8977286943"
     AndroidView(
         modifier = modifier.fillMaxWidth(),
         factory = { context ->
