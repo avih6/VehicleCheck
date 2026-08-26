@@ -11,8 +11,11 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -64,7 +67,7 @@ fun GalleryScreen(
     var isLoading by remember { mutableStateOf(true) }
     var isLoadingMore by remember { mutableStateOf(false) }
     var nextOffset by remember { mutableStateOf<Int?>(null) }
-    var selectedImageForViewer by remember { mutableStateOf<CarGalleryImage?>(null) }
+    var selectedImageIndexForViewer by remember { mutableStateOf<Int?>(null) }
     var detectedPlateVehicleInfo by remember { mutableStateOf<String?>(null) }
 
     val fallbackManufacturers = remember {
@@ -229,133 +232,154 @@ fun GalleryScreen(
         }
     }
 
-    // Fullscreen Image Dialog with Detailed Info, License & Direct Source Link
-    selectedImageForViewer?.let { imageItem ->
+    // Fullscreen Image Dialog with Pager for swiping, Detailed Info, License & Direct Source Link
+    selectedImageIndexForViewer?.let { initialIndex ->
+        val pagerState = rememberPagerState(
+            initialPage = initialIndex,
+            pageCount = { images.size }
+        )
+
         Dialog(
-            onDismissRequest = { selectedImageForViewer = null },
+            onDismissRequest = { selectedImageIndexForViewer = null },
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.95f)),
-                contentAlignment = Alignment.Center
+                    .background(Color.Black.copy(alpha = 0.95f))
             ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(imageItem.imageUrl)
-                        .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = imageItem.altText.ifBlank { imageItem.title },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(0.72f),
-                    contentScale = ContentScale.Fit
-                )
-
-                // Top Action Bar (Close & Share)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.TopCenter)
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick = { selectedImageForViewer = null },
-                        modifier = Modifier.handCursor()
-                    ) {
-                        Icon(Icons.Default.Close, contentDescription = "סגור חלון תצוגה מקדימה", tint = Color.White)
-                    }
-
-                    IconButton(
-                        onClick = {
-                            val sendIntent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                putExtra(Intent.EXTRA_TEXT, "תמונת רכב (${imageItem.title}):\n${imageItem.imageUrl}\nמקור: ${imageItem.descriptionUrl}")
-                                type = "text/plain"
-                            }
-                            context.startActivity(Intent.createChooser(sendIntent, "שתף תמונת רכב"))
-                        },
-                        modifier = Modifier.handCursor()
-                    ) {
-                        Icon(Icons.Default.Share, contentDescription = "שתף תמונת רכב", tint = Color.White)
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize()
+                ) { page ->
+                    val imageItem = images.getOrNull(page)
+                    if (imageItem != null) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(imageItem.imageUrl)
+                                    .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = imageItem.altText.ifBlank { imageItem.title },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .fillMaxHeight(0.72f),
+                                contentScale = ContentScale.Fit
+                            )
+                        }
                     }
                 }
 
-                // Bottom Rich Info Card (Title, License, Artist, Clickable Source Link)
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    color = Color.Black.copy(alpha = 0.85f),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f))
-                ) {
-                    Column(
-                        modifier = Modifier.padding(14.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                // Get current image details for overlays
+                val currentImage = images.getOrNull(pagerState.currentPage)
+                if (currentImage != null) {
+                    // Top Action Bar (Close & Share)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.TopCenter)
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Title / Model Name
-                        Text(
-                            text = imageItem.title,
-                            color = Color.White,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center
-                        )
-
-                        Spacer(Modifier.height(4.dp))
-
-                        // Artist & License details
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
+                        IconButton(
+                            onClick = { selectedImageIndexForViewer = null },
+                            modifier = Modifier.handCursor()
                         ) {
-                            if (imageItem.artist.isNotBlank()) {
-                                Text(
-                                    text = "יוצר: ${imageItem.artist} • ",
-                                    color = Color.LightGray,
-                                    fontSize = 11.sp
-                                )
-                            }
-                            Text(
-                                text = "רישיון: ${imageItem.license}",
-                                color = Color(0xFF81D4FA),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium
-                            )
+                            Icon(Icons.Default.Close, contentDescription = "סגור חלון תצוגה מקדימה", tint = Color.White)
                         }
 
-                        Spacer(Modifier.height(8.dp))
+                        IconButton(
+                            onClick = {
+                                val sendIntent = Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    putExtra(Intent.EXTRA_TEXT, "תמונת רכב (${currentImage.title}):\n${currentImage.imageUrl}\nמקור: ${currentImage.descriptionUrl}")
+                                    type = "text/plain"
+                                }
+                                context.startActivity(Intent.createChooser(sendIntent, "שתף תמונת רכב"))
+                            },
+                            modifier = Modifier.handCursor()
+                        ) {
+                            Icon(Icons.Default.Share, contentDescription = "שתף תמונת רכב", tint = Color.White)
+                        }
+                    }
 
-                        // Open in Wikimedia Commons Button
-                        if (imageItem.descriptionUrl.isNotBlank()) {
-                            Button(
-                                onClick = {
-                                    try {
-                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(imageItem.descriptionUrl))
-                                        context.startActivity(intent)
-                                    } catch (_: Exception) { }
-                                },
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                ),
-                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                                modifier = Modifier.handCursor()
+                    // Bottom Rich Info Card (Title, License, Artist, Clickable Source Link)
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        color = Color.Black.copy(alpha = 0.85f),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            // Title / Model Name
+                            Text(
+                                text = currentImage.title,
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center
+                            )
+
+                            Spacer(Modifier.height(4.dp))
+
+                            // Artist & License details
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(Modifier.width(6.dp))
+                                if (currentImage.artist.isNotBlank()) {
+                                    Text(
+                                        text = "יוצר: ${currentImage.artist} • ",
+                                        color = Color.LightGray,
+                                        fontSize = 11.sp
+                                    )
+                                }
                                 Text(
-                                    text = "צפייה במקור וזכויות יוצרים בוויקימדיה",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
+                                    text = "רישיון: ${currentImage.license}",
+                                    color = Color(0xFF81D4FA),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium
                                 )
+                            }
+
+                            Spacer(Modifier.height(8.dp))
+
+                            // Open in Wikimedia Commons Button
+                            if (currentImage.descriptionUrl.isNotBlank()) {
+                                Button(
+                                    onClick = {
+                                        try {
+                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(currentImage.descriptionUrl))
+                                            context.startActivity(intent)
+                                        } catch (_: Exception) { }
+                                    },
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                                    modifier = Modifier.handCursor()
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(
+                                        text = "צפייה במקור וזכויות יוצרים בוויקימדיה",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                         }
                     }
@@ -622,13 +646,13 @@ fun GalleryScreen(
                 contentPadding = PaddingValues(bottom = 100.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                items(images, key = { it.imageUrl }) { item ->
+                itemsIndexed(images, key = { _, item -> item.imageUrl }) { index, item ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(150.dp)
                             .clip(RoundedCornerShape(14.dp))
-                            .clickable { selectedImageForViewer = item },
+                            .clickable { selectedImageIndexForViewer = index },
                         shape = RoundedCornerShape(14.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
                     ) {

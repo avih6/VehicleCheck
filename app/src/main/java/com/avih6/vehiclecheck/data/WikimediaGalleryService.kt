@@ -104,12 +104,22 @@ object WikimediaGalleryService {
                                               checkPath.endsWith(".png", ignoreCase = true) ||
                                               checkPath.endsWith(".webp", ignoreCase = true)
 
-                        // Filter out icon, logo, map, diagram, flag SVGs/PNGs
+                        // Filter out icon, logo, map, diagram, flag SVGs/PNGs, interiors, historic, etc.
                         val lowerTitle = title.lowercase()
                         val isJunk = lowerTitle.contains("logo") || lowerTitle.contains("icon") ||
                                      lowerTitle.contains("flag") || lowerTitle.contains("diagram") ||
                                      lowerTitle.contains("map") || lowerTitle.contains("badge") ||
-                                     lowerTitle.contains("emblem") || lowerTitle.contains("symbol")
+                                     lowerTitle.contains("emblem") || lowerTitle.contains("symbol") ||
+                                     lowerTitle.contains("interior") || lowerTitle.contains("dashboard") ||
+                                     lowerTitle.contains("engine") || lowerTitle.contains("seats") ||
+                                     lowerTitle.contains("steering") || lowerTitle.contains("wheel") ||
+                                     lowerTitle.contains("underneath") || lowerTitle.contains("chassis") ||
+                                     lowerTitle.contains("part") || lowerTitle.contains("bundesarchiv") ||
+                                     lowerTitle.contains("museum") || lowerTitle.contains("vintage") ||
+                                     lowerTitle.contains("antique") || lowerTitle.contains("classic") ||
+                                     lowerTitle.contains("pre-war") || lowerTitle.contains("drawing") ||
+                                     lowerTitle.contains("sketch") || lowerTitle.contains("blueprint") ||
+                                     lowerTitle.contains("patent")
 
                         if (thumbUrl.isNotBlank() && isValidExtension && !isJunk) {
                             results.add(CarGalleryImage(
@@ -139,12 +149,13 @@ object WikimediaGalleryService {
     private fun buildSearchQuery(rawMake: String, rawModel: String): String {
         val trimmedMake = rawMake.trim()
         val trimmedModel = rawModel.trim()
+        val exclusions = " -logo -icon -badge -flag -diagram -map -emblem -symbol -drawing -blueprint -sketch -dashboard -interior -seats -engine -steering -bundesarchiv -museum -vintage -antique -classic -pre-war"
 
         if (trimmedMake.isBlank() || trimmedMake == "הכל" || trimmedMake.equals("all", ignoreCase = true)) {
             return if (trimmedModel.isNotBlank()) {
-                "$trimmedModel car vehicle"
+                "$trimmedModel car vehicle$exclusions"
             } else {
-                "automobiles passenger cars vehicle modern"
+                "automobiles passenger cars vehicle modern$exclusions"
             }
         }
 
@@ -157,10 +168,10 @@ object WikimediaGalleryService {
         }
 
         return when {
-            isMachinery -> "$brand $model"
-            model.isNotBlank() && !model.equals("car", ignoreCase = true) -> "$brand $model car"
-            brand.isNotBlank() && !brand.equals("car", ignoreCase = true) -> "$brand car vehicle"
-            else -> "automobiles passenger cars vehicle"
+            isMachinery -> "$brand $model$exclusions"
+            model.isNotBlank() && !model.equals("car", ignoreCase = true) -> "$brand $model car$exclusions"
+            brand.isNotBlank() && !brand.equals("car", ignoreCase = true) -> "$brand car vehicle$exclusions"
+            else -> "automobiles passenger cars vehicle$exclusions"
         }
     }
 }
