@@ -23,6 +23,7 @@ import com.avih6.vehiclecheck.R
 import com.avih6.vehiclecheck.data.VehicleHistoryEntity
 import com.avih6.vehiclecheck.data.VehicleUtils
 import com.avih6.vehiclecheck.ui.theme.*
+import com.avih6.vehiclecheck.ui.components.tvFocusable
 
 @Composable
 fun HistoryScreen(
@@ -150,7 +151,8 @@ private fun HistoryItemCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .tvFocusable(shape = RoundedCornerShape(14.dp)),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
     ) {

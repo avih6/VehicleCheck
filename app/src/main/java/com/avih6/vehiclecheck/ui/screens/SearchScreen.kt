@@ -3,6 +3,7 @@ package com.avih6.vehiclecheck.ui.screens
 import android.app.Activity
 import android.content.Intent
 import android.speech.RecognizerIntent
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
@@ -36,6 +37,7 @@ import com.avih6.vehiclecheck.data.VehicleUtils
 import com.avih6.vehiclecheck.ui.components.CameraScannerDialog
 import com.avih6.vehiclecheck.ui.components.NativeAdView
 import com.avih6.vehiclecheck.ui.components.ResultCard
+import com.avih6.vehiclecheck.ui.components.tvFocusable
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import android.content.pm.PackageManager
@@ -80,6 +82,12 @@ fun SearchScreen(
             showCameraScanner = true
         } else {
             Toast.makeText(context, "נדרשת הרשאת מצלמה כדי לסרוק לוחית זיהוי", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    if (searchState !is SearchState.Idle) {
+        BackHandler {
+            viewModel.resetSearchState()
         }
     }
 
@@ -209,7 +217,7 @@ fun SearchScreen(
                 keyboardController?.hide()
                 viewModel.search()
             },
-            modifier = Modifier.fillMaxWidth().height(52.dp),
+            modifier = Modifier.fillMaxWidth().height(52.dp).tvFocusable(shape = RoundedCornerShape(14.dp)),
             shape = RoundedCornerShape(14.dp),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
@@ -227,7 +235,7 @@ fun SearchScreen(
         // DTC Diagnostic Trouble Codes Tool Button
         OutlinedButton(
             onClick = { showDtcDialog = true },
-            modifier = Modifier.fillMaxWidth().height(48.dp),
+            modifier = Modifier.fillMaxWidth().height(48.dp).tvFocusable(shape = RoundedCornerShape(14.dp)),
             shape = RoundedCornerShape(14.dp),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
         ) {

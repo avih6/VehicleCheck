@@ -94,6 +94,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun resetSearchState() {
+        _searchState.value = SearchState.Idle
+    }
+
     fun search() {
         val plate = _query.value.trim()
         if (plate.length !in 5..8) {

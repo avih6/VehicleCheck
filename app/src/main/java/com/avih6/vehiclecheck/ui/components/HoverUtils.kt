@@ -1,7 +1,10 @@
-﻿package com.avih6.vehiclecheck.ui.components
+package com.avih6.vehiclecheck.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.border
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -60,4 +63,23 @@ fun HoverTooltipBox(
     ) {
         content()
     }
+}
+
+fun Modifier.tvFocusable(
+    shape: androidx.compose.ui.graphics.Shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+    borderWidth: androidx.compose.ui.unit.Dp = 2.dp,
+    focusedBorderColor: androidx.compose.ui.graphics.Color? = null
+): Modifier = androidx.compose.ui.composed {
+    var isFocused by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val focusColor = focusedBorderColor ?: MaterialTheme.colorScheme.primary
+    
+    this.onFocusChanged { state ->
+        isFocused = state.isFocused
+    }.then(
+        if (isFocused) {
+            Modifier.border(borderWidth, focusColor, shape)
+        } else {
+            Modifier
+        }
+    )
 }
