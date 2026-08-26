@@ -213,10 +213,12 @@ fun MainAppShell(viewModel: MainViewModel) {
                         Text(
                             text = when (selectedTab) {
                                 0 -> stringResource(R.string.search_title)
-                                1 -> "קריאות חוזרות (ריקולים)"
-                                2 -> "פענוח קודי תקלה (DTC)"
-                                3 -> "גלריית רכבים"
-                                else -> stringResource(R.string.history_title)
+                                1 -> stringResource(R.string.history_title)
+                                2 -> "סטטיסטיקה ומצבת הרכבים"
+                                3 -> "קריאות חוזרות (ריקולים)"
+                                4 -> "פענוח קודי תקלה (DTC)"
+                                5 -> "גלריית רכבים"
+                                else -> stringResource(R.string.search_title)
                             },
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.ExtraBold,

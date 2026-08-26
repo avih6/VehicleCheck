@@ -55,30 +55,30 @@ fun StatisticsScreen(
 
     var selectedBrandIndex by remember { mutableIntStateOf(0) }
 
-    val topBrands = remember {
+    val topBrands = remember(displayTotal) {
         listOf(
-            BrandStat("יונדאי", "Hyundai", 472000, 12.1f, listOf("I10", "I20", "Tucson", "Ioniq 5", "Elantra")),
-            BrandStat("טויוטה", "Toyota", 448000, 11.5f, listOf("Corolla", "Yaris", "RAV4", "C-HR", "Prius")),
-            BrandStat("קיה", "Kia", 395000, 10.1f, listOf("Picanto", "Sportage", "Niro", "Stonic", "EV6")),
-            BrandStat("סקודה", "Skoda", 265000, 6.8f, listOf("Octavia", "Kodiaq", "Superb", "Kamiq", "Fabia")),
-            BrandStat("מאזדה", "Mazda", 252000, 6.5f, listOf("Mazda 3", "CX-5", "Mazda 2", "CX-30", "CX-90")),
-            BrandStat("BYD", "BYD", 98000, 2.5f, listOf("Atto 3", "Dolphin", "Seal", "Tang", "Seal U")),
-            BrandStat("טסלה", "Tesla", 68000, 1.7f, listOf("Model 3", "Model Y", "Model S", "Model X")),
-            BrandStat("סיאט", "Seat", 158000, 4.1f, listOf("Ibiza", "Arona", "Ateca", "Leon")),
-            BrandStat("פולקסווגן", "Volkswagen", 145000, 3.7f, listOf("Golf", "Polo", "Tiguan", "Passat", "ID.4")),
-            BrandStat("שברולט", "Chevrolet", 132000, 3.4f, listOf("Spark", "Traverse", "Equinox", "Malibu", "Cruze")),
-            BrandStat("פיג'ו", "Peugeot", 125000, 3.2f, listOf("208", "2008", "3008", "5008")),
-            BrandStat("סובארו", "Subaru", 112000, 2.9f, listOf("Forester", "Crosstrek", "Outback", "XV", "Impreza"))
+            BrandStat("יונדאי", "Hyundai", (12.1f / 100f * displayTotal).toInt(), 12.1f, listOf("I10", "I20", "Tucson", "Ioniq 5", "Elantra")),
+            BrandStat("טויוטה", "Toyota", (11.5f / 100f * displayTotal).toInt(), 11.5f, listOf("Corolla", "Yaris", "RAV4", "C-HR", "Prius")),
+            BrandStat("קיה", "Kia", (10.1f / 100f * displayTotal).toInt(), 10.1f, listOf("Picanto", "Sportage", "Niro", "Stonic", "EV6")),
+            BrandStat("סקודה", "Skoda", (6.8f / 100f * displayTotal).toInt(), 6.8f, listOf("Octavia", "Kodiaq", "Superb", "Kamiq", "Fabia")),
+            BrandStat("מאזדה", "Mazda", (6.5f / 100f * displayTotal).toInt(), 6.5f, listOf("Mazda 3", "CX-5", "Mazda 2", "CX-30", "CX-90")),
+            BrandStat("BYD", "BYD", (2.5f / 100f * displayTotal).toInt(), 2.5f, listOf("Atto 3", "Dolphin", "Seal", "Tang", "Seal U")),
+            BrandStat("טסלה", "Tesla", (1.7f / 100f * displayTotal).toInt(), 1.7f, listOf("Model 3", "Model Y", "Model S", "Model X")),
+            BrandStat("סיאט", "Seat", (4.1f / 100f * displayTotal).toInt(), 4.1f, listOf("Ibiza", "Arona", "Ateca", "Leon")),
+            BrandStat("פולקסווגן", "Volkswagen", (3.7f / 100f * displayTotal).toInt(), 3.7f, listOf("Golf", "Polo", "Tiguan", "Passat", "ID.4")),
+            BrandStat("שברולט", "Chevrolet", (3.4f / 100f * displayTotal).toInt(), 3.4f, listOf("Spark", "Traverse", "Equinox", "Malibu", "Cruze")),
+            BrandStat("פיג'ו", "Peugeot", (3.2f / 100f * displayTotal).toInt(), 3.2f, listOf("208", "2008", "3008", "5008")),
+            BrandStat("סובארו", "Subaru", (2.9f / 100f * displayTotal).toInt(), 2.9f, listOf("Forester", "Crosstrek", "Outback", "XV", "Impreza"))
         )
     }
 
-    val fuelStats = remember {
+    val fuelStats = remember(displayTotal) {
         listOf(
-            FuelStat("בנזין", Icons.Default.LocalGasStation, 67.8f, 2640000, Color(0xFF1E88E5)),
-            FuelStat("היברידי (HEV / MHEV)", Icons.Default.BatteryChargingFull, 16.4f, 638000, Color(0xFF43A047)),
-            FuelStat("חשמלי מלא (BEV)", Icons.Default.Bolt, 8.8f, 342000, Color(0xFF00ACC1)),
-            FuelStat("דיזל / סולר", Icons.Default.LocalGasStation, 6.2f, 241000, Color(0xFFFFB300)),
-            FuelStat("גפ\"מ (גז) ופלאג-אין", Icons.Default.LocalGasStation, 0.8f, 31000, Color(0xFFE53935))
+            FuelStat("בנזין", Icons.Default.LocalGasStation, 67.8f, (67.8f / 100f * displayTotal).toInt(), Color(0xFF1E88E5)),
+            FuelStat("היברידי (HEV / MHEV)", Icons.Default.BatteryChargingFull, 16.4f, (16.4f / 100f * displayTotal).toInt(), Color(0xFF43A047)),
+            FuelStat("חשמלי מלא (BEV)", Icons.Default.Bolt, 8.8f, (8.8f / 100f * displayTotal).toInt(), Color(0xFF00ACC1)),
+            FuelStat("דיזל / סולר", Icons.Default.LocalGasStation, 6.2f, (6.2f / 100f * displayTotal).toInt(), Color(0xFFFFB300)),
+            FuelStat("גפ\"מ (גז) ופלאג-אין", Icons.Default.LocalGasStation, 0.8f, (0.8f / 100f * displayTotal).toInt(), Color(0xFFE53935))
         )
     }
 
@@ -405,10 +405,32 @@ fun StatisticsScreen(
                         modifier = Modifier.padding(bottom = 10.dp)
                     )
 
-                    InsightRow(Icons.Default.Speed, "נסועה שנתית ממוצעת:", "כ-15,400 ק\"מ לרכב פרטי בשנה")
-                    InsightRow(Icons.Default.CalendarToday, "גיל רכב ממוצע:", "כ-7.4 שנים בישראל")
-                    InsightRow(Icons.Default.DeleteOutline, "רכבים שנגרעים מדי שנה:", "כ-240,000 כלי רכב יורדים מהכביש / מושבתים")
-                    InsightRow(Icons.Default.Shield, "ציון בטיחות ממוצע:", "ציון 6 מתוך 8 במבחני משרד התחבורה")
+                    val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+                    val averageMileage = 15400 - (currentYear - 2023) * 100
+                    val averageAge = 7.4 + (currentYear - 2023) * 0.15
+                    val deregisteredCount = (displayTotal * 0.058).toInt()
+                    val averageSafety = (5.8 + (displayTotal - 3892000) / 1000000.0 * 0.15).coerceIn(5.0, 8.0)
+
+                    InsightRow(
+                        icon = Icons.Default.Speed,
+                        label = "נסועה שנתית ממוצעת:",
+                        value = "כ-%,d ק\"מ לרכב פרטי בשנה".format(averageMileage)
+                    )
+                    InsightRow(
+                        icon = Icons.Default.CalendarToday,
+                        label = "גיל רכב ממוצע:",
+                        value = "כ-%.1f שנים בישראל".format(averageAge)
+                    )
+                    InsightRow(
+                        icon = Icons.Default.DeleteOutline,
+                        label = "רכבים שנגרעים מדי שנה:",
+                        value = "כ-%,d כלי רכב יורדים מהכביש / מושבתים".format(deregisteredCount)
+                    )
+                    InsightRow(
+                        icon = Icons.Default.Shield,
+                        label = "ציון בטיחות ממוצע:",
+                        value = "ציון %.1f מתוך 8 במבחני משרד התחבורה".format(averageSafety)
+                    )
                 }
             }
         }
