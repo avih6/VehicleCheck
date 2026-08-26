@@ -36,6 +36,9 @@ import com.avih6.vehiclecheck.data.VehicleUtils
 import com.avih6.vehiclecheck.ui.components.CameraScannerDialog
 import com.avih6.vehiclecheck.ui.components.NativeAdView
 import com.avih6.vehiclecheck.ui.components.ResultCard
+import android.widget.Toast
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
 import java.util.Locale
 
 @Composable
@@ -63,6 +66,21 @@ fun SearchScreen(
                 val parsedDigits = VehicleUtils.convertSpokenHebrewToDigits(spokenText)
                 viewModel.searchPlateDirect(parsedDigits)
             }
+        }
+    }
+
+    val context = LocalContext.current
+    val hasCamera = remember {
+        context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            showCameraScanner = true
+        } else {
+            Toast.makeText(context, "נדרשת הרשאת מצלמה כדי לסרוק לוחית זיהוי", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -167,7 +185,19 @@ fun SearchScreen(
                     speechLauncher.launch(intent)
                 } catch (e: Exception) {}
             },
-            onCameraClick = { showCameraScanner = true },
+            onCameraClick = {
+                if (hasCamera) {
+                    val permissionCheck = ContextCompat.checkSelfPermission(
+                        context,
+                        android.Manifest.permission.CAMERA
+                    )
+                    if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
+                        showCameraScanner = true
+                    } else {
+                        cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+                    }
+                }
+            },
             onClear = { viewModel.onQueryChange("") },
             modifier = Modifier.padding(bottom = 8.dp)
         )

@@ -32,6 +32,14 @@ fun LicensePlateInput(
     onClear: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val hasCamera = androidx.compose.runtime.remember {
+        context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_CAMERA_ANY)
+    }
+    val hasMicrophone = androidx.compose.runtime.remember {
+        context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_MICROPHONE)
+    }
+
     OutlinedTextField(
         value = value,
         onValueChange = { input ->
@@ -58,23 +66,27 @@ fun LicensePlateInput(
                         )
                     }
                 }
-                HoverTooltipIconButton(
-                    onClick = onVoiceClick,
-                    tooltipText = "חיפוש קולי"
-                ) {
-                    Icon(
-                        Icons.Default.Mic, 
-                        contentDescription = "חיפוש קולי"
-                    )
+                if (hasMicrophone) {
+                    HoverTooltipIconButton(
+                        onClick = onVoiceClick,
+                        tooltipText = "חיפוש קולי"
+                    ) {
+                        Icon(
+                            Icons.Default.Mic, 
+                            contentDescription = "חיפוש קולי"
+                        )
+                    }
                 }
-                HoverTooltipIconButton(
-                    onClick = onCameraClick,
-                    tooltipText = "סריקת לוחית רישוי במצלמה"
-                ) {
-                    Icon(
-                        Icons.Default.CameraAlt, 
-                        contentDescription = "סריקת מצלמה"
-                    )
+                if (hasCamera) {
+                    HoverTooltipIconButton(
+                        onClick = onCameraClick,
+                        tooltipText = "סריקת לוחית רישוי במצלמה"
+                    ) {
+                        Icon(
+                            Icons.Default.CameraAlt, 
+                            contentDescription = "סריקת מצלמה"
+                        )
+                    }
                 }
             }
         },
