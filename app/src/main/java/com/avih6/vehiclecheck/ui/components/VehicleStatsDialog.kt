@@ -76,16 +76,9 @@ fun VehicleStatsDialog(
                 Spacer(Modifier.height(16.dp))
 
                 // Pure Brand Emblem Large (105dp)
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(brandLogoUrl)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = "Brand Emblem",
-                    modifier = Modifier
-                        .size(105.dp)
-                        .padding(4.dp),
-                    contentScale = ContentScale.Fit
+                AutoBrandLogo(
+                    hebrewMake = vehicle.make,
+                    size = 105.dp
                 )
 
                 Spacer(Modifier.height(10.dp))

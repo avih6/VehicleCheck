@@ -25,6 +25,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.avih6.vehiclecheck.MainViewModel
 import com.avih6.vehiclecheck.data.VehicleUtils
+import com.avih6.vehiclecheck.ui.components.AutoBrandLogo
 import com.avih6.vehiclecheck.ui.components.handCursor
 
 data class BrandStat(
@@ -290,7 +291,6 @@ fun StatisticsScreen(
 
                     topBrands.forEachIndexed { index, brand ->
                         val isSelected = index == selectedBrandIndex
-                        val logoUrl = VehicleUtils.getBrandLogoUrl(brand.nameHe)
                         val maxCount = topBrands.first().count
                         val fraction = (brand.count.toFloat() / maxCount).coerceIn(0.1f, 1f)
 
@@ -327,17 +327,12 @@ fun StatisticsScreen(
 
                                     Spacer(Modifier.width(8.dp))
 
-                                    AsyncImage(
-                                        model = ImageRequest.Builder(context)
-                                            .data(logoUrl)
-                                            .crossfade(true)
-                                            .build(),
-                                        contentDescription = "סמל ${brand.nameHe}",
-                                        modifier = Modifier.size(28.dp),
-                                        contentScale = ContentScale.Fit
-                                    )
+                                    AutoBrandLogo(
+                                         hebrewMake = brand.nameHe,
+                                         size = 28.dp
+                                     )
 
-                                    Spacer(Modifier.width(8.dp))
+                                     Spacer(Modifier.width(8.dp))
 
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(

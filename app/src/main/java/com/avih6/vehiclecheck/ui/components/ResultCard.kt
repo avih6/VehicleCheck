@@ -396,38 +396,11 @@ fun ResultCard(
 
                 Spacer(Modifier.height(14.dp))
 
-                // Brand Pure Metallic Emblem (High Resolution, No Text) with local fallback in case of load failure
-                var logoLoadFailed by remember(brandLogoUrl) { mutableStateOf(false) }
-                if (logoLoadFailed) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                        shape = CircleShape,
-                        modifier = Modifier.size(54.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = if (isEngineeringEquipment) Icons.Default.Construction else Icons.Default.DirectionsCar,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                    }
-                } else {
-                    AsyncImage(
-                        model = ImageRequest.Builder(context)
-                            .data(brandLogoUrl)
-                            .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = "Brand Emblem",
-                        modifier = Modifier
-                            .size(80.dp)
-                            .padding(2.dp),
-                        contentScale = ContentScale.Fit,
-                        onError = { logoLoadFailed = true }
-                    )
-                }
+                AutoBrandLogo(
+                    hebrewMake = vehicle.make,
+                    isEngineeringEquipment = isEngineeringEquipment,
+                    size = 80.dp
+                )
 
                 Spacer(Modifier.height(8.dp))
 
@@ -1819,3 +1792,57 @@ private fun EngineeringTechSpecContent(
         }
     }
 }
+
+@Composable
+fun AutoBrandLogo(
+    hebrewMake: String?,
+    modifier: Modifier = Modifier,
+    size: androidx.compose.ui.unit.Dp = 80.dp,
+    isEngineeringEquipment: Boolean = false
+) {
+    var logoUrlIndex by remember(hebrewMake) { mutableIntStateOf(0) }
+    val slug = remember(hebrewMake) { VehicleUtils.getBrandSlug(hebrewMake) }
+    
+    val urls = remember(slug) {
+        listOf(
+            "https://raw.githubusercontent.com/filippofilip95/car-logos-dataset/master/logos/optimized/$slug.png",
+            "https://raw.githubusercontent.com/filippofilip95/car-logos-dataset/master/logos/local-logos/$slug.png",
+            "https://raw.githubusercontent.com/vehiclespecs/brand-logos/master/logos/png/$slug.png",
+            "https://raw.githubusercontent.com/vehiclespecs/brand-logos/master/logos/svg/$slug.svg"
+        )
+    }
+
+    if (logoUrlIndex >= urls.size || slug == "car") {
+        Surface(
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+            shape = CircleShape,
+            modifier = modifier.size(size)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = if (isEngineeringEquipment) Icons.Default.Construction else Icons.Default.DirectionsCar,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(size * 0.55f)
+                )
+            }
+        }
+    } else {
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(urls[logoUrlIndex])
+                .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
+                .crossfade(true)
+                .build(),
+            contentDescription = "סמל יצרן $hebrewMake",
+            modifier = modifier
+                .size(size)
+                .padding(2.dp),
+            contentScale = ContentScale.Fit,
+            onError = {
+                logoUrlIndex++
+            }
+        )
+    }
+}
+

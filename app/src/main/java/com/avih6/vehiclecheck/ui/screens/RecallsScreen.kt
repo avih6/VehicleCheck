@@ -35,6 +35,7 @@ import coil.request.ImageRequest
 import com.avih6.vehiclecheck.data.NetworkClient
 import com.avih6.vehiclecheck.data.RecallDetailRecord
 import com.avih6.vehiclecheck.data.VehicleUtils
+import com.avih6.vehiclecheck.ui.components.AutoBrandLogo
 import com.avih6.vehiclecheck.ui.components.HoverTooltipIconButton
 import com.avih6.vehiclecheck.ui.components.handCursor
 import kotlinx.coroutines.Dispatchers
@@ -320,15 +321,10 @@ private fun RecallFeedCard(item: RecallDetailRecord) {
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     modifier = Modifier.size(54.dp).padding(2.dp)
                 ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize().padding(6.dp)) {
-                        AsyncImage(
-                            model = ImageRequest.Builder(context)
-                                .data(brandLogoUrl)
-                                .crossfade(true)
-                                .build(),
-                            contentDescription = item.makeName,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Fit
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize().padding(4.dp)) {
+                        AutoBrandLogo(
+                            hebrewMake = item.makeName,
+                            size = 46.dp
                         )
                     }
                 }
