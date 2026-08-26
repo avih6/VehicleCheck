@@ -533,9 +533,21 @@ object VehicleUtils {
         return "https://raw.githubusercontent.com/filippofilip95/car-logos-dataset/master/logos/optimized/$slug.png"
     }
 
+    fun extractEnglishName(make: String?): String? {
+        if (make.isNullOrBlank()) return null
+        val regex = Regex("[A-Za-z0-9]+")
+        val matches = regex.findAll(make).map { it.value }.toList()
+        val filterWords = setOf("usa", "uk", "ltd", "gmbh", "co", "corp", "inc", "motor", "motors", "auto", "car")
+        val cleanMatches = matches.filter { it.lowercase() !in filterWords }
+        if (cleanMatches.isNotEmpty()) {
+            return cleanMatches.joinToString("-").lowercase()
+        }
+        return null
+    }
+
     fun getBrandSlug(hebrewMake: String?): String {
         val m = hebrewMake.orEmpty().lowercase()
-        return when {
+        val predefined = when {
             m.contains("סובארו") || m.contains("subaru") -> "subaru"
             m.contains("טויוטה") || m.contains("toyota") -> "toyota"
             m.contains("יונדאי") || m.contains("hyundai") -> "hyundai"
@@ -619,8 +631,19 @@ object VehicleUtils {
             m.contains("דאף") || m.contains("daf") -> "daf"
             m.contains("איווקו") || m.contains("iveco") -> "iveco"
             m.contains("מאק") || m.contains("mack") -> "mack"
-            else -> "car"
+            else -> null
         }
+        if (predefined != null) return predefined
+
+        val extracted = extractEnglishName(hebrewMake)
+        if (!extracted.isNullOrBlank()) return extracted
+
+        return hebrewMake.orEmpty()
+            .replace(Regex("[^א-תA-Za-z0-9\\s]"), "")
+            .trim()
+            .replace(" ", "-")
+            .lowercase()
+            .ifBlank { "car" }
     }
 
     fun getEnglishMakeAndModel(hebrewMake: String?, model: String?): Pair<String, String> {

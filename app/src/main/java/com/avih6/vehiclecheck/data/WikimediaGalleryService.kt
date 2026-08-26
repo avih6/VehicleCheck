@@ -111,7 +111,7 @@ object WikimediaGalleryService {
                                               checkPath.endsWith(".png", ignoreCase = true) ||
                                               checkPath.endsWith(".webp", ignoreCase = true)
 
-                        // Filter out icon, logo, map, diagram, flag SVGs/PNGs, interiors, historic, graphs, charts, tables, buildings, factories
+                        // Filter out icon, logo, map, diagram, flag SVGs/PNGs, interiors, graphs, charts, tables, buildings, factories, ads
                         val lowerTitle = title.lowercase()
                         val isJunk = lowerTitle.contains("logo") || lowerTitle.contains("icon") ||
                                      lowerTitle.contains("flag") || lowerTitle.contains("diagram") ||
@@ -121,10 +121,7 @@ object WikimediaGalleryService {
                                      lowerTitle.contains("engine") || lowerTitle.contains("seats") ||
                                      lowerTitle.contains("steering") || lowerTitle.contains("wheel") ||
                                      lowerTitle.contains("underneath") || lowerTitle.contains("chassis") ||
-                                     lowerTitle.contains("part") || lowerTitle.contains("bundesarchiv") ||
-                                     lowerTitle.contains("museum") || lowerTitle.contains("vintage") ||
-                                     lowerTitle.contains("antique") || lowerTitle.contains("classic") ||
-                                     lowerTitle.contains("pre-war") || lowerTitle.contains("drawing") ||
+                                     lowerTitle.contains("part") || lowerTitle.contains("drawing") ||
                                      lowerTitle.contains("sketch") || lowerTitle.contains("blueprint") ||
                                      lowerTitle.contains("patent") || lowerTitle.contains("graph") ||
                                      lowerTitle.contains("chart") || lowerTitle.contains("table") ||
@@ -138,8 +135,7 @@ object WikimediaGalleryService {
                                      lowerTitle.contains("advertisement") || lowerTitle.contains("poster") ||
                                      lowerTitle.contains("exhibit") || lowerTitle.contains("fair") ||
                                      lowerTitle.contains("assembly line") || lowerTitle.contains("assembly-line") ||
-                                     lowerTitle.contains("production line") || lowerTitle.contains("historical") ||
-                                     lowerTitle.contains("history") || lowerTitle.contains("historic")
+                                     lowerTitle.contains("production line")
 
                         if (thumbUrl.isNotBlank() && isValidExtension && !isJunk) {
                             results.add(CarGalleryImage(
@@ -169,16 +165,22 @@ object WikimediaGalleryService {
     private fun buildSearchQuery(rawMake: String, rawModel: String): String {
         val trimmedMake = rawMake.trim()
         val trimmedModel = rawModel.trim()
-        val exclusions = " -logo -icon -badge -flag -diagram -map -emblem -symbol -drawing -blueprint -sketch -dashboard -interior -seats -engine -steering -bundesarchiv -museum -vintage -antique -classic -pre-war -graph -chart -table -plot -ranking -stats -curve -infographic -factory -plant -dealership -showroom -workshop -garage -office -building -facade -advertisement -ad -poster -exhibit -fair -production -assembly -historical -history -historic"
+        
+        val baseExclusions = " -logo -icon -badge -flag -diagram -map -emblem -symbol -drawing -blueprint -sketch -dashboard -interior -seats -engine -steering -graph -chart -table -plot -ranking -stats -curve -infographic -factory -plant -dealership -showroom -workshop -garage -office -building -facade -advertisement -ad -poster -exhibit -fair -production -assembly"
+        val ageExclusions = " -vintage -antique -classic -pre-war -museum -bundesarchiv -historical -history -historic"
 
         if (trimmedMake.isBlank() || trimmedMake == "הכל" || trimmedMake.equals("all", ignoreCase = true)) {
+            // For general gallery showcase, keep it modern by applying age exclusions
+            val fullExclusions = baseExclusions + ageExclusions
             return if (trimmedModel.isNotBlank()) {
-                "$trimmedModel car vehicle$exclusions"
+                "$trimmedModel car vehicle$fullExclusions"
             } else {
-                "automobiles passenger cars vehicle modern$exclusions"
+                "automobiles passenger cars vehicle modern$fullExclusions"
             }
         }
 
+        // For specific vehicle make searches, do not apply ageExclusions to avoid filtering classic/old vehicles
+        val exclusions = baseExclusions
         val (makeEn, modelEn) = VehicleUtils.getEnglishMakeAndModel(trimmedMake, trimmedModel)
         val brand = if (makeEn != "car") makeEn else trimmedMake
         val model = if (modelEn != "car") modelEn else trimmedModel
