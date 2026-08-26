@@ -69,7 +69,6 @@ fun SearchScreen(
         }
     }
 
-    val context = LocalContext.current
     val hasCamera = remember {
         context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
     }
