@@ -1173,7 +1173,7 @@ private fun TechSpecTabContent(
                     SpecRow("נפח מנוע:", "%,d סמ\"ק".format(it))
                 }
 
-                val engineModel = vehicle.engineModel ?: techSpec?.engineModel
+                val engineModel = vehicle.engineModel
                 engineModel?.let {
                     if (it.isNotBlank()) SpecRow("דגם מנוע:", it)
                 }
