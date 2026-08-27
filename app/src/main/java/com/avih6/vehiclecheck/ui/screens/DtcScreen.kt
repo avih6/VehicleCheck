@@ -39,7 +39,7 @@ fun DtcScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     var query by remember { mutableStateOf("") }
-    var selectedResult by remember { mutableStateOf<DtcCodeInfo?>(DtcRepository.lookupCode("P0420")) }
+    var selectedResult by remember { mutableStateOf<DtcCodeInfo?>(null) }
 
     val liveSearchResults by remember(query) {
         derivedStateOf {
@@ -109,6 +109,8 @@ fun DtcScreen(
                     if (match != null) {
                         selectedResult = match
                     }
+                } else if (query.isEmpty()) {
+                    selectedResult = null
                 }
             },
             modifier = Modifier.fillMaxWidth(),
@@ -154,7 +156,61 @@ fun DtcScreen(
 
         Spacer(Modifier.height(14.dp))
 
-        // Selected Code Full Breakdown Result Display
+        // 1. Initial State: Guide appears when nothing is searched/selected
+        if (selectedResult == null && query.isBlank()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Outlined.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "איך להשיג קוד תקלה מהרכב? (מדריך OBD2)",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    Spacer(Modifier.height(10.dp))
+
+                    ObdStepItem(
+                        stepNumber = "1",
+                        title = "איתור שקע ה-OBD2 ברכב",
+                        description = "בכל רכב משנת 2000 ומעלה קיים שקע דיאגנוסטיקה בעל 16 פינים, הממוקם בדרך כלל מתחת להגה או סמוך לדוושות הנהג."
+                    )
+
+                    ObdStepItem(
+                        stepNumber = "2",
+                        title = "חיבור סורק OBD2 (למשל ELM327)",
+                        description = "מחברים מתאם Bluetooth / Wi-Fi אל שקע ה-OBD2 ומסובבים את מפתח הרכב למצב סוויץ' (ON) מבלי להניע."
+                    )
+
+                    ObdStepItem(
+                        stepNumber = "3",
+                        title = "קריאת הקוד באמצעות אפליקציה",
+                        description = "מתחברים דרך הטלפון לאפליקציית סריקה (כמו Car Scanner או Torque) ולוחצים על סריקת תקלות (Read Fault Codes)."
+                    )
+
+                    ObdStepItem(
+                        stepNumber = "4",
+                        title = "פענוח הקוד באפליקציה",
+                        description = "מעתיקים את קוד התקלה (למשל P0420) לתיבת החיפוש כאן למעלה או לוחצים על אחד מהקודים הנפוצים כדי לקבל הסבר מלא!"
+                    )
+                }
+            }
+        }
+
+        // 2. Selected Code Full Breakdown Result Display (Replaces guide upon selection)
         if (selectedResult != null) {
             val info = selectedResult!!
             val severityColor = Color(info.severity.colorHex)
@@ -166,7 +222,7 @@ fun DtcScreen(
                 border = BorderStroke(1.5.dp, severityColor.copy(alpha = 0.6f))
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    // Header badges (Always single line and non-wrapping)
+                    // Header badges
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -178,10 +234,8 @@ fun DtcScreen(
                         ) {
                             Text(
                                 text = info.code,
+                                style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Black,
-                                fontSize = 18.sp,
-                                maxLines = 1,
-                                softWrap = false,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                             )
@@ -190,26 +244,24 @@ fun DtcScreen(
                         Surface(
                             color = severityColor.copy(alpha = 0.15f),
                             shape = RoundedCornerShape(10.dp),
-                            border = BorderStroke(1.dp, severityColor.copy(alpha = 0.3f))
+                            border = BorderStroke(1.dp, severityColor.copy(alpha = 0.4f))
                         ) {
                             Text(
                                 text = info.severity.titleHe,
-                                color = severityColor,
+                                style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                maxLines = 1,
+                                color = severityColor,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                             )
                         }
                     }
 
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(10.dp))
 
                     Text(
                         text = info.titleHe,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.onSurface
+                        fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = info.titleEn,
@@ -217,43 +269,33 @@ fun DtcScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = "מערכת: ${info.categoryHe}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 10.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                    )
+                    Spacer(Modifier.height(12.dp))
 
                     // Description
                     Text(
-                        text = "תיאור התקלה:",
+                        text = "פירוט התקלה:",
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
                         text = info.descriptionHe,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 4.dp)
                     )
 
                     // Symptoms
                     if (info.symptomsHe.isNotEmpty()) {
                         Spacer(Modifier.height(10.dp))
                         Text(
-                            text = "תסמינים אפשריים ברכב:",
+                            text = "תסמינים אופייניים ברכב:",
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium
                         )
-                        info.symptomsHe.forEach { symptom ->
+                        info.symptomsHe.forEach { sym ->
                             Row(modifier = Modifier.padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Text("• ", fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
-                                Text(symptom, style = MaterialTheme.typography.bodySmall)
+                                Text(sym, style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }
@@ -262,7 +304,7 @@ fun DtcScreen(
                     if (info.possibleCausesHe.isNotEmpty()) {
                         Spacer(Modifier.height(10.dp))
                         Text(
-                            text = "סיבות נפוצות לתקלה:",
+                            text = "גורמים אפשריים לתקלה:",
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -290,59 +332,6 @@ fun DtcScreen(
                         }
                     }
                 }
-            }
-
-            Spacer(Modifier.height(18.dp))
-        }
-
-        // Educational / OBD2 Guide Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f))
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Outlined.Info,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = "איך להשיג קוד תקלה מהרכב? (מדריך OBD2)",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                Spacer(Modifier.height(10.dp))
-
-                ObdStepItem(
-                    stepNumber = "1",
-                    title = "איתור שקע ה-OBD2 ברכב",
-                    description = "בכל רכב משנת 2000 ומעלה קיים שקע דיאגנוסטיקה בעל 16 פינים, הממוקם בדרך כלל מתחת להגה או סמוך לדוושות הנהג."
-                )
-
-                ObdStepItem(
-                    stepNumber = "2",
-                    title = "חיבור סורק OBD2 (למשל ELM327)",
-                    description = "מחברים מתאם Bluetooth / Wi-Fi אל שקע ה-OBD2 ומסובבים את מפתח הרכב למצב סוויץ' (ON) מבלי להניע."
-                )
-
-                ObdStepItem(
-                    stepNumber = "3",
-                    title = "קריאת הקוד באמצעות אפליקציה",
-                    description = "מתחברים דרך הטלפון לאפליקציית סריקה (כמו Car Scanner או Torque) ולוחצים על סריקת תקלות (Read Fault Codes)."
-                )
-
-                ObdStepItem(
-                    stepNumber = "4",
-                    title = "פענוח הקוד באפליקציה",
-                    description = "מעתיקים את קוד התקלה (למשל P0420) לתיבת החיפוש כאן למעלה ומקבלים הסבר מקיף, סיבות אפשריות ודרכי טיפול!"
-                )
             }
         }
     }

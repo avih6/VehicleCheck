@@ -815,47 +815,49 @@ private fun GeneralTabContent(
                     isHighlighted = vehicle.testExpiryDate != null
                 )
 
-                // Status duration diff badge (זמן שנותר / איחור)
-                val testDiff = VehicleUtils.calculateDateDifferenceHebrew(vehicle.testExpiryDate)
-                if (testDiff != null) {
-                    val isValid = testStatus is TestStatus.Valid || testStatus is TestStatus.ExpiringSoon
+                // Status duration diff badge (זמן שנותר / איחור / ירידה מהכביש)
+                if (isOffRoad) {
+                    val offRoadDiff = VehicleUtils.formatTimeAgo(offRoadDate ?: vehicle.testExpiryDate)
                     Surface(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         shape = RoundedCornerShape(8.dp),
-                        color = if (isValid) Color(0xFF2E7D32).copy(alpha = 0.12f) else Color(0xFFC62828).copy(alpha = 0.12f)
+                        color = Color(0xFFC62828).copy(alpha = 0.12f)
                     ) {
                         Text(
-                            text = testDiff,
-                            color = if (isValid) Color(0xFF4CAF50) else Color(0xFFFF5252),
+                            text = if (offRoadDiff != null) "הרכב ירד מהכביש ורישומו בוטל ($offRoadDiff)" else "הרכב ירד מהכביש ורישומו בוטל",
+                            color = Color(0xFFFF5252),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                         )
                     }
-                }
-
-                // Off-road cancellation date
-                if (isOffRoad && !offRoadDate.isNullOrBlank()) {
-                    val offRoadDiff = VehicleUtils.calculateDateDifferenceHebrew(offRoadDate)
-                    SpecRow(
-                        label = "מועד הורדה מהכביש (ביטול רישום):",
-                        value = offRoadDate
-                    )
-                    if (offRoadDiff != null) {
+                } else {
+                    val testDiff = VehicleUtils.calculateDateDifferenceHebrew(vehicle.testExpiryDate)
+                    if (testDiff != null) {
+                        val isValid = testStatus is TestStatus.Valid || testStatus is TestStatus.ExpiringSoon
                         Surface(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                             shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFFC62828).copy(alpha = 0.12f)
+                            color = if (isValid) Color(0xFF2E7D32).copy(alpha = 0.12f) else Color(0xFFC62828).copy(alpha = 0.12f)
                         ) {
                             Text(
-                                text = "מועד ביטול: $offRoadDiff",
-                                color = Color(0xFFFF5252),
+                                text = testDiff,
+                                color = if (isValid) Color(0xFF4CAF50) else Color(0xFFFF5252),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                             )
                         }
                     }
+                }
+
+                // Off-road cancellation date
+                if (isOffRoad && !offRoadDate.isNullOrBlank()) {
+                    val offRoadAgo = VehicleUtils.formatTimeAgo(offRoadDate)
+                    SpecRow(
+                        label = "מועד הורדה מהכביש (ביטול רישום):",
+                        value = if (offRoadAgo != null) "$offRoadDate ($offRoadAgo)" else offRoadDate
+                    )
                 }
 
                 // On-road date (מועד עלייה לכביש)
@@ -1074,13 +1076,13 @@ private fun GeneralTabContent(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "בדיקת שעבוד ומשכון ברשם המשכונות 🔒",
+                        text = "בדיקת שעבוד ומשכון ברשם המשכונות",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "בדיקה מקוונת ישירה במשרד המשפטים להסרת חשש לעיקולים",
+                        text = "בדיקה מקוונת ישירה באתר השירותים הממשלתי (Gov.il / משרד המשפטים)",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1097,7 +1099,7 @@ private fun GeneralTabContent(
                         }
                         Toast.makeText(context, "מספר רכב הועתק ללוח! מעביר לרשם המשכונות...", Toast.LENGTH_SHORT).show()
                         try {
-                            val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://pledges.justice.gov.il/"))
+                            val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://www.gov.il/he/service/pledges-online"))
                             context.startActivity(intent)
                         } catch (e: Exception) {}
                     },
@@ -1140,33 +1142,34 @@ private fun GeneralTabContent(
         }
 
         // Tires & Wheels Card
-        val hasTireInfo = !vehicle.frontTire.isNullOrBlank() || !vehicle.rearTire.isNullOrBlank() || techSpec?.tpms == 1 || techSpec?.alloyWheels == 1
-        if (hasTireInfo) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "מפרט צמיגים וגלגלים",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 10.dp)
-                    )
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "מפרט צמיגים וגלגלים",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 10.dp)
+                )
 
-                    vehicle.frontTire?.let {
-                        if (it.isNotBlank()) SpecRow("צמיג קדמי מאושר:", it)
-                    }
-                    vehicle.rearTire?.let {
-                        if (it.isNotBlank()) SpecRow("צמיג אחורי מאושר:", it)
-                    }
-                    if (techSpec?.tpms == 1) {
-                        SpecRow("חיישני לחץ אוויר בצמיגים (TPMS):", "מותקן ומאושר")
-                    }
-                    if (techSpec?.alloyWheels == 1) {
-                        SpecRow("ג'נטים / גלגלי סגסוגת קלה:", "כן")
-                    }
+                val frontTireVal = if (!vehicle.frontTire.isNullOrBlank()) vehicle.frontTire else "אין מידע"
+                SpecRow("צמיג קדמי מאושר:", frontTireVal)
+
+                val rearTireVal = when {
+                    !vehicle.rearTire.isNullOrBlank() -> vehicle.rearTire
+                    !vehicle.frontTire.isNullOrBlank() -> "${vehicle.frontTire} (זהה לקדמי)"
+                    else -> "אין מידע"
+                }
+                SpecRow("צמיג אחורי מאושר:", rearTireVal)
+
+                if (techSpec?.tpms == 1) {
+                    SpecRow("חיישני לחץ אוויר בצמיגים (TPMS):", "מותקן ומאושר")
+                }
+                if (techSpec?.alloyWheels == 1) {
+                    SpecRow("ג'נטים / גלגלי סגסוגת קלה:", "כן")
                 }
             }
         }

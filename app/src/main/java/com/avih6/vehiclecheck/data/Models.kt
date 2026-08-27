@@ -612,6 +612,28 @@ object VehicleUtils {
         }
     }
 
+    fun formatTimeAgo(dateStr: String?): String? {
+        val targetDate = parseLocalDate(dateStr) ?: return null
+        val today = LocalDate.now()
+        val isPast = targetDate.isBefore(today)
+        val start = if (isPast) targetDate else today
+        val end = if (isPast) today else targetDate
+        val period = java.time.Period.between(start, end)
+
+        val years = period.years
+        val months = period.months
+        val days = period.days
+
+        val parts = mutableListOf<String>()
+        if (years > 0) parts.add(if (years == 1) "שנה אחת" else if (years == 2) "שנתיים" else "$years שנים")
+        if (months > 0) parts.add(if (months == 1) "חודש אחד" else if (months == 2) "חודשיים" else "$months חודשים")
+        if (days > 0 && years == 0) parts.add(if (days == 1) "יום אחד" else if (days == 2) "יומיים" else "$days ימים")
+        else if (parts.isEmpty()) parts.add(if (days <= 1) "היום" else "$days ימים")
+
+        val formattedDiff = parts.joinToString(if (parts.size > 2) ", " else " ו-")
+        return if (isPast) "לפני $formattedDiff" else "בעוד $formattedDiff"
+    }
+
     fun getEstimatedLastTestDate(testExpiryDateStr: String?, lastTestDateStr: String?): String? {
         if (!lastTestDateStr.isNullOrBlank()) return lastTestDateStr
         val expiry = parseLocalDate(testExpiryDateStr) ?: return null

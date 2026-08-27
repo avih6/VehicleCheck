@@ -57,7 +57,6 @@ fun SearchScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     var showCameraScanner by remember { mutableStateOf(false) }
-    var showDtcDialog by remember { mutableStateOf(false) }
 
     // Speech Recognizer Launcher
     val speechLauncher = rememberLauncherForActivityResult(
@@ -99,12 +98,6 @@ fun SearchScreen(
                 showCameraScanner = false
                 viewModel.searchPlateDirect(plate)
             }
-        )
-    }
-
-    if (showDtcDialog) {
-        com.avih6.vehiclecheck.ui.components.DtcLookupDialog(
-            onDismiss = { showDtcDialog = false }
         )
     }
 
@@ -250,30 +243,6 @@ fun SearchScreen(
                 text = stringResource(R.string.search_btn),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
-            )
-        }
-
-        Spacer(Modifier.height(10.dp))
-
-        // DTC Diagnostic Trouble Codes Tool Button
-        OutlinedButton(
-            onClick = { showDtcDialog = true },
-            modifier = Modifier.fillMaxWidth().height(48.dp).tvFocusable(shape = RoundedCornerShape(14.dp)),
-            shape = RoundedCornerShape(14.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-        ) {
-            Icon(
-                Icons.Default.Build,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = "פענוח קודי תקלה ברכב (DTC / OBD2)",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
             )
         }
 
