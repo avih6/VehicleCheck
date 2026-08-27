@@ -430,9 +430,9 @@ fun ResultCard(
 
                 Spacer(Modifier.height(12.dp))
 
-                val cleanMake = vehicle.make?.replace(" ארה\"ב", "")?.replace(" יפן", "")?.replace(" קוריאה", "") ?: vehicle.make.orEmpty()
+                val formattedMake = VehicleUtils.formatMake(vehicle.make)
                 Text(
-                    text = "$cleanMake ${vehicle.year ?: ""}".trim().ifBlank { "פרטי רכב" },
+                    text = "$formattedMake ${vehicle.year ?: ""}".trim().ifBlank { "פרטי רכב" },
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Black,
                     fontSize = 22.sp,
@@ -441,7 +441,7 @@ fun ResultCard(
                 )
 
                 vehicle.model?.let { mod ->
-                    if (mod.isNotBlank() && !mod.equals(cleanMake, ignoreCase = true)) {
+                    if (mod.isNotBlank() && !mod.equals(formattedMake, ignoreCase = true)) {
                         Spacer(Modifier.height(2.dp))
                         Text(
                             text = mod.uppercase(),
@@ -1163,17 +1163,30 @@ private fun TechSpecTabContent(
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
-                techSpec?.horsepower?.let { hp ->
-                    SpecRow("כוחות סוס:", "$hp כ\"ס", isHighlighted = true)
+                val hp = techSpec?.horsepower ?: vehicle.horsepower
+                hp?.let {
+                    SpecRow("כוחות סוס:", "$it כ\"ס", isHighlighted = true)
                 }
-                techSpec?.engineDisplacement?.let { cc ->
-                    SpecRow("נפח מנוע:", "%,d סמ\"ק".format(cc))
+
+                val cc = techSpec?.engineDisplacement ?: vehicle.engineDisplacement
+                cc?.let {
+                    SpecRow("נפח מנוע:", "%,d סמ\"ק".format(it))
                 }
+
+                val engineModel = vehicle.engineModel ?: techSpec?.engineModel
+                engineModel?.let {
+                    if (it.isNotBlank()) SpecRow("דגם מנוע:", it)
+                }
+
                 val gearText = if (techSpec?.isAutomatic == 1) "אוטומטי" else if (techSpec?.isAutomatic == 0) "ידני" else null
                 gearText?.let { SpecRow("תיבת הילוכים:", it) }
 
-                val drive = techSpec?.driveType ?: if (vehicle.model?.contains("4X4", ignoreCase = true) == true) "4X4" else null
+                val drive = techSpec?.driveType ?: vehicle.driveType ?: if (vehicle.model?.contains("4X4", ignoreCase = true) == true) "4X4" else null
                 drive?.let { SpecRow("הנעה:", it) }
+
+                vehicle.fuelType?.let {
+                    if (it.isNotBlank()) FuelSpecRow("סוג דלק:", it)
+                }
 
                 techSpec?.powertrainTech?.let {
                     if (it.isNotBlank()) SpecRow("טכנולוגיית הנעה:", it)
@@ -1198,17 +1211,62 @@ private fun TechSpecTabContent(
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
-                val seats = techSpec?.seats
+                val totalWeight = techSpec?.totalWeight ?: vehicle.totalWeight
+                totalWeight?.let { SpecRow("משקל כולל מורשה:", "%,d ק\"ג".format(it)) }
+
+                val curbWeight = vehicle.curbWeight
+                curbWeight?.let { SpecRow("משקל עצמי:", "%,d ק\"ג".format(it)) }
+
+                val cargoWeight = vehicle.cargoWeight
+                cargoWeight?.let { SpecRow("משקל מטען מורשה:", "%,d ק\"ג".format(it)) }
+
+                val seats = techSpec?.seats ?: vehicle.seats
+                val seatsNext = vehicle.seatsNextToDriver
                 val doors = techSpec?.doors
                 if (seats != null || doors != null) {
-                    SpecRow("מושבים ודלתות:", "${seats ?: "-"} מושבים • ${doors ?: "-"} דלתות")
+                    val seatsStr = if (seatsNext != null) "$seats מושבים ($seatsNext ליד הנהג)" else "$seats מושבים"
+                    val doorsStr = if (doors != null) " • $doors דלתות" else ""
+                    SpecRow("מושבים ודלתות:", "$seatsStr$doorsStr")
                 }
+
+                val tow = techSpec?.towingCapacityWithBrakes ?: vehicle.towingCapacity
+                tow?.let { SpecRow("כושר גרירה עם בלמים:", "%,d ק\"ג".format(it)) }
+                techSpec?.towingCapacityWithoutBrakes?.let { SpecRow("כושר גרירה בלי בלמים:", "%,d ק\"ג".format(it)) }
 
                 techSpec?.airbags?.let { SpecRow("כריות אוויר:", "$it כריות אוויר") }
                 techSpec?.electricWindows?.let { SpecRow("חלונות חשמל:", "$it") }
-                techSpec?.totalWeight?.let { SpecRow("משקל כולל:", "%,d ק\"ג".format(it)) }
-                techSpec?.towingCapacityWithBrakes?.let { SpecRow("כושר גרירה עם בלמים:", "%,d ק\"ג".format(it)) }
-                techSpec?.towingCapacityWithoutBrakes?.let { SpecRow("כושר גרירה בלי בלמים:", "%,d ק\"ג".format(it)) }
+            }
+        }
+
+        // Identification & Registration Codes
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "מספרי זיהוי וסיווג רשמי",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+
+                vehicle.effectiveVin?.let {
+                    if (it.isNotBlank()) SpecRow("מספר שילדה (VIN):", it)
+                }
+                vehicle.vehicleCategory?.let {
+                    if (it.isNotBlank()) SpecRow("קבוצת סוג רכב:", it)
+                }
+                vehicle.standardType?.let {
+                    if (it.isNotBlank()) SpecRow("סוג תקינה:", it)
+                }
+                vehicle.registrationDirective?.let { SpecRow("מספר הוראת רישום:", "$it") }
+                vehicle.makeCode?.let { SpecRow("קוד תוצרת:", "$it") }
+                vehicle.modelCd?.let { SpecRow("קוד דגם משרד התחבורה:", "$it") }
+                vehicle.modelCode?.let {
+                    if (it.isNotBlank()) SpecRow("קוד דגם:", it)
+                }
             }
         }
 

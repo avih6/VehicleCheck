@@ -104,8 +104,24 @@ data class VehicleRecord(
     @Serializable(with = FlexibleIntSerializer::class) @SerialName("ramat_eivzur_betihuty") val safetyRating: Int? = null,
     @Serializable(with = FlexibleIntSerializer::class) @SerialName("kvutzat_zihum") val emissionGroup: Int? = null,
     @SerialName("misgeret") val vin: String? = null,
-    @Serializable(with = FlexibleLongSerializer::class) @SerialName("horaat_rishum") val registrationDirective: Long? = null
-)
+    @SerialName("shilda") val vinAlt: String? = null,
+    @Serializable(with = FlexibleLongSerializer::class) @SerialName("horaat_rishum") val registrationDirective: Long? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("nefach_manoa") val engineDisplacement: Int? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("koah_sus") val horsepower: Int? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("mishkal_kolel") val totalWeight: Int? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("mishkal_azmi") val curbWeight: Int? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("mishkal_mitan") val cargoWeight: Int? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("mishkal_murshe_ligror") val towingCapacity: Int? = null,
+    @SerialName("hanaa_nm") val driveType: String? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("mispar_moshavim") val seats: Int? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("mispar_leyad_nahag") val seatsNextToDriver: Int? = null,
+    @SerialName("sug_rechev_nm") val vehicleCategory: String? = null,
+    @SerialName("sug_tkina_nm") val standardType: String? = null,
+    @SerialName("tozeret_eretz_nm") val countryOfOrigin: String? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("kvutzat_agrah_cd") val feeGroupCd: Int? = null
+) {
+    val effectiveVin: String? get() = if (!vin.isNullOrBlank()) vin else vinAlt
+}
 
 @Serializable
 data class PersonalImportRecord(
@@ -620,6 +636,48 @@ object VehicleUtils {
             vehicleAge >= 4 -> (baseFee * 0.85).toInt()
             else -> baseFee
         }
+    }
+
+    fun formatCountry(country: String?): String {
+        if (country.isNullOrBlank()) return "אין מידע"
+        val clean = country.trim()
+        return when {
+            clean.contains("ארהב") || clean.contains("ארצות הברית") || clean.equals("USA", ignoreCase = true) -> "ארה\"ב"
+            clean.contains("בריטניה") || clean.contains("אנגליה") || clean.equals("UK", ignoreCase = true) -> "בריטניה"
+            clean.contains("גרמניה") -> "גרמניה"
+            clean.contains("יפן") -> "יפן"
+            clean.contains("קוריאה") -> "דרום קוריאה"
+            clean.contains("סין") -> "סין"
+            clean.contains("צרפת") -> "צרפת"
+            clean.contains("איטליה") -> "איטליה"
+            clean.contains("ספרד") -> "ספרד"
+            clean.contains("צ'כיה") || clean.contains("צכיה") -> "צ'כיה"
+            clean.contains("שוודיה") || clean.contains("שבדיה") -> "שוודיה"
+            clean.contains("טורקיה") || clean.contains("תורכיה") -> "טורקיה"
+            clean.contains("מקסיקו") -> "מקסיקו"
+            clean.contains("קנדה") -> "קנדה"
+            clean.contains("הונגריה") -> "הונגריה"
+            clean.contains("הודו") -> "הודו"
+            clean.contains("רומניה") -> "רומניה"
+            clean.contains("פולין") -> "פולין"
+            clean.contains("בלגיה") -> "בלגיה"
+            clean.contains("תאילנד") -> "תאילנד"
+            clean.contains("ברזיל") -> "ברזיל"
+            clean.contains("סלובקיה") -> "סלובקיה"
+            clean.contains("אוסטריה") -> "אוסטריה"
+            clean.contains("פורטוגל") -> "פורטוגל"
+            clean.contains("הולנד") -> "הולנד"
+            clean.contains("דרום אפריקה") -> "דרום אפריקה"
+            else -> clean
+        }
+    }
+
+    fun formatMake(raw: String?): String {
+        if (raw.isNullOrBlank()) return ""
+        var str = raw.trim()
+        str = str.replace("ארהב\"", "ארה\"ב")
+        str = str.replace("ארהב", "ארה\"ב")
+        return str
     }
 
     fun getBrandLogoUrl(hebrewMake: String?): String {

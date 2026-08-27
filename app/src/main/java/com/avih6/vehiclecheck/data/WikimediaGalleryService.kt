@@ -89,10 +89,17 @@ object WikimediaGalleryService {
             }
         }
 
+        // If there is no specific model name, don't show random unrelated models
+        if (modelClean.isBlank() || modelClean.equals("car", ignoreCase = true)) {
+            return@withContext emptyList()
+        }
+
         // Score and sort candidates
         val scored = candidatesMap.values.map { img ->
             val score = scoreImage(img, brand, modelClean, year, colorEn)
             img to score
+        }.filter {
+            it.second >= 1200 // Must at least match make + model
         }.sortedByDescending { it.second }
 
         scored.map { it.first }.take(limit)
