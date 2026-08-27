@@ -48,8 +48,7 @@ fun PledgesInAppBrowserDialog(
     var webViewInstance by remember { mutableStateOf<WebView?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var progress by remember { mutableFloatStateOf(0f) }
-
-    val pledgesUrl = "https://www.gov.il/he/service/pledges_and_liens_search"
+    var currentUrl by remember { mutableStateOf("https://www.gov.il/he/service/pledge_search") }
 
     BackHandler {
         if (webViewInstance?.canGoBack() == true) {
@@ -96,7 +95,7 @@ fun PledgesInAppBrowserDialog(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "אתר Gov.il הרשמי של משרד המשפטים",
+                                text = "רשות התאגידים - משרד המשפטים",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -109,7 +108,7 @@ fun PledgesInAppBrowserDialog(
                         }
                         IconButton(onClick = {
                             try {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(pledgesUrl))
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(currentUrl))
                                 context.startActivity(intent)
                             } catch (e: Exception) {
                                 Toast.makeText(context, "לא ניתן לפתוח דפדפן", Toast.LENGTH_SHORT).show()
@@ -219,7 +218,7 @@ fun PledgesInAppBrowserDialog(
                                 }
                             }
 
-                            loadUrl(pledgesUrl)
+                            loadUrl(currentUrl)
                             webViewInstance = this
                         }
                     },

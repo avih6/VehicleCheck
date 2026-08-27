@@ -121,9 +121,21 @@ data class VehicleRecord(
     @Serializable(with = FlexibleIntSerializer::class) @SerialName("kvutzat_agrah_cd") val feeGroupCd: Int? = null,
     @SerialName("sug_argaz_nm") val cargoBoxType: String? = null,
     @Serializable(with = FlexibleIntSerializer::class) @SerialName("argaz_ind") val cargoBoxInd: Int? = null,
-    @SerialName("sug_merkev_nm") val bodyTypeName: String? = null
+    @SerialName("sug_merkev_nm") val bodyTypeName: String? = null,
+    @SerialName("mispar_shilda") val vinHeavy: String? = null,
+    @SerialName("tkina_EU") val standardTypeHeavy: String? = null,
+    @SerialName("kvutzat_sug_rechev") val vehicleCategoryHeavy: String? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("mispar_mekomot") val seatsHeavy: Int? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("mispar_mekomot_leyd_nahag") val seatsNextToDriverHeavy: Int? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("mishkal_mitan_harama") val cargoWeightHeavy: Int? = null,
+    @SerialName("grira_nm") val towingCapacityHeavy: String? = null
 ) {
-    val effectiveVin: String? get() = if (!vin.isNullOrBlank()) vin else vinAlt
+    val effectiveVin: String? get() = if (!vin.isNullOrBlank()) vin else if (!vinAlt.isNullOrBlank()) vinAlt else vinHeavy
+    val effectiveStandardType: String? get() = if (!standardType.isNullOrBlank()) standardType else standardTypeHeavy
+    val effectiveVehicleCategory: String? get() = if (!vehicleCategory.isNullOrBlank()) vehicleCategory else vehicleCategoryHeavy
+    val effectiveSeats: Int? get() = seats ?: seatsHeavy
+    val effectiveSeatsNextToDriver: Int? get() = seatsNextToDriver ?: seatsNextToDriverHeavy
+    val effectiveCargoWeight: Int? get() = cargoWeight ?: cargoWeightHeavy
 }
 
 @Serializable
@@ -1066,11 +1078,17 @@ object VehicleUtils {
     fun resolveBodyType(vehicle: VehicleRecord, techSpec: VehicleTechnicalSpecRecord?): BodyTypeInfo {
         val bt = techSpec?.bodyType.orEmpty().trim().lowercase()
         val mod = vehicle.model.orEmpty().trim().lowercase()
-        val cat = vehicle.vehicleCategory.orEmpty().trim().lowercase()
+        val cat = (vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory).orEmpty().trim().lowercase()
+        val std = (vehicle.effectiveStandardType ?: vehicle.standardType).orEmpty().trim().uppercase()
+        val seats = vehicle.effectiveSeats ?: techSpec?.seats ?: 0
+
+        val isAmbulanceOrRescue = cat.contains("אמבולנס") || mod.contains("ambulance") ||
+                cat.contains("מיוחד") || cat.contains("הצלה") || cat.contains("ביטחון") ||
+                (std.startsWith("M2") && (mod.contains("sprinter") || mod.contains("savana") || mod.contains("transit") || mod.contains("crafter") || seats in 1..4))
 
         return when {
-            cat.contains("אמבולנס") || mod.contains("ambulance") ->
-                BodyTypeInfo("רכב מיוחד (אמבולנס)", "🚑", "רכב רפואי והצלה ייעודי")
+            isAmbulanceOrRescue ->
+                BodyTypeInfo("רכב מיוחד (אמבולנס / ביטחון)", "🚑", "רכב רפואי והצלה ייעודי")
             bt.contains("פנאי") || bt.contains("שטח") || bt.contains("suv") || mod.contains("cross") || mod.contains("suv") ->
                 BodyTypeInfo("פנאי-שטח (SUV / קרוסאובר)", "🚙", "מרכב פנאי מוגבה 5 דלתות")
             bt.contains("סדאן") || bt.contains("sedan") || bt.contains("4 דלת") ->
@@ -1083,11 +1101,11 @@ object VehicleUtils {
                 BodyTypeInfo("קופה / ספורט", "🏎️", "מרכב ספורטיבי 2-3 דלתות")
             bt.contains("קבריולט") || bt.contains("קבריו") || bt.contains("cabrio") || bt.contains("convertible") || bt.contains("רודסטר") ->
                 BodyTypeInfo("קבריולט (גג פתוח / רודסטר)", "🏎️", "מרכב ספורטיבי פתוח / גג נפתח")
-            bt.contains("מיניוואן") || bt.contains("מיקרוואן") || bt.contains("mpv") || bt.contains("וואן") || bt.contains("אחוד") || (techSpec?.seats ?: vehicle.seats ?: 0) >= 7 ->
-                BodyTypeInfo("מיניוואן / היסעים (MPV)", "🚐", "מרכב רב-נוסעים מרווח")
+            std.startsWith("M2") || std.startsWith("M3") || bt.contains("מיניוואן") || bt.contains("מיקרוואן") || bt.contains("mpv") || bt.contains("וואן") || bt.contains("אחוד") || seats >= 7 ->
+                BodyTypeInfo("מיניוואן / היסעים (MPV / M2)", "🚐", "מרכב רב-נוסעים / היסעים מרווח")
             bt.contains("טנדר") || bt.contains("pickup") || bt.contains("פיק-אפ") || mod.contains("hilux") || mod.contains("d-max") ->
                 BodyTypeInfo("טנדר (Pick-Up)", "🛻", "מרכב מסחרי פתוח להעמסה")
-            vehicle.modelType == "M" || cat.contains("משא") || (vehicle.totalWeight ?: 0) > 3500 ->
+            vehicle.modelType == "M" || cat.contains("משא") || std.startsWith("N") || (vehicle.totalWeight ?: 0) > 3500 ->
                 BodyTypeInfo("משא / מסחרי", "🚚", "רכב עבודה ומטען")
             vehicle.modelType == "A" || cat.contains("אופנוע") || cat.contains("קטנוע") ->
                 BodyTypeInfo("דו-גלגלי (אופנוע / קטנוע)", "🏍️", "רכב דו-גלגלי מנועי")
@@ -1098,17 +1116,23 @@ object VehicleUtils {
 
     fun resolveLegalLicenseClass(vehicle: VehicleRecord, techSpec: VehicleTechnicalSpecRecord?): Pair<String, String> {
         val totalWeight = techSpec?.totalWeight ?: vehicle.totalWeight ?: 1600
-        val std = vehicle.standardType.orEmpty().trim().uppercase()
-        val isCommercial = vehicle.modelType == "M" || vehicle.vehicleCategory?.contains("משא") == true
+        val std = (vehicle.effectiveStandardType ?: vehicle.standardType).orEmpty().trim().uppercase()
+        val cat = (vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory).orEmpty().trim().lowercase()
+        val mod = vehicle.model.orEmpty().trim().lowercase()
+        val seats = vehicle.effectiveSeats ?: techSpec?.seats ?: 0
+
+        val isAmbulanceOrSpecial = cat.contains("אמבולנס") || mod.contains("ambulance") ||
+                cat.contains("מיוחד") || cat.contains("הצלה") || cat.contains("ביטחון") ||
+                (std.startsWith("M2") && (mod.contains("sprinter") || mod.contains("savana") || mod.contains("transit") || seats in 1..4))
 
         return when {
-            vehicle.vehicleCategory?.contains("אמבולנס") == true ->
+            isAmbulanceOrSpecial ->
                 Pair("רכב ביטחון והצלה (אמבולנס $std)", "רכב ייעודי ברישום מיוחד")
-            vehicle.vehicleCategory?.contains("אוטובוס") == true || std.startsWith("M2") || std.startsWith("M3") ->
-                Pair("רכב היסעים / אוטובוס ($std)", "מורשה להסעת נוסעים / דורש רישיון ייעודי")
-            totalWeight > 3500 || std.startsWith("N2") || std.startsWith("N3") ->
-                Pair("משא כבד ($std) • מעל 3.5 טון", "דורש דרגת רישיון משא C1 ומעלה")
-            isCommercial || std.startsWith("N1") ->
+            cat.contains("אוטובוס") || std.startsWith("M3") || (std.startsWith("M2") && seats > 4) ->
+                Pair("רכב היסעים / אוטובוס זעיר ($std)", "מורשה להסעת נוסעים / דורש רישיון ייעודי")
+            std.startsWith("N2") || std.startsWith("N3") || (totalWeight > 3500 && !std.startsWith("M")) ->
+                Pair("משא כבד ($std) • מעל 3.5 טון", "משקל כולל %,d ק\"ג (דרגת רישיון משא C1 ומעלה)".format(totalWeight))
+            vehicle.modelType == "M" || std.startsWith("N1") || cat.contains("משא") ->
                 Pair("משא / מסחרי קל ($std) • עד 3.5 טון", "משקל כולל עד 3,500 ק\"ג (דרגת רישיון B)")
             else ->
                 Pair("פרטי נוסעים (M1) • עד 3.5 טון", "משקל כולל עד 3,500 ק\"ג (דרגת רישיון B רגיל)")

@@ -332,21 +332,8 @@ fun ResultCard(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
                         ) {
-                            Surface(
-                                color = Color(0xFF1565C0),
-                                shape = RoundedCornerShape(4.dp),
-                                modifier = Modifier.padding(end = 8.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text("IL", color = Color.White, fontWeight = FontWeight.Black, fontSize = 10.sp)
-                                    Text("ישראל", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 8.sp)
-                                }
-                            }
                             Text(
                                 text = formattedPlate,
                                 color = Color.Black,
