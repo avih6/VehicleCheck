@@ -1063,6 +1063,15 @@ private fun GeneralTabContent(
         }
 
         // 3. Registrar of Pledges Check Action Card (בדיקת שעבודים ומשכונות - משרד המשפטים)
+        var showPledgesBrowserDialog by remember { mutableStateOf(false) }
+
+        if (showPledgesBrowserDialog) {
+            PledgesInAppBrowserDialog(
+                licensePlate = vehicle.licensePlate?.toString().orEmpty(),
+                onDismiss = { showPledgesBrowserDialog = false }
+            )
+        }
+
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -1082,7 +1091,7 @@ private fun GeneralTabContent(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "בדיקה מקוונת ישירה באתר השירותים הממשלתי (Gov.il / משרד המשפטים)",
+                        text = "בדיקה ישירה בתוך האפליקציה באתר הרשמי של משרד המשפטים",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1097,11 +1106,7 @@ private fun GeneralTabContent(
                         if (cleanDigits.isNotBlank()) {
                             clipboard.setPrimaryClip(ClipData.newPlainText("Plate", cleanDigits))
                         }
-                        Toast.makeText(context, "מספר רכב הועתק ללוח! מעביר לרשם המשכונות...", Toast.LENGTH_SHORT).show()
-                        try {
-                            val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://www.gov.il/he/service/pledges-online"))
-                            context.startActivity(intent)
-                        } catch (e: Exception) {}
+                        showPledgesBrowserDialog = true
                     },
                     shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
