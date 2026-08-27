@@ -118,7 +118,10 @@ data class VehicleRecord(
     @SerialName("sug_rechev_nm") val vehicleCategory: String? = null,
     @SerialName("sug_tkina_nm") val standardType: String? = null,
     @SerialName("tozeret_eretz_nm") val countryOfOrigin: String? = null,
-    @Serializable(with = FlexibleIntSerializer::class) @SerialName("kvutzat_agrah_cd") val feeGroupCd: Int? = null
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("kvutzat_agrah_cd") val feeGroupCd: Int? = null,
+    @SerialName("sug_argaz_nm") val cargoBoxType: String? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("argaz_ind") val cargoBoxInd: Int? = null,
+    @SerialName("sug_merkev_nm") val bodyTypeName: String? = null
 ) {
     val effectiveVin: String? get() = if (!vin.isNullOrBlank()) vin else vinAlt
 }

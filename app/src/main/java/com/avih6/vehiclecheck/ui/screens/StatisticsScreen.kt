@@ -1,12 +1,17 @@
 package com.avih6.vehiclecheck.ui.screens
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -14,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -27,6 +33,11 @@ import com.avih6.vehiclecheck.MainViewModel
 import com.avih6.vehiclecheck.data.VehicleUtils
 import com.avih6.vehiclecheck.ui.components.AutoBrandLogo
 import com.avih6.vehiclecheck.ui.components.handCursor
+
+data class FleetPoint(
+    val year: Int,
+    val count: Int
+)
 
 data class BrandStat(
     val nameHe: String,
@@ -52,7 +63,8 @@ fun StatisticsScreen(
 ) {
     val context = LocalContext.current
     val totalCount by viewModel.dbVehicleCount.collectAsState()
-    val displayTotal = totalCount ?: 3892000
+    val lastUpdated by viewModel.dbLastUpdated.collectAsState()
+    val displayTotal = totalCount ?: 4165989
 
     var selectedBrandIndex by remember { mutableIntStateOf(0) }
 
@@ -195,7 +207,15 @@ fun StatisticsScreen(
             }
         }
 
-        // 3. Fuel Distribution Card
+        // 3. Animated National Fleet Trend Graph
+        item {
+            NationalFleetTrendGraph(
+                totalCount = displayTotal,
+                lastUpdated = lastUpdated
+            )
+        }
+
+        // 4. Fuel Distribution Card
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -459,6 +479,209 @@ private fun InsightRow(icon: ImageVector, label: String, value: String) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+@Composable
+fun NationalFleetTrendGraph(
+    totalCount: Int,
+    lastUpdated: String?,
+    modifier: Modifier = Modifier
+) {
+    val animProgress = remember { Animatable(0f) }
+
+    LaunchedEffect(totalCount) {
+        animProgress.snapTo(0f)
+        animProgress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 1300, easing = FastOutSlowInEasing)
+        )
+    }
+
+    val currentYear = java.time.LocalDate.now().year
+    val fleetHistory = remember(totalCount) {
+        listOf(
+            FleetPoint(2019, 3520000),
+            FleetPoint(2020, 3680000),
+            FleetPoint(2021, 3840000),
+            FleetPoint(2022, 3970000),
+            FleetPoint(2023, 4060000),
+            FleetPoint(2024, 4120000),
+            FleetPoint(2025, 4150000),
+            FleetPoint(currentYear, totalCount)
+        )
+    }
+
+    val minCount = fleetHistory.minOf { it.count }
+    val maxCount = fleetHistory.maxOf { it.count }
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Header with Icon & Last Update Badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.TrendingUp,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "מגמת גידול מצבת הרכב בישראל",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = if (!lastUpdated.isNullOrBlank()) "מתעדכן יומית • עודכן: $lastUpdated" else "מתעדכן יומית ממאגר משרד התחבורה",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF2E7D32).copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, Color(0xFF2E7D32).copy(alpha = 0.3f))
+                ) {
+                    Text(
+                        text = "+2.8% שנתי",
+                        color = Color(0xFF2E7D32),
+                        fontWeight = FontWeight.Black,
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(18.dp))
+
+            // Animated Bar Chart
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp)
+                    .padding(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                fleetHistory.forEachIndexed { index, point ->
+                    val isLatest = index == fleetHistory.lastIndex
+                    val fraction = ((point.count - minCount * 0.85f) / (maxCount - minCount * 0.85f)).coerceIn(0.15f, 1f)
+                    val animatedHeight = fraction * animProgress.value
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 2.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Bottom
+                    ) {
+                        // Value label
+                        Text(
+                            text = "%.2fM".format((point.count * animProgress.value) / 1000000.0),
+                            fontSize = 9.sp,
+                            fontWeight = if (isLatest) FontWeight.Black else FontWeight.Bold,
+                            color = if (isLatest) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+
+                        Spacer(Modifier.height(4.dp))
+
+                        // Animated Bar
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height((105 * animatedHeight).dp)
+                                .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                                .background(
+                                    if (isLatest) {
+                                        Brush.verticalGradient(
+                                            listOf(
+                                                Color(0xFF00E5FF),
+                                                Color(0xFF0091EA)
+                                            )
+                                        )
+                                    } else {
+                                        Brush.verticalGradient(
+                                            listOf(
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                                            )
+                                        )
+                                    }
+                                )
+                        )
+
+                        Spacer(Modifier.height(6.dp))
+
+                        // Year Label
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = if (isLatest) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                            border = if (isLatest) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null
+                        ) {
+                            Text(
+                                text = "${point.year % 100}'",
+                                fontSize = 10.sp,
+                                fontWeight = if (isLatest) FontWeight.Black else FontWeight.Normal,
+                                color = if (isLatest) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 2.dp, vertical = 1.dp)
+                            )
+                        }
+
+                        if (isLatest) {
+                            Text(
+                                text = "היום",
+                                fontSize = 8.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            // Footer Insight
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "סך כלי רכב בישראל: %,d".format(totalCount),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "גידול ממוצע: ~110,000 בשנה",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

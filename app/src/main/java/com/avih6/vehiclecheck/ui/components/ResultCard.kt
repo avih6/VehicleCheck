@@ -570,7 +570,7 @@ fun ResultCard(
             val hasRecall = recalls.isNotEmpty()
             StatusPill(
                 title = "ריקול",
-                value = if (hasRecall) "פתוח ⚠️" else "תקין ✅",
+                value = if (hasRecall) "פתוח ⚠️" else "תקין",
                 isPositive = !hasRecall,
                 icon = if (hasRecall) Icons.Default.Warning else Icons.Default.CheckCircle,
                 modifier = Modifier.weight(1f)
@@ -763,8 +763,9 @@ private fun GeneralTabContent(
                 TextButton(onClick = onShowAllCounts) {
                     Text(
                         text = "הצג את כל הכמויות",
+                        color = Color(0xFF0091EA),
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0091EA)
+                        fontSize = 13.sp
                     )
                 }
             }
@@ -1108,7 +1109,7 @@ private fun GeneralTabContent(
             }
         }
 
-        // Vehicle Modifications Card (האם הותקן גפ"מ, שינוי צבע, שינוי צמיג, וו גרירה)
+        // Vehicle Modifications Card (האם הותקן גפ"מ, שינוי צבע, שינוי צמיג, וו גרירה, ארגז)
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -1125,8 +1126,16 @@ private fun GeneralTabContent(
                 SpecRow("האם הותקנה מערכת גפ\"מ (גז):", if (extraHistory?.lpgInstalled == 1) "כן (מותקנת)" else "לא")
                 SpecRow("האם בוצע שינוי צבע:", if (extraHistory?.colorChange == 1) "כן (שינוי רשום)" else "לא")
                 SpecRow("האם בוצע שינוי במידת צמיג:", if (extraHistory?.tireChange == 1) "כן (מאושר ברישיון)" else "לא")
-                val towHook = if ((techSpec?.towingCapacityWithBrakes ?: 0) > 0) "מורשה לגרירה (עד ${techSpec?.towingCapacityWithBrakes} ק\"ג)" else "ללא רישום וו גרירה"
+                val towHook = if ((techSpec?.towingCapacityWithBrakes ?: vehicle.towingCapacity ?: 0) > 0) "מורשה לגרירה (עד ${techSpec?.towingCapacityWithBrakes ?: vehicle.towingCapacity} ק\"ג)" else "ללא רישום וו גרירה"
                 SpecRow("וו גרירה:", towHook)
+
+                val cargoBoxText = when {
+                    !vehicle.cargoBoxType.isNullOrBlank() -> "כן (${vehicle.cargoBoxType})"
+                    techSpec?.cargoBox == 1 || vehicle.cargoBoxInd == 1 -> "כן (מותקן)"
+                    techSpec?.cargoBox == 0 || vehicle.cargoBoxInd == 0 -> "לא"
+                    else -> "ללא רישום ארגז"
+                }
+                SpecRow("האם יש ארגז (משא / טנדר):", cargoBoxText)
             }
         }
 
