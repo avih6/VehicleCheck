@@ -1050,7 +1050,6 @@ private fun GeneralTabContent(
         // 2. Mileage & Odometer Analysis Card (ניתוח קילומטראז' ונסועה שנתית)
         val lastMileage = extraHistory?.lastTestMileage
         val vehicleYear = vehicle.year
-        val currentYear = java.time.LocalDate.now().year
         val vehicleAge = if (vehicleYear != null && vehicleYear > 1900) (currentYear - vehicleYear).coerceAtLeast(1) else 1
         val annualKm = if (lastMileage != null && lastMileage > 0) lastMileage / vehicleAge else null
 
