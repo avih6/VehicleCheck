@@ -303,7 +303,8 @@ fun ResultCard(
         VehicleImageShowcase(
             hebrewMake = vehicle.make,
             modelName = vehicle.model,
-            year = vehicle.year
+            year = vehicle.year,
+            color = vehicle.color
         )
 
         // 2. License Plate Badge & Action Buttons
@@ -1838,9 +1839,11 @@ fun AutoBrandLogo(
     val urls = remember(slug) {
         listOf(
             "https://raw.githubusercontent.com/filippofilip95/car-logos-dataset/master/logos/optimized/$slug.png",
+            "https://raw.githubusercontent.com/filippofilip95/car-logos-dataset/master/logos/thumb/$slug.png",
             "https://raw.githubusercontent.com/filippofilip95/car-logos-dataset/master/logos/local-logos/$slug.png",
             "https://raw.githubusercontent.com/vehiclespecs/brand-logos/master/logos/png/$slug.png",
-            "https://raw.githubusercontent.com/vehiclespecs/brand-logos/master/logos/svg/$slug.svg"
+            "https://raw.githubusercontent.com/vehiclespecs/brand-logos/master/logos/svg/$slug.svg",
+            "https://logo.clearbit.com/$slug.com"
         )
     }
 

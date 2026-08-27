@@ -37,6 +37,7 @@ fun VehicleImageShowcase(
     hebrewMake: String?,
     modelName: String?,
     year: Int?,
+    color: String?,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -51,9 +52,15 @@ fun VehicleImageShowcase(
         VehicleUtils.getBrandLogoUrl(hebrewMake)
     }
 
-    LaunchedEffect(hebrewMake, modelName) {
+    LaunchedEffect(hebrewMake, modelName, year, color) {
         isLoading = true
-        images = WikimediaGalleryService.fetchCarImages(hebrewMake.orEmpty(), modelName.orEmpty())
+        images = WikimediaGalleryService.fetchCarImagesSpecific(
+            make = hebrewMake.orEmpty(),
+            model = modelName.orEmpty(),
+            year = year,
+            colorHeb = color,
+            limit = 10
+        )
         currentIndex = 0
         isLoading = false
     }

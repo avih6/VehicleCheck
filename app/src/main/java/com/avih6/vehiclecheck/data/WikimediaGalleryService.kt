@@ -35,14 +35,84 @@ object WikimediaGalleryService {
         fetchGalleryPage(rawMake, rawModel, offset = 0, limit = limit).images
     }
 
+    suspend fun fetchCarImagesSpecific(
+        make: String,
+        model: String,
+        year: Int?,
+        colorHeb: String?,
+        limit: Int = 12
+    ): List<CarGalleryImage> = withContext(Dispatchers.IO) {
+        val colorEn = translateColorToEnglish(colorHeb)
+        val (makeEn, modelEn) = VehicleUtils.getEnglishMakeAndModel(make, model)
+        val brand = if (makeEn != "car") makeEn else make
+        val modelClean = if (modelEn != "car") modelEn else model
+
+        val queries = mutableListOf<String>()
+        // 1. Most specific: Make + Model + Year + Color
+        if (!colorEn.isNullOrBlank() && year != null) {
+            queries.add("$brand $modelClean $year $colorEn")
+        }
+        // 2. Make + Model + Color
+        if (!colorEn.isNullOrBlank()) {
+            queries.add("$brand $modelClean $colorEn")
+        }
+        // 3. Make + Model + Year
+        if (year != null) {
+            queries.add("$brand $modelClean $year")
+        }
+        // 4. Make + Model
+        if (brand.isNotBlank() && modelClean.isNotBlank()) {
+            queries.add("$brand $modelClean")
+        }
+
+        val candidatesMap = mutableMapOf<String, CarGalleryImage>()
+        for (q in queries) {
+            val page = fetchGalleryPageByRawQuery(q, limit = 24)
+            for (img in page.images) {
+                if (!candidatesMap.containsKey(img.imageUrl)) {
+                    candidatesMap[img.imageUrl] = img
+                }
+            }
+            if (candidatesMap.size >= 40) break
+        }
+
+        // Fallback to brand if we got absolutely nothing
+        if (candidatesMap.isEmpty() && brand.isNotBlank()) {
+            val page = fetchGalleryPageByRawQuery(brand, limit = 20)
+            for (img in page.images) {
+                if (!candidatesMap.containsKey(img.imageUrl)) {
+                    candidatesMap[img.imageUrl] = img
+                }
+            }
+        }
+
+        // Score and sort candidates
+        val scored = candidatesMap.values.map { img ->
+            val score = scoreImage(img, brand, modelClean, year, colorEn)
+            img to score
+        }.sortedByDescending { it.second }
+
+        scored.map { it.first }.take(limit)
+    }
+
     suspend fun fetchGalleryPage(
         rawMake: String,
         rawModel: String = "",
         offset: Int = 0,
         limit: Int = 40
-    ): GalleryPageResult = withContext(Dispatchers.IO) {
+    ): GalleryPageResult {
         val query = buildSearchQuery(rawMake, rawModel)
-        val encodedQuery = URLEncoder.encode(query, "UTF-8")
+        return fetchGalleryPageByRawQuery(query, offset, limit)
+    }
+
+    suspend fun fetchGalleryPageByRawQuery(
+        rawQuery: String,
+        offset: Int = 0,
+        limit: Int = 40
+    ): GalleryPageResult = withContext(Dispatchers.IO) {
+        val baseExclusions = " -logo -icon -badge -flag -diagram -map -emblem -symbol -drawing -blueprint -sketch -dashboard -interior -seats -engine -steering -graph -chart -table -plot -ranking -stats -curve -infographic -factory -plant -dealership -showroom -workshop -garage -office -building -facade -advertisement -ad -poster -exhibit -fair -production -assembly"
+        val fullQuery = "$rawQuery$baseExclusions"
+        val encodedQuery = URLEncoder.encode(fullQuery, "UTF-8")
         val offsetParam = if (offset > 0) "&gsroffset=$offset" else ""
         val urlStr = "https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=$encodedQuery&gsrlimit=$limit$offsetParam&prop=imageinfo&iiprop=url|size|extmetadata&iiurlwidth=800&format=json&origin=*"
 
@@ -111,7 +181,6 @@ object WikimediaGalleryService {
                                               checkPath.endsWith(".png", ignoreCase = true) ||
                                               checkPath.endsWith(".webp", ignoreCase = true)
 
-                        // Filter out icon, logo, map, diagram, flag SVGs/PNGs, interiors, graphs, charts, tables, buildings, factories, ads
                         val lowerTitle = title.lowercase()
                         val isJunk = lowerTitle.contains("logo") || lowerTitle.contains("icon") ||
                                      lowerTitle.contains("flag") || lowerTitle.contains("diagram") ||
@@ -160,6 +229,64 @@ object WikimediaGalleryService {
         } catch (e: Exception) {
             GalleryPageResult(emptyList(), null)
         }
+    }
+
+    fun translateColorToEnglish(colorHeb: String?): String? {
+        if (colorHeb.isNullOrBlank()) return null
+        val clean = colorHeb.trim()
+        return when {
+            clean.contains("כחול") -> "blue"
+            clean.contains("אדום") -> "red"
+            clean.contains("לבן") -> "white"
+            clean.contains("שחור") -> "black"
+            clean.contains("אפור") -> "grey"
+            clean.contains("כסף") || clean.contains("סילבר") -> "silver"
+            clean.contains("צהוב") -> "yellow"
+            clean.contains("ירוק") -> "green"
+            clean.contains("חום") -> "brown"
+            clean.contains("כתום") -> "orange"
+            clean.contains("זהב") -> "gold"
+            clean.contains("בז'") || clean.contains("בז׳") -> "beige"
+            clean.contains("טורקיז") -> "turquoise"
+            clean.contains("סגול") -> "purple"
+            clean.contains("תכלת") -> "light blue"
+            clean.contains("ורוד") -> "pink"
+            clean.contains("ברונזה") -> "bronze"
+            else -> null
+        }
+    }
+
+    fun scoreImage(
+        image: CarGalleryImage,
+        make: String,
+        model: String,
+        year: Int?,
+        colorEn: String?
+    ): Int {
+        var score = 0
+        val textToSearch = "${image.title} ${image.description}".lowercase()
+
+        val makeLower = make.lowercase()
+        if (makeLower.isNotBlank() && textToSearch.contains(makeLower)) {
+            score += 1000
+        }
+
+        val modelLower = model.lowercase()
+        if (modelLower.isNotBlank() && textToSearch.contains(modelLower)) {
+            score += 500
+        }
+
+        if (year != null && textToSearch.contains(year.toString())) {
+            score += 200
+        } else if (year != null && (textToSearch.contains((year - 1).toString()) || textToSearch.contains((year + 1).toString()))) {
+            score += 100
+        }
+
+        if (!colorEn.isNullOrBlank() && textToSearch.contains(colorEn.lowercase())) {
+            score += 300
+        }
+
+        return score
     }
 
     private fun buildSearchQuery(rawMake: String, rawModel: String): String {
