@@ -681,7 +681,7 @@ object VehicleUtils {
         return when {
             clean.contains("ארהב") || clean.contains("ארצות הברית") || clean.equals("USA", ignoreCase = true) -> "ארה\"ב"
             clean.contains("בריטניה") || clean.contains("אנגליה") || clean.equals("UK", ignoreCase = true) -> "בריטניה"
-            clean.contains("גרמניה") -> "גרמניה"
+            clean.contains("גרמניה") || clean.contains("גרמנ") -> "גרמניה"
             clean.contains("יפן") -> "יפן"
             clean.contains("קוריאה") -> "דרום קוריאה"
             clean.contains("סין") -> "סין"
@@ -877,17 +877,52 @@ object VehicleUtils {
             .ifBlank { "car" }
     }
 
-    fun getEnglishMakeAndModel(hebrewMake: String?, model: String?): Pair<String, String> {
+    fun getEnglishMakeAndModel(
+        hebrewMake: String?,
+        model: String?,
+        trimLevel: String? = null,
+        category: String? = null
+    ): Pair<String, String> {
         val makeEn = getBrandSlug(hebrewMake)
         val mod = model.orEmpty().lowercase()
-        val modelClean = mod
+        val trim = trimLevel.orEmpty().lowercase()
+        val cat = category.orEmpty().lowercase()
+
+        // Check if model is a generic country placeholder from old MOT data (e.g. "גרמנ", "גרמניה", "יפן", etc.)
+        val isCountryPlaceholder = listOf("גרמנ", "גרמניה", "יפן", "צרפת", "איטליה", "ספרד", "שוודיה", "קוריאה", "ארהב", "ארה\"ב", "בריטניה", "אנגליה", "סין", "הודו", "טורקיה", "תורכיה", "בלגיה", "הולנד", "אוסטריה").any { mod.contains(it) }
+
+        var modelClean = if (isCountryPlaceholder) "" else mod
             .replace("4x4", "")
             .replace("awd", "")
             .replace("2x4", "")
             .replace("hybrid", "")
             .trim()
             .split(" ", "-", "_")
-            .firstOrNull { it.isNotBlank() } ?: "car"
+            .firstOrNull { it.isNotBlank() && !it.contains("גרמנ") } ?: ""
+
+        if (modelClean.isBlank() || modelClean == "car") {
+            // Extract from trimLevel or category
+            when {
+                trim.contains("404") || trim.contains("o 404") || trim.contains("o404") -> modelClean = "O404"
+                trim.contains("405") || trim.contains("o 405") || trim.contains("o405") -> modelClean = "O405"
+                trim.contains("303") || trim.contains("o 303") || trim.contains("o303") -> modelClean = "O303"
+                trim.contains("sprinter") || trim.contains("ספרינטר") -> modelClean = "Sprinter"
+                trim.contains("vito") || trim.contains("ויטו") -> modelClean = "Vito"
+                trim.contains("v-class") || trim.contains("v class") -> modelClean = "V-Class"
+                trim.contains("savana") || trim.contains("סוואנה") -> modelClean = "Savana"
+                trim.contains("transit") || trim.contains("טרנזיט") -> modelClean = "Transit"
+                trim.contains("crafter") || trim.contains("קראפטר") -> modelClean = "Crafter"
+                cat.contains("אמבולנס") || trim.contains("אמבולנס") -> modelClean = "Ambulance"
+                cat.contains("אוטובוס") || trim.contains("אוטובוס") -> modelClean = "Bus"
+                else -> {
+                    val alphanumeric = Regex("[A-Za-z0-9]+").findAll(trimLevel.orEmpty())
+                        .map { it.value }
+                        .filter { it.length >= 2 && !it.all { c -> c == '0' } }
+                        .firstOrNull()
+                    modelClean = alphanumeric ?: "car"
+                }
+            }
+        }
 
         return Pair(makeEn, modelClean)
     }
@@ -911,7 +946,7 @@ object VehicleUtils {
     fun getCountryIsoCode(countryName: String?): String? {
         val c = countryName.orEmpty().trim().lowercase()
         return when {
-            c.contains("גרמניה") || c.contains("germany") -> "de"
+            c.contains("גרמניה") || c.contains("גרמנ") || c.contains("germany") -> "de"
             c.contains("יפן") || c.contains("japan") -> "jp"
             c.contains("ארה\"ב") || c.contains("ארצות הברית") || c.contains("ארהב") || c.contains("usa") || c.contains("united states") -> "us"
             c.contains("צרפת") || c.contains("france") -> "fr"
@@ -1081,12 +1116,19 @@ object VehicleUtils {
         val cat = (vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory).orEmpty().trim().lowercase()
         val std = (vehicle.effectiveStandardType ?: vehicle.standardType).orEmpty().trim().uppercase()
         val seats = vehicle.effectiveSeats ?: techSpec?.seats ?: 0
+        val trim = vehicle.trimLevel.orEmpty().trim().lowercase()
 
-        val isAmbulanceOrRescue = cat.contains("אמבולנס") || mod.contains("ambulance") ||
+        val isBus = cat.contains("אוטובוס") || trim.contains("אוטובוס") ||
+                std.startsWith("M3") || (std.startsWith("M2") && seats > 16)
+
+        val isAmbulanceOrRescue = cat.contains("אמבולנס") || mod.contains("ambulance") || trim.contains("אמבולנס") ||
                 cat.contains("מיוחד") || cat.contains("הצלה") || cat.contains("ביטחון") ||
+                trim.contains("הצלה") || trim.contains("כיבוי") ||
                 (std.startsWith("M2") && (mod.contains("sprinter") || mod.contains("savana") || mod.contains("transit") || mod.contains("crafter") || seats in 1..4))
 
         return when {
+            isBus ->
+                BodyTypeInfo("אוטובוס / היסעים", "🚌", "רכב להסעת נוסעים ציבורי / פרטי")
             isAmbulanceOrRescue ->
                 BodyTypeInfo("רכב מיוחד (אמבולנס / ביטחון)", "🚑", "רכב רפואי והצלה ייעודי")
             bt.contains("פנאי") || bt.contains("שטח") || bt.contains("suv") || mod.contains("cross") || mod.contains("suv") ->
@@ -1120,12 +1162,19 @@ object VehicleUtils {
         val cat = (vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory).orEmpty().trim().lowercase()
         val mod = vehicle.model.orEmpty().trim().lowercase()
         val seats = vehicle.effectiveSeats ?: techSpec?.seats ?: 0
+        val trim = vehicle.trimLevel.orEmpty().trim().lowercase()
 
-        val isAmbulanceOrSpecial = cat.contains("אמבולנס") || mod.contains("ambulance") ||
+        val isBus = cat.contains("אוטובוס") || trim.contains("אוטובוס") ||
+                std.startsWith("M3") || (std.startsWith("M2") && seats > 16)
+
+        val isAmbulanceOrSpecial = cat.contains("אמבולנס") || mod.contains("ambulance") || trim.contains("אמבולנס") ||
                 cat.contains("מיוחד") || cat.contains("הצלה") || cat.contains("ביטחון") ||
+                trim.contains("הצלה") || trim.contains("כיבוי") ||
                 (std.startsWith("M2") && (mod.contains("sprinter") || mod.contains("savana") || mod.contains("transit") || seats in 1..4))
 
         return when {
+            isBus ->
+                Pair("אוטובוס / היסעים (${std.ifBlank { "M3" }})", "רכב להסעת נוסעים • דורש רישיון ייעודי D / D1")
             isAmbulanceOrSpecial ->
                 Pair("רכב ביטחון והצלה (אמבולנס $std)", "רכב ייעודי ברישום מיוחד")
             cat.contains("אוטובוס") || std.startsWith("M3") || (std.startsWith("M2") && seats > 4) ->

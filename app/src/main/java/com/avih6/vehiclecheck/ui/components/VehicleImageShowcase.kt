@@ -40,6 +40,8 @@ fun VehicleImageShowcase(
     modelName: String?,
     year: Int?,
     color: String?,
+    trimLevel: String? = null,
+    category: String? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -49,17 +51,15 @@ fun VehicleImageShowcase(
     var isLoading by remember { mutableStateOf(true) }
     var selectedFullscreenIndex by remember { mutableStateOf<Int?>(null) }
 
-    val brandLogoUrl = remember(hebrewMake) {
-        VehicleUtils.getBrandLogoUrl(hebrewMake)
-    }
-
-    LaunchedEffect(hebrewMake, modelName, year, color) {
+    LaunchedEffect(hebrewMake, modelName, year, color, trimLevel, category) {
         isLoading = true
         images = WikimediaGalleryService.fetchCarImagesSpecific(
             make = hebrewMake.orEmpty(),
             model = modelName.orEmpty(),
             year = year,
             colorHeb = color,
+            trimLevel = trimLevel,
+            category = category,
             limit = 12
         )
         isLoading = false
@@ -289,6 +289,11 @@ fun VehicleImageShowcase(
         }
     }
 
+    // If no images are available (or while loading without prior images), do not render the card to save vertical space
+    if (images.isEmpty()) {
+        return
+    }
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -305,152 +310,109 @@ fun VehicleImageShowcase(
                     .clip(RoundedCornerShape(14.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(36.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        strokeWidth = 3.dp
-                    )
-                } else if (images.isNotEmpty()) {
-                    HorizontalPager(
-                        state = cardPagerState,
-                        modifier = Modifier.fillMaxSize()
-                    ) { page ->
-                        val img = images.getOrNull(page)
-                        if (img != null) {
-                            AsyncImage(
-                                model = ImageRequest.Builder(context)
-                                    .data(img.thumbUrl)
-                                    .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
-                                    .crossfade(true)
-                                    .build(),
-                                contentDescription = img.altText.ifBlank { "תמונת רכב $hebrewMake $modelName" },
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clickable { selectedFullscreenIndex = cardPagerState.currentPage },
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-                    }
-
-                    // Navigation Chevrons (if multiple photos)
-                    if (images.size > 1) {
-                        IconButton(
-                            onClick = {
-                                scope.launch {
-                                    val prev = (cardPagerState.currentPage - 1 + images.size) % images.size
-                                    cardPagerState.animateScrollToPage(prev)
-                                }
-                            },
+                HorizontalPager(
+                    state = cardPagerState,
+                    modifier = Modifier.fillMaxSize()
+                ) { page ->
+                    val img = images.getOrNull(page)
+                    if (img != null) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(img.thumbUrl)
+                                .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = img.altText.ifBlank { "תמונת רכב $hebrewMake $modelName" },
                             modifier = Modifier
-                                .align(Alignment.CenterStart)
-                                .padding(start = 6.dp)
-                                .background(Color.Black.copy(alpha = 0.45f), CircleShape)
-                                .size(34.dp)
-                        ) {
-                            Icon(Icons.Default.ChevronRight, contentDescription = "התמונה הקודמת", tint = Color.White)
-                        }
-
-                        IconButton(
-                            onClick = {
-                                scope.launch {
-                                    val next = (cardPagerState.currentPage + 1) % images.size
-                                    cardPagerState.animateScrollToPage(next)
-                                }
-                            },
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .padding(end = 6.dp)
-                                .background(Color.Black.copy(alpha = 0.45f), CircleShape)
-                                .size(34.dp)
-                        ) {
-                            Icon(Icons.Default.ChevronLeft, contentDescription = "התמונה הבאה", tint = Color.White)
-                        }
-                    }
-                } else {
-                    // Fallback to generic vehicle / machinery placeholder
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        val isMachinery = listOf("komatsu", "caterpillar", "cat", "jcb", "bobcat", "deere", "צמ\"ה", "מחפר", "שופל").any {
-                            hebrewMake.orEmpty().contains(it, ignoreCase = true) || modelName.orEmpty().contains(it, ignoreCase = true)
-                        }
-
-                        Surface(
-                            color = if (isMachinery) Color(0xFFFF9800).copy(alpha = 0.15f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                            shape = CircleShape,
-                            modifier = Modifier.size(64.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = if (isMachinery) Icons.Default.Construction else Icons.Default.DirectionsCar,
-                                    contentDescription = null,
-                                    tint = if (isMachinery) Color(0xFFFF9800) else MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(36.dp)
-                                )
-                            }
-                        }
-                        Spacer(Modifier.height(10.dp))
-                        Text(
-                            text = listOfNotNull(hebrewMake, modelName).joinToString(" "),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                                .fillMaxSize()
+                                .clickable { selectedFullscreenIndex = cardPagerState.currentPage },
+                            contentScale = ContentScale.Crop
                         )
+                    }
+                }
+
+                // Navigation Chevrons (if multiple photos)
+                if (images.size > 1) {
+                    IconButton(
+                        onClick = {
+                            scope.launch {
+                                val prev = (cardPagerState.currentPage - 1 + images.size) % images.size
+                                cardPagerState.animateScrollToPage(prev)
+                            }
+                        },
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .padding(start = 6.dp)
+                            .background(Color.Black.copy(alpha = 0.45f), CircleShape)
+                            .size(34.dp)
+                    ) {
+                        Icon(Icons.Default.ChevronRight, contentDescription = "התמונה הקודמת", tint = Color.White)
+                    }
+
+                    IconButton(
+                        onClick = {
+                            scope.launch {
+                                val next = (cardPagerState.currentPage + 1) % images.size
+                                cardPagerState.animateScrollToPage(next)
+                            }
+                        },
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(end = 6.dp)
+                            .background(Color.Black.copy(alpha = 0.45f), CircleShape)
+                            .size(34.dp)
+                    ) {
+                        Icon(Icons.Default.ChevronLeft, contentDescription = "התמונה הבאה", tint = Color.White)
                     }
                 }
             }
 
-            if (!isLoading && images.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
 
-                // Dot Indicators
-                if (images.size > 1) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        images.indices.take(8).forEach { index ->
-                            Box(
-                                modifier = Modifier
-                                    .size(if (cardPagerState.currentPage == index) 8.dp else 5.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (cardPagerState.currentPage == index)
-                                            MaterialTheme.colorScheme.primary
-                                        else
-                                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                                    )
-                                    .clickable {
-                                        scope.launch { cardPagerState.animateScrollToPage(index) }
-                                    }
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(4.dp))
-                }
-
+            // Dot Indicators
+            if (images.size > 1) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "תמונה חופשית • החלק לתמונות נוספות",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp
-                    )
-                    Text(
-                        text = "${cardPagerState.currentPage + 1}/${images.size}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp
-                    )
+                    images.indices.take(8).forEach { index ->
+                        Box(
+                            modifier = Modifier
+                                .size(if (cardPagerState.currentPage == index) 8.dp else 5.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (cardPagerState.currentPage == index)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                                )
+                                .clickable {
+                                    scope.launch { cardPagerState.animateScrollToPage(index) }
+                                }
+                        )
+                    }
                 }
+                Spacer(Modifier.height(4.dp))
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "תמונה חופשית • החלק לתמונות נוספות",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 11.sp
+                )
+                Text(
+                    text = "${cardPagerState.currentPage + 1}/${images.size}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 11.sp
+                )
             }
         }
     }

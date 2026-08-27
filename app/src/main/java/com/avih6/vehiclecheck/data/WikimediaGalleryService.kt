@@ -45,39 +45,101 @@ object WikimediaGalleryService {
         model: String,
         year: Int?,
         colorHeb: String?,
+        trimLevel: String? = null,
+        category: String? = null,
         limit: Int = 12
     ): List<CarGalleryImage> = withContext(Dispatchers.IO) {
         val colorEn = translateColorToEnglish(colorHeb)
-        val (makeEn, modelEn) = VehicleUtils.getEnglishMakeAndModel(make, model)
+        val (makeEn, modelEn) = VehicleUtils.getEnglishMakeAndModel(make, model, trimLevel, category)
         val brand = if (makeEn != "car") makeEn else make
         val modelClean = if (modelEn != "car") modelEn else model
 
+        val trimLower = trimLevel.orEmpty().lowercase()
+        val catLower = category.orEmpty().lowercase()
+        val isAmbulance = catLower.contains("אמבולנס") || trimLower.contains("אמבולנס") || modelClean.equals("ambulance", ignoreCase = true) || trimLower.contains("הצלה")
+        val isBus = catLower.contains("אוטובוס") || trimLower.contains("אוטובוס") || modelClean.equals("bus", ignoreCase = true) || trimLower.contains("404") || trimLower.contains("405")
+        val isPolice = catLower.contains("משטרה") || trimLower.contains("משטרה") || catLower.contains("סיור") || catLower.contains("ביטחון")
+        val isIsraeliPreferred = isAmbulance || isBus || isPolice
+
         val candidatesMap = mutableMapOf<String, CarGalleryImage>()
 
-        // 1. Prepare multi-tier parallel queries
-        val commonsQueries = listOfNotNull(
-            if (!colorEn.isNullOrBlank() && year != null && brand.isNotBlank() && modelClean.isNotBlank()) "$brand $modelClean $year $colorEn" else null,
-            if (!colorEn.isNullOrBlank() && brand.isNotBlank() && modelClean.isNotBlank()) "$brand $modelClean $colorEn" else null,
-            if (year != null && brand.isNotBlank() && modelClean.isNotBlank()) "$brand $modelClean $year" else null,
-            if (brand.isNotBlank() && modelClean.isNotBlank()) "$brand $modelClean" else null,
-            if (brand.isNotBlank()) brand else null
-        ).distinct()
+        // 1. Prepare multi-tier parallel queries with Israeli preference
+        val commonsQueries = mutableListOf<String>()
+
+        if (isAmbulance) {
+            commonsQueries.add("Magen David Adom ambulance")
+            commonsQueries.add("MDA ambulance Israel")
+            commonsQueries.add("Israel ambulance $brand")
+            commonsQueries.add("$brand ambulance Israel")
+            commonsQueries.add("$brand Sprinter ambulance")
+            commonsQueries.add("$brand Savana ambulance")
+            commonsQueries.add("$brand ambulance")
+        }
+
+        if (isBus) {
+            commonsQueries.add("Egged bus $brand")
+            commonsQueries.add("Egged $modelClean")
+            commonsQueries.add("Dan bus $brand")
+            commonsQueries.add("Israel bus $brand")
+            commonsQueries.add("$brand $modelClean bus")
+            commonsQueries.add("$brand O404")
+            commonsQueries.add("$brand O405")
+        }
+
+        if (isPolice) {
+            commonsQueries.add("Israel Police $brand")
+            commonsQueries.add("Israeli police vehicle $brand")
+            commonsQueries.add("Israel Police car")
+        }
+
+        if (!colorEn.isNullOrBlank() && year != null && brand.isNotBlank() && modelClean.isNotBlank()) {
+            commonsQueries.add("$brand $modelClean $year $colorEn")
+        }
+        if (!colorEn.isNullOrBlank() && brand.isNotBlank() && modelClean.isNotBlank()) {
+            commonsQueries.add("$brand $modelClean $colorEn")
+        }
+        if (year != null && brand.isNotBlank() && modelClean.isNotBlank()) {
+            commonsQueries.add("$brand $modelClean $year")
+        }
+        if (brand.isNotBlank() && modelClean.isNotBlank()) {
+            commonsQueries.add("$brand $modelClean")
+        }
+        if (brand.isNotBlank()) {
+            commonsQueries.add(brand)
+        }
 
         val wikiQueries = listOfNotNull(
+            if (isAmbulance) "Magen David Adom" else null,
+            if (isBus) "Egged (transportation company)" else null,
             if (brand.isNotBlank() && modelClean.isNotBlank()) "$brand $modelClean" else null,
             if (brand.isNotBlank()) brand else null
         ).distinct()
 
-        val categoryQueries = listOfNotNull(
-            if (brand.isNotBlank() && modelClean.isNotBlank()) "Category:${brand.replace(" ", "_")}_${modelClean.replace(" ", "_")}" else null,
-            if (brand.isNotBlank()) "Category:${brand.replace(" ", "_")}" else null
-        ).distinct()
+        val categoryQueries = mutableListOf<String>()
+        if (isAmbulance) {
+            categoryQueries.add("Category:Ambulances_in_Israel")
+            categoryQueries.add("Category:Magen_David_Adom_vehicles")
+        }
+        if (isBus) {
+            categoryQueries.add("Category:Egged_buses")
+            categoryQueries.add("Category:Dan_buses")
+            categoryQueries.add("Category:Buses_in_Israel")
+        }
+        if (isPolice) {
+            categoryQueries.add("Category:Police_vehicles_in_Israel")
+        }
+        if (brand.isNotBlank() && modelClean.isNotBlank()) {
+            categoryQueries.add("Category:${brand.replace(" ", "_")}_${modelClean.replace(" ", "_")}")
+        }
+        if (brand.isNotBlank()) {
+            categoryQueries.add("Category:${brand.replace(" ", "_")}")
+        }
 
         val parallelResults = coroutineScope {
-            val d1 = commonsQueries.map { q -> async { fetchCommonsSearch(q, limit = 20).images } }
+            val d1 = commonsQueries.distinct().map { q -> async { fetchCommonsSearch(q, limit = 20).images } }
             val d2 = wikiQueries.map { q -> async { fetchWikipediaSearch(q, limit = 8, isHebrew = false) } }
             val d3 = wikiQueries.map { q -> async { fetchWikipediaSearch(q, limit = 6, isHebrew = true) } }
-            val d4 = categoryQueries.map { cat -> async { fetchCommonsCategoryMembers(cat, limit = 15) } }
+            val d4 = categoryQueries.distinct().map { cat -> async { fetchCommonsCategoryMembers(cat, limit = 15) } }
             (d1 + d2 + d3 + d4).awaitAll()
         }
 
@@ -89,17 +151,17 @@ object WikimediaGalleryService {
             }
         }
 
-        // If there is no specific model name, don't show random unrelated models
-        if (modelClean.isBlank() || modelClean.equals("car", ignoreCase = true)) {
+        // If there is no specific model name or brand, don't show random unrelated models
+        if ((modelClean.isBlank() || modelClean.equals("car", ignoreCase = true)) && !isIsraeliPreferred) {
             return@withContext emptyList()
         }
 
         // Score and sort candidates
         val scored = candidatesMap.values.map { img ->
-            val score = scoreImage(img, brand, modelClean, year, colorEn)
+            val score = scoreImage(img, brand, modelClean, year, colorEn, isIsraeliPreferred)
             img to score
         }.filter {
-            it.second >= 1200 // Must at least match make + model
+            it.second >= (if (isIsraeliPreferred) 800 else 1200) // Lower threshold for verified special Israeli vehicles
         }.sortedByDescending { it.second }
 
         scored.map { it.first }.take(limit)
@@ -432,10 +494,20 @@ object WikimediaGalleryService {
         make: String,
         model: String,
         year: Int?,
-        colorEn: String?
+        colorEn: String?,
+        isIsraeliPreferred: Boolean = false
     ): Int {
         var score = 0
         val textToSearch = "${image.title} ${image.description}".lowercase()
+
+        // Israeli livery and organization prioritization (MDA, Egged, Dan, Israel Police, etc.)
+        val isIsraeliImage = listOf("israel", "israeli", "mda", "magen david adom", "magen david", "egged", "dan bus", "police of israel", "israel police", "מד\"א", "מדא", "אגד", "דן", "משטרת ישראל", "ישראל").any {
+            textToSearch.contains(it)
+        }
+
+        if (isIsraeliImage) {
+            score += if (isIsraeliPreferred) 1500 else 300
+        }
 
         val makeLower = make.lowercase()
         if (makeLower.isNotBlank() && textToSearch.contains(makeLower)) {

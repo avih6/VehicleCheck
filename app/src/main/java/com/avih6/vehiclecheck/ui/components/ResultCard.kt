@@ -304,7 +304,9 @@ fun ResultCard(
             hebrewMake = vehicle.make,
             modelName = vehicle.model,
             year = vehicle.year,
-            color = vehicle.color
+            color = vehicle.color,
+            trimLevel = vehicle.trimLevel,
+            category = vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory
         )
 
         // 2. License Plate Badge & Action Buttons
@@ -838,13 +840,37 @@ private fun GeneralTabContent(
                     }
                 }
 
-                // Off-road cancellation date
-                if (isOffRoad && !offRoadDate.isNullOrBlank()) {
-                    val offRoadAgo = VehicleUtils.formatTimeAgo(offRoadDate)
-                    SpecRow(
-                        label = "מועד הורדה מהכביש (ביטול רישום):",
-                        value = if (offRoadAgo != null) "$offRoadDate ($offRoadAgo)" else offRoadDate
-                    )
+                // Off-road cancellation date & legal status
+                if (isOffRoad) {
+                    if (!offRoadDate.isNullOrBlank()) {
+                        val offRoadAgo = VehicleUtils.formatTimeAgo(offRoadDate)
+                        SpecRow(
+                            label = "מועד הורדה מהכביש (ביטול רישום):",
+                            value = if (offRoadAgo != null) "$offRoadDate ($offRoadAgo)" else offRoadDate
+                        )
+                    }
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFC62828).copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, Color(0xFFEF5350).copy(alpha = 0.4f))
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Text(
+                                text = "⚖️ מעמד משפטי: ביטול רישום סופי ומוחלט",
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFFF5252),
+                                fontSize = 12.sp
+                            )
+                            Spacer(Modifier.height(3.dp))
+                            Text(
+                                text = "על פי תקנות התעבורה (טוטאל לוס / פירוק / גריטה), הרכב נגרע לצמיתות ממצבת כלי הרכב ונאסר לחלוטין לתנועה בכביש.",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 11.sp,
+                                lineHeight = 15.sp
+                            )
+                        }
+                    }
                 }
 
                 // On-road date (מועד עלייה לכביש)
@@ -858,6 +884,46 @@ private fun GeneralTabContent(
                     label = "תאריך רישום ראשוני:",
                     value = extraHistory?.firstRegistrationDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע"
                 )
+            }
+        }
+
+        // Collector Vehicle Official Notice (רכב אספנות)
+        val currentYear = java.time.LocalDate.now().year
+        val isCollector = (vehicle.year != null && currentYear - vehicle.year >= 30) ||
+                vehicle.effectiveVehicleCategory?.contains("אספנות") == true ||
+                vehicle.trimLevel?.contains("אספנות") == true
+
+        if (isCollector) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFB300).copy(alpha = 0.12f)),
+                border = BorderStroke(1.dp, Color(0xFFFFB300).copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(text = "🏆", fontSize = 22.sp)
+                        Text(
+                            text = "רכב אספנות רשמי (מעל 30 שנה)",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color(0xFFFFC107)
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "• איסור נסיעה בימי חול (א'-ה') בין השעות 07:00 עד 09:00 בבוקר.\n" +
+                                "• חובת מבחן רישוי (טסט) חצי-שנתי פעמיים בשנה.\n" +
+                                "• פטור מבדיקת מעבדה מוסמכת לרכב מיושן.\n" +
+                                "• זכאות לתעריפי ביטוח חובה מופחתים בהתאם לחוק.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        lineHeight = 18.sp
+                    )
+                }
             }
         }
 
@@ -1363,10 +1429,10 @@ private fun TechSpecTabContent(
                 vehicle.effectiveVin?.let {
                     if (it.isNotBlank()) SpecRow("מספר שילדה (VIN):", it)
                 }
-                vehicle.vehicleCategory?.let {
+                vehicle.effectiveVehicleCategory?.let {
                     if (it.isNotBlank()) SpecRow("קבוצת סוג רכב:", it)
                 }
-                vehicle.standardType?.let {
+                vehicle.effectiveStandardType?.let {
                     if (it.isNotBlank()) SpecRow("סוג תקינה:", it)
                 }
                 vehicle.registrationDirective?.let { SpecRow("מספר הוראת רישום:", "$it") }
@@ -1410,68 +1476,91 @@ private fun SafetyTabContent(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         // Safety Level Score Banner & Visual Bar (0 to 8)
-        val score = techSpec?.safetyEquipmentLevel ?: vehicle.safetyRating ?: 0
+        val scoreRaw = techSpec?.safetyEquipmentLevel ?: vehicle.safetyRating
         val detailedScore = techSpec?.safetyScore
+        val hasSafetyRating = (scoreRaw != null && scoreRaw > 0) || detailedScore != null
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+        if (hasSafetyRating) {
+            val score = scoreRaw ?: 0
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
             ) {
-                Text(
-                    text = "רמת אבזור בטיחותי: $score מתוך 8",
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                if (detailedScore != null) {
-                    Text(
-                        text = "ניקוד בטיחותי: %.1f".format(detailedScore),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Spacer(Modifier.height(14.dp))
-
-                // 0-8 Colored Bar
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(28.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    val colors = listOf(
-                        Color(0xFFD32F2F), // 0 Red
-                        Color(0xFFE64A19), // 1 Orange
-                        Color(0xFFFFA000), // 2 Amber
-                        Color(0xFFFBC02D), // 3 Yellow
-                        Color(0xFF689F38), // 4 Light Green
-                        Color(0xFF388E3C), // 5 Green
-                        Color(0xFF00897B), // 6 Teal
-                        Color(0xFF1976D2), // 7 Blue
-                        Color(0xFF303F9F)  // 8 Dark Blue
+                    Text(
+                        text = "רמת אבזור בטיחותי: $score מתוך 8",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                    (0..8).forEach { index ->
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .background(colors[index]),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "$index",
-                                color = Color.White,
-                                fontWeight = if (score == index) FontWeight.Black else FontWeight.Normal,
-                                fontSize = if (score == index) 14.sp else 11.sp
-                            )
+                    if (detailedScore != null) {
+                        Text(
+                            text = "ניקוד בטיחותי: %.1f".format(detailedScore),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Spacer(Modifier.height(14.dp))
+
+                    // 0-8 Colored Bar
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(28.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                    ) {
+                        val colors = listOf(
+                            Color(0xFFD32F2F), // 0 Red
+                            Color(0xFFE64A19), // 1 Orange
+                            Color(0xFFFFA000), // 2 Amber
+                            Color(0xFFFBC02D), // 3 Yellow
+                            Color(0xFF689F38), // 4 Light Green
+                            Color(0xFF388E3C), // 5 Green
+                            Color(0xFF00897B), // 6 Teal
+                            Color(0xFF1976D2), // 7 Blue
+                            Color(0xFF303F9F)  // 8 Dark Blue
+                        )
+                        (0..8).forEach { index ->
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .background(colors[index]),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "$index",
+                                    color = Color.White,
+                                    fontWeight = if (score == index) FontWeight.Black else FontWeight.Normal,
+                                    fontSize = if (score == index) 14.sp else 11.sp
+                                )
+                            }
                         }
                     }
+                }
+            }
+        } else {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(Icons.Outlined.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = "ללא דירוג בטיחות רשום במאגר (רכב מיושן / רכב מיוחד)",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -1521,65 +1610,88 @@ private fun EnvironmentTabContent(
     techSpec: VehicleTechnicalSpecRecord?
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        val group = techSpec?.emissionGroup ?: vehicle.emissionGroup ?: 15
+        val groupRaw = techSpec?.emissionGroup ?: vehicle.emissionGroup
+        val hasEmissionGroup = groupRaw != null && groupRaw in 1..15
 
-        // Pollution Group Visual Bar (1 to 15)
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+        if (hasEmissionGroup) {
+            val group = groupRaw!!
+            // Pollution Group Visual Bar (1 to 15)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
             ) {
-                Text(
-                    text = "קבוצת זיהום אוויר: $group מתוך 15",
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                techSpec?.greenIndex?.let {
-                    Text(
-                        text = "מדד ירוק רשמי: %.1f".format(it),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                Spacer(Modifier.height(14.dp))
-
-                // 1-15 Colored Bar
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(26.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    (1..15).forEach { index ->
-                        val color = when (index) {
-                            in 1..4 -> Color(0xFF2E7D32)
-                            in 5..8 -> Color(0xFF689F38)
-                            in 9..11 -> Color(0xFFFBC02D)
-                            in 12..13 -> Color(0xFFE64A19)
-                            else -> Color(0xFFC62828)
-                        }
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .background(color),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "$index",
-                                color = Color.White,
-                                fontWeight = if (group == index) FontWeight.Black else FontWeight.Normal,
-                                fontSize = if (group == index) 13.sp else 10.sp
-                            )
+                    Text(
+                        text = "קבוצת זיהום אוויר: $group מתוך 15",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    techSpec?.greenIndex?.let {
+                        Text(
+                            text = "מדד ירוק רשמי: %.1f".format(it),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    Spacer(Modifier.height(14.dp))
+
+                    // 1-15 Colored Bar
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(26.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                    ) {
+                        (1..15).forEach { index ->
+                            val color = when (index) {
+                                in 1..4 -> Color(0xFF2E7D32)
+                                in 5..8 -> Color(0xFF689F38)
+                                in 9..11 -> Color(0xFFFBC02D)
+                                in 12..13 -> Color(0xFFE64A19)
+                                else -> Color(0xFFC62828)
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .background(color),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "$index",
+                                    color = Color.White,
+                                    fontWeight = if (group == index) FontWeight.Black else FontWeight.Normal,
+                                    fontSize = if (group == index) 13.sp else 10.sp
+                                )
+                            }
                         }
                     }
+                }
+            }
+        } else {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(Icons.Outlined.Eco, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = "ללא קבוצת זיהום רשומה במאגר (רכב מיושן / ללא דירוג זיהום ברישום)",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
