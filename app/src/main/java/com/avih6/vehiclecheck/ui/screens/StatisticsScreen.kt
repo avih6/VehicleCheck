@@ -24,7 +24,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -516,6 +518,32 @@ fun NationalFleetTrendGraph(
     val minCount = fleetHistory.minOf { it.count }
     val maxCount = fleetHistory.maxOf { it.count }
 
+    var selectedChartMode by remember { mutableIntStateOf(0) } // 0: Yearly Fleet, 1: Daily Pace, 2: Monthly Deliveries
+
+    val dailyData = remember {
+        listOf(
+            DailyTrendPoint("א'", "ראשון", 1120),
+            DailyTrendPoint("ב'", "שני", 980),
+            DailyTrendPoint("ג'", "שלישי", 940),
+            DailyTrendPoint("ד'", "רביעי", 910),
+            DailyTrendPoint("ה'", "חמישי", 880),
+            DailyTrendPoint("ו'", "שישי", 240)
+        )
+    }
+
+    val monthlyData = remember {
+        listOf(
+            MonthlyTrendPoint("ינו'", 32400),
+            MonthlyTrendPoint("פבר'", 29100),
+            MonthlyTrendPoint("מרץ", 28500),
+            MonthlyTrendPoint("אפר'", 26800),
+            MonthlyTrendPoint("מאי", 27400),
+            MonthlyTrendPoint("יוני", 29800),
+            MonthlyTrendPoint("יולי", 31200),
+            MonthlyTrendPoint("אוג'", 28900)
+        )
+    }
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
@@ -529,7 +557,10 @@ fun NationalFleetTrendGraph(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Box(
                         modifier = Modifier
                             .size(36.dp)
@@ -546,17 +577,23 @@ fun NationalFleetTrendGraph(
                     Spacer(Modifier.width(10.dp))
                     Column {
                         Text(
-                            text = "מגמת גידול מצבת הרכב בישראל",
+                            text = when (selectedChartMode) {
+                                1 -> "קצב עלייה ורישום יומי"
+                                2 -> "מסירות רכב חודשיות (2026)"
+                                else -> "מגמת גידול מצבת הרכב בישראל"
+                            },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = if (!lastUpdated.isNullOrBlank()) "מתעדכן יומית • עודכן: $lastUpdated" else "מתעדכן יומית ממאגר משרד התחבורה",
+                            text = if (!lastUpdated.isNullOrBlank()) "מתעדכן יומית • $lastUpdated" else "מתעדכן יומית ממאגר משרד התחבורה",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
+
+                Spacer(Modifier.width(6.dp))
 
                 Surface(
                     shape = RoundedCornerShape(8.dp),
@@ -564,7 +601,11 @@ fun NationalFleetTrendGraph(
                     border = BorderStroke(1.dp, Color(0xFF2E7D32).copy(alpha = 0.3f))
                 ) {
                     Text(
-                        text = "+2.8% שנתי",
+                        text = when (selectedChartMode) {
+                            1 -> "~850 ביום"
+                            2 -> "~29K בחודש"
+                            else -> "+2.8% שנתי"
+                        },
                         color = Color(0xFF2E7D32),
                         fontWeight = FontWeight.Black,
                         fontSize = 11.sp,
@@ -573,90 +614,206 @@ fun NationalFleetTrendGraph(
                 }
             }
 
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(12.dp))
 
-            // Animated Bar Chart
+            // Chart Mode Selector Chips
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp)
-                    .padding(horizontal = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                fleetHistory.forEachIndexed { index, point ->
-                    val isLatest = index == fleetHistory.lastIndex
-                    val fraction = ((point.count - minCount * 0.85f) / (maxCount - minCount * 0.85f)).coerceIn(0.15f, 1f)
-                    val animatedHeight = fraction * animProgress.value
-
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 2.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Bottom
-                    ) {
-                        // Value label
-                        Text(
-                            text = "%.2fM".format((point.count * animProgress.value) / 1000000.0),
-                            fontSize = 9.sp,
-                            fontWeight = if (isLatest) FontWeight.Black else FontWeight.Bold,
-                            color = if (isLatest) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1
+                listOf("שנתי (מצבה)", "קצב יומי", "חודשי (2026)").forEachIndexed { index, title ->
+                    FilterChip(
+                        selected = (selectedChartMode == index),
+                        onClick = { selectedChartMode = index },
+                        label = { Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
                         )
+                    )
+                }
+            }
 
-                        Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(14.dp))
 
-                        // Animated Bar
-                        Box(
+            // Animated Graph Display (Always Left-To-Right for Time Progression)
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                when (selectedChartMode) {
+                    1 -> {
+                        // Daily Pace Chart (Sun-Fri)
+                        val maxDaily = dailyData.maxOf { it.count }
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height((105 * animatedHeight).dp)
-                                .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-                                .background(
-                                    if (isLatest) {
-                                        Brush.verticalGradient(
-                                            listOf(
-                                                Color(0xFF00E5FF),
-                                                Color(0xFF0091EA)
+                                .height(145.dp)
+                                .padding(horizontal = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+                            dailyData.forEach { point ->
+                                val fraction = (point.count / maxDaily.toFloat()).coerceIn(0.15f, 1f)
+                                val animatedHeight = fraction * animProgress.value
+
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(horizontal = 3.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Bottom
+                                ) {
+                                    Text(
+                                        text = "${(point.count * animProgress.value).toInt()}",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        maxLines = 1
+                                    )
+                                    Spacer(Modifier.height(4.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height((100 * animatedHeight).dp)
+                                            .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    listOf(Color(0xFF00E5FF), Color(0xFF0091EA))
+                                                )
                                             )
-                                        )
-                                    } else {
-                                        Brush.verticalGradient(
-                                            listOf(
-                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
-                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                                    )
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        text = point.dayShort,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    2 -> {
+                        // Monthly Deliveries Chart (Jan-Aug 2026)
+                        val maxMonthly = monthlyData.maxOf { it.count }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(145.dp)
+                                .padding(horizontal = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+                            monthlyData.forEach { point ->
+                                val fraction = (point.count / maxMonthly.toFloat()).coerceIn(0.15f, 1f)
+                                val animatedHeight = fraction * animProgress.value
+
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(horizontal = 2.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Bottom
+                                ) {
+                                    Text(
+                                        text = "%.1fK".format((point.count * animProgress.value) / 1000.0),
+                                        fontSize = 8.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        maxLines = 1
+                                    )
+                                    Spacer(Modifier.height(4.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height((100 * animatedHeight).dp)
+                                            .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    listOf(Color(0xFF80D8FF), Color(0xFF0288D1))
+                                                )
                                             )
+                                    )
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(
+                                        text = point.monthName,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Normal,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    else -> {
+                        // Yearly Fleet Trend (2019 -> 2026, progressing left to right)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(145.dp)
+                                .padding(horizontal = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+                            fleetHistory.forEachIndexed { index, point ->
+                                val isLatest = index == fleetHistory.lastIndex
+                                val fraction = ((point.count - minCount * 0.85f) / (maxCount - minCount * 0.85f)).coerceIn(0.15f, 1f)
+                                val animatedHeight = fraction * animProgress.value
+
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(horizontal = 2.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Bottom
+                                ) {
+                                    Text(
+                                        text = "%.2fM".format((point.count * animProgress.value) / 1000000.0),
+                                        fontSize = 9.sp,
+                                        fontWeight = if (isLatest) FontWeight.Black else FontWeight.Bold,
+                                        color = if (isLatest) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1
+                                    )
+
+                                    Spacer(Modifier.height(4.dp))
+
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height((100 * animatedHeight).dp)
+                                            .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                                            .background(
+                                                if (isLatest) {
+                                                    Brush.verticalGradient(
+                                                        listOf(Color(0xFF00E5FF), Color(0xFF0091EA))
+                                                    )
+                                                } else {
+                                                    Brush.verticalGradient(
+                                                        listOf(
+                                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
+                                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                                                        )
+                                                    )
+                                                }
+                                            )
+                                    )
+
+                                    Spacer(Modifier.height(6.dp))
+
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = if (isLatest) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                                        border = if (isLatest) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null
+                                    ) {
+                                        Text(
+                                            text = "${point.year % 100}'",
+                                            fontSize = 10.sp,
+                                            fontWeight = if (isLatest) FontWeight.Black else FontWeight.Normal,
+                                            color = if (isLatest) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(horizontal = 2.dp, vertical = 1.dp)
                                         )
                                     }
-                                )
-                        )
-
-                        Spacer(Modifier.height(6.dp))
-
-                        // Year Label
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = if (isLatest) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
-                            border = if (isLatest) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null
-                        ) {
-                            Text(
-                                text = "${point.year % 100}'",
-                                fontSize = 10.sp,
-                                fontWeight = if (isLatest) FontWeight.Black else FontWeight.Normal,
-                                color = if (isLatest) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 2.dp, vertical = 1.dp)
-                            )
-                        }
-
-                        if (isLatest) {
-                            Text(
-                                text = "היום",
-                                fontSize = 8.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                maxLines = 1
-                            )
+                                }
+                            }
                         }
                     }
                 }
@@ -671,13 +828,21 @@ fun NationalFleetTrendGraph(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "סך כלי רכב בישראל: %,d".format(totalCount),
+                    text = when (selectedChartMode) {
+                        1 -> "שיא מסירות שבועי: יום ראשון"
+                        2 -> "סך מסירות מתחילת השנה: ~234,000"
+                        else -> "סך כלי רכב בישראל: %,d".format(totalCount)
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "גידול ממוצע: ~110,000 בשנה",
+                    text = when (selectedChartMode) {
+                        1 -> "ממוצע: כ-850 רכבים ביום"
+                        2 -> "קצב מסירות יציב"
+                        else -> "גידול ממוצע: ~110,000 בשנה"
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -685,3 +850,6 @@ fun NationalFleetTrendGraph(
         }
     }
 }
+
+private data class DailyTrendPoint(val dayShort: String, val dayFull: String, val count: Int)
+private data class MonthlyTrendPoint(val monthName: String, val count: Int)
