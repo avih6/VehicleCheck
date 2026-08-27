@@ -871,7 +871,10 @@ private fun GeneralTabContent(
             }
         }
 
-        // Fees & Vehicle Type Card (סוג רכב, בעלות ואגרות רישוי)
+        // 1. Comprehensive Vehicle Classification & Body Type Card (סיווג ומרכב הרכב)
+        val bodyInfo = remember(vehicle, techSpec) { VehicleUtils.resolveBodyType(vehicle, techSpec) }
+        val (legalClass, legalLicenseNote) = remember(vehicle, techSpec) { VehicleUtils.resolveLegalLicenseClass(vehicle, techSpec) }
+
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -879,62 +882,46 @@ private fun GeneralTabContent(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "סוג רכב, בעלות ואגרות רישוי",
+                    text = "סיווג, מרכב וייעוד הרכב",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
-                // Vehicle Type selector chips (פרטי P / מסחרי M)
-                val isCommercial = vehicle.modelType == "M" || (vehicle.modelType?.contains("מסחרי", ignoreCase = true) == true)
-                Row(
+                // Visual Body Type Badge
+                Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
                 ) {
-                    Text(
-                        text = "סוג רכב (ייעוד):",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        // Private Chip
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (!isCommercial) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            border = if (!isCommercial) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("P", fontWeight = FontWeight.Black, fontSize = 12.sp, color = if (!isCommercial) MaterialTheme.colorScheme.primary else Color.Gray)
-                                Spacer(Modifier.width(4.dp))
-                                Text("פרטי", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (!isCommercial) MaterialTheme.colorScheme.onPrimaryContainer else Color.Gray)
-                            }
-                        }
-
-                        // Commercial Chip
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (isCommercial) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            border = if (isCommercial) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("M", fontWeight = FontWeight.Black, fontSize = 12.sp, color = if (isCommercial) MaterialTheme.colorScheme.primary else Color.Gray)
-                                Spacer(Modifier.width(4.dp))
-                                Text("מסחרי", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (isCommercial) MaterialTheme.colorScheme.onPrimaryContainer else Color.Gray)
-                            }
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = bodyInfo.iconEmoji, fontSize = 28.sp)
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = bodyInfo.title,
+                                fontWeight = FontWeight.Black,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = bodyInfo.subtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
 
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(12.dp))
 
-                // Ownership (בעלות)
+                SpecRow("קבוצת רישוי ומשקל:", legalClass, isHighlighted = true)
+                SpecRow("דרגת רישיון נדרשת:", legalLicenseNote)
+
                 val ownershipStr = vehicle.ownership ?: "פרטי"
                 SpecRow("סוג בעלות רשומה:", ownershipStr)
 
@@ -1000,6 +987,123 @@ private fun GeneralTabContent(
                         Spacer(Modifier.height(8.dp))
                         SpecRow("מקוריות:", it)
                     }
+                }
+            }
+        }
+
+        // 2. Mileage & Odometer Analysis Card (ניתוח קילומטראז' ונסועה שנתית)
+        val lastMileage = extraHistory?.lastTestMileage
+        val vehicleYear = vehicle.year
+        val currentYear = java.time.LocalDate.now().year
+        val vehicleAge = if (vehicleYear != null && vehicleYear > 1900) (currentYear - vehicleYear).coerceAtLeast(1) else 1
+        val annualKm = if (lastMileage != null && lastMileage > 0) lastMileage / vehicleAge else null
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "קילומטראז' וניתוח נסועה",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Icon(
+                        imageVector = Icons.Default.Speed,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                if (lastMileage != null && lastMileage > 0) {
+                    SpecRow("מד-אוץ בטסט האחרון:", "%,d ק\"מ".format(lastMileage), isHighlighted = true)
+                    if (annualKm != null) {
+                        SpecRow("ממוצע נסועה שנתית:", "%,d ק\"מ לשנה".format(annualKm))
+
+                        val (statusText, statusColor) = when {
+                            annualKm in 10000..22000 -> Pair("נסועה ממוצעת תקינה ✅", Color(0xFF2E7D32))
+                            annualKm < 8000 -> Pair("נסועה נמוכה במיוחד ℹ️ (מומלץ לאמת בספר טיפולים)", Color(0xFF0091EA))
+                            else -> Pair("נסועה גבוהה מהממוצע ⚠️", Color(0xFFFF9800))
+                        }
+
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            color = statusColor.copy(alpha = 0.12f)
+                        ) {
+                            Text(
+                                text = statusText,
+                                color = statusColor,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                } else {
+                    Text(
+                        text = "נתוני קילומטראז' לא הוזנו בטסט האחרון במאגר משרד התחבורה",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        // 3. Registrar of Pledges Check Action Card (בדיקת שעבודים ומשכונות - משרד המשפטים)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "בדיקת שעבוד ומשכון ברשם המשכונות 🔒",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "בדיקה מקוונת ישירה במשרד המשפטים להסרת חשש לעיקולים",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Spacer(Modifier.width(10.dp))
+
+                Button(
+                    onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val cleanDigits = (vehicle.licensePlate?.toString() ?: "").filter { it.isDigit() }
+                        if (cleanDigits.isNotBlank()) {
+                            clipboard.setPrimaryClip(ClipData.newPlainText("Plate", cleanDigits))
+                        }
+                        Toast.makeText(context, "מספר רכב הועתק ללוח! מעביר לרשם המשכונות...", Toast.LENGTH_SHORT).show()
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://pledges.justice.gov.il/"))
+                            context.startActivity(intent)
+                        } catch (e: Exception) {}
+                    },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("בדוק כעת", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
             }
         }
@@ -1815,7 +1919,13 @@ private fun StatisticsTabContent(
             }
         }
 
-        // 2. Active vs Inactive Ratio Card
+        // 2. Animated Model Distribution and Survival Chart
+        AnimatedModelDistributionChart(
+            stats = stats,
+            currentVehicleYear = vehicle.year
+        )
+
+        // 3. Active vs Inactive Ratio Card
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),

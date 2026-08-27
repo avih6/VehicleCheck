@@ -1031,4 +1031,62 @@ object VehicleUtils {
             else -> Pair(0xFF9E9E9EL, null)
         }
     }
+
+    data class BodyTypeInfo(
+        val title: String,
+        val iconEmoji: String,
+        val subtitle: String
+    )
+
+    fun resolveBodyType(vehicle: VehicleRecord, techSpec: VehicleTechnicalSpecRecord?): BodyTypeInfo {
+        val bt = techSpec?.bodyType.orEmpty().trim().lowercase()
+        val mod = vehicle.model.orEmpty().trim().lowercase()
+        val cat = vehicle.vehicleCategory.orEmpty().trim().lowercase()
+
+        return when {
+            cat.contains("אמבולנס") || mod.contains("ambulance") ->
+                BodyTypeInfo("רכב מיוחד (אמבולנס)", "🚑", "רכב רפואי והצלה ייעודי")
+            bt.contains("פנאי") || bt.contains("שטח") || bt.contains("suv") || mod.contains("cross") || mod.contains("suv") ->
+                BodyTypeInfo("פנאי-שטח (SUV / קרוסאובר)", "🚙", "מרכב פנאי מוגבה 5 דלתות")
+            bt.contains("סדאן") || bt.contains("sedan") || bt.contains("4 דלת") ->
+                BodyTypeInfo("סדאן (4 דלתות)", "🚗", "מרכב נוסעים משפחתי קלאסי")
+            bt.contains("הצ'בק") || bt.contains("האצ'בק") || bt.contains("hatchback") || bt.contains("5 דלת") || bt.contains("3 דלת") ->
+                BodyTypeInfo("האצ'בק (5 דלתות / מיני)", "🚗", "מרכב נוסעים קומפקטי עם דלת תא מטען")
+            bt.contains("סטיישן") || bt.contains("wagon") || bt.contains("estate") || mod.contains("combi") || mod.contains("touring") || mod.contains("sw") ->
+                BodyTypeInfo("סטיישן (Wagon / קומבי)", "🚘", "מרכב נוסעים ארוך עם תא מטען מוגדל")
+            bt.contains("קופה") || bt.contains("coupe") || bt.contains("ספורט") ->
+                BodyTypeInfo("קופה / ספורט", "🏎️", "מרכב ספורטיבי 2-3 דלתות")
+            bt.contains("קבריולט") || bt.contains("קבריו") || bt.contains("cabrio") || bt.contains("convertible") || bt.contains("רודסטר") ->
+                BodyTypeInfo("קבריולט (גג פתוח / רודסטר)", "🏎️", "מרכב ספורטיבי פתוח / גג נפתח")
+            bt.contains("מיניוואן") || bt.contains("מיקרוואן") || bt.contains("mpv") || bt.contains("וואן") || bt.contains("אחוד") || (techSpec?.seats ?: vehicle.seats ?: 0) >= 7 ->
+                BodyTypeInfo("מיניוואן / היסעים (MPV)", "🚐", "מרכב רב-נוסעים מרווח")
+            bt.contains("טנדר") || bt.contains("pickup") || bt.contains("פיק-אפ") || mod.contains("hilux") || mod.contains("d-max") ->
+                BodyTypeInfo("טנדר (Pick-Up)", "🛻", "מרכב מסחרי פתוח להעמסה")
+            vehicle.modelType == "M" || cat.contains("משא") || (vehicle.totalWeight ?: 0) > 3500 ->
+                BodyTypeInfo("משא / מסחרי", "🚚", "רכב עבודה ומטען")
+            vehicle.modelType == "A" || cat.contains("אופנוע") || cat.contains("קטנוע") ->
+                BodyTypeInfo("דו-גלגלי (אופנוע / קטנוע)", "🏍️", "רכב דו-גלגלי מנועי")
+            else ->
+                BodyTypeInfo("רכב נוסעים פרטי (M1)", "🚗", "מרכב נוסעים סטנדרטי")
+        }
+    }
+
+    fun resolveLegalLicenseClass(vehicle: VehicleRecord, techSpec: VehicleTechnicalSpecRecord?): Pair<String, String> {
+        val totalWeight = techSpec?.totalWeight ?: vehicle.totalWeight ?: 1600
+        val std = vehicle.standardType.orEmpty().trim().uppercase()
+        val isCommercial = vehicle.modelType == "M" || vehicle.vehicleCategory?.contains("משא") == true
+
+        return when {
+            vehicle.vehicleCategory?.contains("אמבולנס") == true ->
+                Pair("רכב ביטחון והצלה (אמבולנס $std)", "רכב ייעודי ברישום מיוחד")
+            vehicle.vehicleCategory?.contains("אוטובוס") == true || std.startsWith("M2") || std.startsWith("M3") ->
+                Pair("רכב היסעים / אוטובוס ($std)", "מורשה להסעת נוסעים / דורש רישיון ייעודי")
+            totalWeight > 3500 || std.startsWith("N2") || std.startsWith("N3") ->
+                Pair("משא כבד ($std) • מעל 3.5 טון", "דורש דרגת רישיון משא C1 ומעלה")
+            isCommercial || std.startsWith("N1") ->
+                Pair("משא / מסחרי קל ($std) • עד 3.5 טון", "משקל כולל עד 3,500 ק\"ג (דרגת רישיון B)")
+            else ->
+                Pair("פרטי נוסעים (M1) • עד 3.5 טון", "משקל כולל עד 3,500 ק\"ג (דרגת רישיון B רגיל)")
+        }
+    }
 }
