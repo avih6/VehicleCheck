@@ -534,7 +534,7 @@ fun ResultCard(
                 title = "תג נכה",
                 value = if (hasDisabledPermit) "פעיל ✅" else "ללא",
                 isPositive = hasDisabledPermit,
-                icon = Icons.AutoMirrored.Filled.Accessible,
+                icon = Icons.Default.Accessible,
                 modifier = Modifier.weight(1f)
             )
 
@@ -658,6 +658,8 @@ fun ResultCard(
                     testStatus = testStatus,
                     hasDisabledPermit = hasDisabledPermit,
                     permitIssueDate = permitIssueDate,
+                    isOffRoad = isOffRoad,
+                    offRoadDate = offRoadDate,
                     recalls = recalls,
                     recallDetail = recallDetail,
                     stats = stats,
@@ -681,6 +683,8 @@ private fun GeneralTabContent(
     testStatus: TestStatus,
     hasDisabledPermit: Boolean,
     permitIssueDate: Long?,
+    isOffRoad: Boolean = false,
+    offRoadDate: String? = null,
     recalls: List<VehicleRecallRestrictionRecord>,
     recallDetail: RecallDetailRecord?,
     stats: ModelStatistics,
