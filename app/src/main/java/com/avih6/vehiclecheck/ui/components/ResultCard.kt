@@ -1837,14 +1837,23 @@ fun AutoBrandLogo(
     val slug = remember(hebrewMake) { VehicleUtils.getBrandSlug(hebrewMake) }
     
     val urls = remember(slug) {
+        val cleanSlug = slug.replace("-", "")
+        val underscoreSlug = slug.replace("-", "_")
         listOf(
+            "https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/$slug.png",
             "https://raw.githubusercontent.com/filippofilip95/car-logos-dataset/master/logos/optimized/$slug.png",
-            "https://raw.githubusercontent.com/filippofilip95/car-logos-dataset/master/logos/thumb/$slug.png",
-            "https://raw.githubusercontent.com/filippofilip95/car-logos-dataset/master/logos/local-logos/$slug.png",
-            "https://raw.githubusercontent.com/vehiclespecs/brand-logos/master/logos/png/$slug.png",
-            "https://raw.githubusercontent.com/vehiclespecs/brand-logos/master/logos/svg/$slug.svg",
-            "https://logo.clearbit.com/$slug.com"
-        )
+            "https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/thumb/$slug.png",
+            "https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/local-logos/$slug.png",
+            "https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/$cleanSlug.png",
+            "https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/$underscoreSlug.png",
+            "https://cdn.jsdelivr.net/gh/vehiclespecs/brand-logos@master/logos/png/$slug.png",
+            "https://cdn.jsdelivr.net/gh/vehiclespecs/brand-logos@master/logos/svg/$slug.svg",
+            "https://logo.clearbit.com/$slug.com",
+            "https://logo.clearbit.com/$cleanSlug.com",
+            "https://img.logo.dev/$slug.com?token=pk_anonymous",
+            "https://www.google.com/s2/favicons?domain=$slug.com&sz=128",
+            "https://icons.duckduckgo.com/ip3/$slug.com.ico"
+        ).distinct()
     }
 
     if (logoUrlIndex >= urls.size || slug == "car") {
