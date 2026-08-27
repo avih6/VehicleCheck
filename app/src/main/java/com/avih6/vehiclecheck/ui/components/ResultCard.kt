@@ -401,18 +401,19 @@ fun ResultCard(
 
                 Spacer(Modifier.height(16.dp))
 
-                // Brand Emblem Badge (Centered & High Contrast)
+                // Brand Emblem Badge (Centered & High Contrast White Badge)
                 Surface(
                     shape = CircleShape,
-                    color = Color.White.copy(alpha = 0.08f),
-                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
-                    modifier = Modifier.size(90.dp)
+                    color = Color.White,
+                    shadowElevation = 4.dp,
+                    border = BorderStroke(2.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                    modifier = Modifier.size(92.dp)
                 ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(6.dp)) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(10.dp)) {
                         AutoBrandLogo(
                             hebrewMake = vehicle.make,
                             isEngineeringEquipment = isEngineeringEquipment,
-                            size = 78.dp
+                            size = 72.dp
                         )
                     }
                 }
@@ -430,7 +431,8 @@ fun ResultCard(
                 )
 
                 vehicle.model?.let { mod ->
-                    if (mod.isNotBlank() && !mod.equals(formattedMake, ignoreCase = true)) {
+                    val isCountryPlaceholder = listOf("גרמנ", "גרמניה", "יפן", "צרפת", "איטליה", "איטלי", "ארה\"ב", "ארהב", "שוודיה", "קוריאה", "סין", "הודו", "טורקיה", "תורכיה").any { mod.contains(it) }
+                    if (mod.isNotBlank() && !mod.equals(formattedMake, ignoreCase = true) && !isCountryPlaceholder) {
                         Spacer(Modifier.height(2.dp))
                         Text(
                             text = mod.uppercase(),
@@ -2350,7 +2352,8 @@ fun AutoBrandLogo(
     hebrewMake: String?,
     modifier: Modifier = Modifier,
     size: androidx.compose.ui.unit.Dp = 80.dp,
-    isEngineeringEquipment: Boolean = false
+    isEngineeringEquipment: Boolean = false,
+    useWhiteBackground: Boolean = true
 ) {
     var logoUrlIndex by remember(hebrewMake) { mutableIntStateOf(0) }
     val slug = remember(hebrewMake) { VehicleUtils.getBrandSlug(hebrewMake) }
@@ -2375,37 +2378,38 @@ fun AutoBrandLogo(
         ).distinct()
     }
 
-    if (logoUrlIndex >= urls.size || slug == "car") {
-        Surface(
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-            shape = CircleShape,
-            modifier = modifier.size(size)
+    Surface(
+        shape = CircleShape,
+        color = if (useWhiteBackground) Color.White else Color.Transparent,
+        modifier = modifier.size(size)
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize().padding(size * 0.1f),
+            contentAlignment = Alignment.Center
         ) {
-            Box(contentAlignment = Alignment.Center) {
+            if (logoUrlIndex >= urls.size || slug == "car") {
                 Icon(
                     imageVector = if (isEngineeringEquipment) Icons.Default.Construction else Icons.Default.DirectionsCar,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(size * 0.55f)
+                    tint = if (useWhiteBackground) Color(0xFF1E88E5) else MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.fillMaxSize(0.7f)
+                )
+            } else {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(urls[logoUrlIndex])
+                        .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "סמל יצרן $hebrewMake",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit,
+                    onError = {
+                        logoUrlIndex++
+                    }
                 )
             }
         }
-    } else {
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(urls[logoUrlIndex])
-                .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
-                .crossfade(true)
-                .build(),
-            contentDescription = "סמל יצרן $hebrewMake",
-            modifier = modifier
-                .size(size)
-                .padding(2.dp),
-            contentScale = ContentScale.Fit,
-            onError = {
-                logoUrlIndex++
-            }
-        )
     }
 }
 
