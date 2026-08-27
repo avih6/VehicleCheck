@@ -206,12 +206,17 @@ private fun HistoryItemCard(
                 }
 
                 // Test Status summary / Retry status
-                val testText = if (isNotFound) {
-                    "לא אותר במאגר • לחץ לבדיקה חוזרת 🔄"
-                } else if (item.isTestValid) {
-                    "טסט בתוקף (עוד ${item.daysUntilTest} ימים)"
-                } else {
-                    "טסט פג תוקף"
+                val testText = when {
+                    isNotFound -> "לא אותר במאגר • לחץ לבדיקה חוזרת 🔄"
+                    item.isTestValid -> {
+                        val diff = VehicleUtils.calculateDateDifferenceHebrew(item.testExpiryDate)
+                        if (diff != null) "טסט בתוקף • $diff" else "טסט בתוקף (עוד ${item.daysUntilTest} ימים)"
+                    }
+                    item.daysUntilTest < 0 -> {
+                        val diff = VehicleUtils.calculateDateDifferenceHebrew(item.testExpiryDate)
+                        if (diff != null) "טסט לא בתוקף • $diff" else "טסט לא בתוקף (איחור)"
+                    }
+                    else -> "רכב לא פעיל / טסט לא בתוקף"
                 }
                 Text(
                     text = testText,

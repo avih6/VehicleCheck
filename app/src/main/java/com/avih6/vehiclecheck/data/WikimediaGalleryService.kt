@@ -440,10 +440,21 @@ object WikimediaGalleryService {
             score += 500
         }
 
-        if (year != null && textToSearch.contains(year.toString())) {
-            score += 200
-        } else if (year != null && (textToSearch.contains((year - 1).toString()) || textToSearch.contains((year + 1).toString()))) {
-            score += 100
+        if (year != null) {
+            if (textToSearch.contains(year.toString())) {
+                score += 400
+            } else if (textToSearch.contains((year - 1).toString()) || textToSearch.contains((year + 1).toString())) {
+                score += 250
+            } else if (textToSearch.contains((year - 2).toString()) || textToSearch.contains((year + 2).toString())) {
+                score += 150
+            } else {
+                // If the image explicitly specifies a very distant year (e.g. 2005 vs 2012), apply small penalty
+                val yearRegex = Regex("\\b(19\\d\\d|20\\d\\d)\\b")
+                val foundYears = yearRegex.findAll(textToSearch).mapNotNull { it.value.toIntOrNull() }.toList()
+                if (foundYears.isNotEmpty() && foundYears.none { Math.abs(it - year) <= 3 }) {
+                    score -= 200
+                }
+            }
         }
 
         if (!colorEn.isNullOrBlank() && textToSearch.contains(colorEn.lowercase())) {

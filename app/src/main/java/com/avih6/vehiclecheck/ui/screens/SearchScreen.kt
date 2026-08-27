@@ -112,10 +112,26 @@ fun SearchScreen(
     val countFormatted = "%,d כלי רכב רשומים".format(totalCount ?: 4165989)
     val updateText = if (!lastUpdated.isNullOrBlank()) "עודכן: $lastUpdated" else "עודכן: -"
 
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
+
+    LaunchedEffect(searchState) {
+        if (searchState is SearchState.Success || searchState is SearchState.NotFound) {
+            focusManager.clearFocus()
+            keyboardController?.hide()
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
+            .clickable(
+                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                indication = null
+            ) {
+                focusManager.clearFocus()
+                keyboardController?.hide()
+            }
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -179,10 +195,13 @@ fun SearchScreen(
             value = query,
             onValueChange = { viewModel.onQueryChange(it) },
             onSearch = {
+                focusManager.clearFocus()
                 keyboardController?.hide()
                 viewModel.search()
             },
             onVoiceClick = {
+                focusManager.clearFocus()
+                keyboardController?.hide()
                 val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                     putExtra(RecognizerIntent.EXTRA_LANGUAGE, "he-IL")
@@ -193,6 +212,8 @@ fun SearchScreen(
                 } catch (e: Exception) {}
             },
             onCameraClick = {
+                focusManager.clearFocus()
+                keyboardController?.hide()
                 if (hasCamera) {
                     val permissionCheck = ContextCompat.checkSelfPermission(
                         context,
@@ -214,6 +235,7 @@ fun SearchScreen(
         // Search Button
         Button(
             onClick = {
+                focusManager.clearFocus()
                 keyboardController?.hide()
                 viewModel.search()
             },

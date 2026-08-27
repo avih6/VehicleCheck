@@ -166,6 +166,7 @@ data class DeregisteredVehicleRecord(
     @SerialName("degem_cd") val modelCodeRaw: String? = null,
     @SerialName("degem_nm") val modelCode: String? = null,
     @SerialName("sug_rechev_nm") val vehicleType: String? = null,
+    @SerialName("sug_degem") val sugDegem: String? = null,
     @SerialName("moed_aliya_lakvish") val onRoadDate: String? = null,
     @SerialName("bitul_dt") val cancellationDate: String? = null,
     @SerialName("misgeret") val vin: String? = null,
@@ -180,7 +181,10 @@ data class DeregisteredVehicleRecord(
     @SerialName("zmig_ahori") val rearTire: String? = null,
     @SerialName("sug_delek_nm") val fuelType: String? = null,
     @SerialName("horaat_rishum") val registrationDirectiveRaw: String? = null,
-    @SerialName("kinuy_mishari") val model: String? = null
+    @SerialName("kinuy_mishari") val model: String? = null,
+    @SerialName("mivchan_acharon_dt") val lastTestDate: String? = null,
+    @SerialName("mivchan_aharon_dt") val lastTestDateAlt: String? = null,
+    @SerialName("tokef_dt") val testExpiryDate: String? = null
 ) {
     fun toVehicleRecord(): VehicleRecord {
         val plate = licensePlateRaw?.filter { it.isDigit() }?.toLongOrNull()
@@ -188,6 +192,8 @@ data class DeregisteredVehicleRecord(
         val makeCd = makeCodeRaw?.filter { it.isDigit() }?.toLongOrNull()
         val modelCd = modelCodeRaw?.filter { it.isDigit() }?.toLongOrNull()
         val directive = registrationDirectiveRaw?.filter { it.isDigit() }?.toLongOrNull()
+        val effectiveLastTest = lastTestDate ?: lastTestDateAlt
+        val effectiveExpiry = testExpiryDate ?: cancellationDate
 
         return VehicleRecord(
             id = id,
@@ -197,13 +203,13 @@ data class DeregisteredVehicleRecord(
             model = if (!model.isNullOrBlank()) model else modelCode,
             modelCode = modelCode,
             modelCd = modelCd,
-            modelType = vehicleType,
+            modelType = if (!sugDegem.isNullOrBlank()) sugDegem else vehicleType,
             trimLevel = trimLevel,
             year = year,
             onRoadDate = onRoadDate,
-            lastTestDate = null,
-            testExpiryDate = null,
-            ownership = ownership,
+            lastTestDate = effectiveLastTest,
+            testExpiryDate = effectiveExpiry,
+            ownership = if (!ownership.isNullOrBlank()) ownership else "פרטי",
             color = color,
             colorCode = null,
             fuelType = fuelType,
@@ -525,6 +531,94 @@ object VehicleUtils {
             } catch (e2: Exception) {
                 isoStr
             }
+        }
+    }
+
+    fun parseLocalDate(raw: String?): LocalDate? {
+        if (raw.isNullOrBlank()) return null
+        val clean = raw.trim().take(10)
+        return try {
+            LocalDate.parse(clean, DateTimeFormatter.ISO_LOCAL_DATE)
+        } catch (_: Exception) {
+            try {
+                LocalDate.parse(clean, DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+            } catch (_: Exception) {
+                try {
+                    val parts = clean.split("-")
+                    if (parts.size == 2) {
+                        val y = parts[0].toIntOrNull()
+                        val m = parts[1].toIntOrNull()
+                        if (y != null && m != null && m in 1..12) {
+                            LocalDate.of(y, m, 1)
+                        } else null
+                    } else null
+                } catch (_: Exception) {
+                    null
+                }
+            }
+        }
+    }
+
+    fun calculateDateDifferenceHebrew(dateStr: String?): String? {
+        val targetDate = parseLocalDate(dateStr) ?: return null
+        val today = LocalDate.now()
+        
+        val isPast = targetDate.isBefore(today)
+        val start = if (isPast) targetDate else today
+        val end = if (isPast) today else targetDate
+        val period = java.time.Period.between(start, end)
+
+        val years = period.years
+        val months = period.months
+        val days = period.days
+
+        val parts = mutableListOf<String>()
+        if (years > 0) {
+            parts.add(if (years == 1) "שנה אחת" else if (years == 2) "שנתיים" else "$years שנים")
+        }
+        if (months > 0) {
+            parts.add(if (months == 1) "חודש אחד" else if (months == 2) "חודשיים" else "$months חודשים")
+        }
+        if (days > 0 && years == 0) {
+            parts.add(if (days == 1) "יום אחד" else if (days == 2) "יומיים" else "$days ימים")
+        } else if (parts.isEmpty()) {
+            parts.add(if (days <= 1) "היום" else "$days ימים")
+        }
+
+        val formattedDiff = parts.joinToString(if (parts.size > 2) ", " else " ו-")
+        return if (isPast) {
+            "איחור של $formattedDiff (עברו)"
+        } else {
+            "נותרו עוד $formattedDiff"
+        }
+    }
+
+    fun getEstimatedLastTestDate(testExpiryDateStr: String?, lastTestDateStr: String?): String? {
+        if (!lastTestDateStr.isNullOrBlank()) return lastTestDateStr
+        val expiry = parseLocalDate(testExpiryDateStr) ?: return null
+        val estimatedLast = expiry.minusYears(1)
+        return estimatedLast.format(DateTimeFormatter.ISO_LOCAL_DATE)
+    }
+
+    fun calculateAnnualLicensingFee(feeGroup: Int, year: Int?): Int {
+        val currentYear = LocalDate.now().year
+        val vehicleAge = if (year != null && year > 1900) (currentYear - year).coerceAtLeast(0) else 0
+
+        val baseFee = when (feeGroup) {
+            1 -> 1235
+            2 -> 1420
+            3 -> 1636
+            4 -> 2060
+            5 -> 2340
+            6 -> 2750
+            7 -> 3350
+            else -> 1800
+        }
+
+        return when {
+            vehicleAge >= 10 -> (baseFee * 0.65).toInt()
+            vehicleAge >= 4 -> (baseFee * 0.85).toInt()
+            else -> baseFee
         }
     }
 
