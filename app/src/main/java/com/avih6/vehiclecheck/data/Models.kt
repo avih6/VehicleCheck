@@ -747,8 +747,8 @@ object VehicleUtils {
         return str
     }
 
-    fun getBrandLogoUrls(hebrewMake: String?): List<String> {
-        val slug = getBrandSlug(hebrewMake)
+    fun getBrandLogoUrls(hebrewMake: String?, modelName: String? = null): List<String> {
+        val slug = getBrandSlug(hebrewMake, modelName)
         if (slug == "car" || slug == "trailer") return emptyList()
 
         val list = mutableListOf<String>()
@@ -861,9 +861,17 @@ object VehicleUtils {
         return null
     }
 
-    fun getBrandSlug(hebrewMake: String?): String {
-        val m = hebrewMake.orEmpty().lowercase()
+    fun getBrandSlug(hebrewMake: String?, modelName: String? = null): String {
+        val m = "${hebrewMake.orEmpty()} ${modelName.orEmpty()}".lowercase()
         val predefined = when {
+            m.contains("ג'קו") || m.contains("ג'אקו") || m.contains("גקו") || m.contains("גאקו") || m.contains("ג'ייקו") || m.contains("גייקו") || m.contains("jaecoo") -> "jaecoo"
+            m.contains("אומודה") || m.contains("omoda") -> "omoda"
+            m.contains("קופרה") || m.contains("cupra") -> "cupra"
+            m.contains("פולסטאר") || m.contains("פול סטאר") || m.contains("polestar") -> "polestar"
+            m.contains("ג'נסיס") || m.contains("גנסיס") || m.contains("genesis") -> "genesis"
+            m.contains("קורבט") || m.contains("corvette") -> "corvette"
+            m.contains("אבארט") || m.contains("אברט") || m.contains("abarth") -> "abarth"
+            m.contains("די אס") || m.contains("ds automobiles") || m.contains("ds3") || m.contains("ds4") || m.contains("ds7") || m.contains("ds9") -> "ds"
             m.contains("סובארו") || m.contains("subaru") -> "subaru"
             m.contains("טויוטה") || m.contains("toyota") -> "toyota"
             m.contains("יונדאי") || m.contains("hyundai") -> "hyundai"

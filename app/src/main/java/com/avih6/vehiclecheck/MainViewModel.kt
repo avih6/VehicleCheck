@@ -572,15 +572,44 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _isSearchingModel = MutableStateFlow(false)
     val isSearchingModel: StateFlow<Boolean> = _isSearchingModel.asStateFlow()
 
+    @OptIn(kotlinx.coroutines.FlowPreview::class)
     val modelSuggestions: StateFlow<List<ModelSuggestion>> = _modelSearchQuery
+        .debounce(200)
         .map { query ->
             val q = query.trim()
             if (q.isBlank()) {
                 emptyList()
             } else {
-                VehicleModelCatalog.search(q).take(10)
+                val localMatches = VehicleModelCatalog.search(q).take(6)
+
+                val remoteMatches = try {
+                    val response = NetworkClient.apiService.searchModelsTechnicalSpec(query = q, limit = 8)
+                    if (response.success && response.result?.records != null) {
+                        response.result.records.mapNotNull { record ->
+                            val make = record.makeName?.trim().orEmpty()
+                            val mod = (record.commercialName ?: record.trimLevel)?.trim().orEmpty()
+                            if (make.isNotBlank() && mod.isNotBlank()) {
+                                val (mEn, modEn) = VehicleUtils.getEnglishMakeAndModel(make, mod)
+                                ModelSuggestion(
+                                    brandHebrew = make,
+                                    brandEnglish = if (mEn != "car") mEn else make,
+                                    modelHebrew = mod,
+                                    modelEnglish = if (modEn != "car") modEn else mod,
+                                    searchQuery = "$make $mod"
+                                )
+                            } else null
+                        }
+                    } else emptyList()
+                } catch (e: Exception) {
+                    emptyList()
+                }
+
+                (localMatches + remoteMatches)
+                    .distinctBy { it.searchQuery.trim().lowercase() }
+                    .take(8)
             }
         }
+        .flowOn(Dispatchers.IO)
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     private val _selectedModelDetail = MutableStateFlow<ModelStatisticsDetail?>(null)

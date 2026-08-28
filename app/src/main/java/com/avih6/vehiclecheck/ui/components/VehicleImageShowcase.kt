@@ -289,16 +289,16 @@ fun VehicleImageShowcase(
         }
     }
 
-    // If no images are available (or while loading without prior images), do not render the card to save vertical space
-    if (images.isEmpty()) {
-        return
-    }
-
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+    androidx.compose.animation.AnimatedVisibility(
+        visible = images.isNotEmpty(),
+        enter = androidx.compose.animation.expandVertically(animationSpec = androidx.compose.animation.core.tween(350)) + androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(350)),
+        exit = androidx.compose.animation.shrinkVertically(animationSpec = androidx.compose.animation.core.tween(250)) + androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(250))
     ) {
+        Card(
+            modifier = modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+        ) {
         Column(
             modifier = Modifier.padding(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally

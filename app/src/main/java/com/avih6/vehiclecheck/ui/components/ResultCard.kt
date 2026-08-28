@@ -404,6 +404,7 @@ fun ResultCard(
                 // Brand Emblem Badge (Centered & High Contrast White Badge)
                 AutoBrandLogo(
                     hebrewMake = vehicle.make,
+                    modelName = vehicle.model,
                     isEngineeringEquipment = isEngineeringEquipment,
                     size = 96.dp
                 )
@@ -2590,14 +2591,15 @@ data class OwnershipHistoryItem(
 fun AutoBrandLogo(
     hebrewMake: String?,
     modifier: Modifier = Modifier,
+    modelName: String? = null,
     size: androidx.compose.ui.unit.Dp = 80.dp,
     isEngineeringEquipment: Boolean = false,
     useWhiteBackground: Boolean = true
 ) {
-    var logoUrlIndex by remember(hebrewMake) { mutableIntStateOf(0) }
-    val slug = remember(hebrewMake) { VehicleUtils.getBrandSlug(hebrewMake) }
-    val urls = remember(hebrewMake) { VehicleUtils.getBrandLogoUrls(hebrewMake) }
-    var isLoaded by remember(hebrewMake) { mutableStateOf(false) }
+    var logoUrlIndex by remember(hebrewMake, modelName) { mutableIntStateOf(0) }
+    val slug = remember(hebrewMake, modelName) { VehicleUtils.getBrandSlug(hebrewMake, modelName) }
+    val urls = remember(hebrewMake, modelName) { VehicleUtils.getBrandLogoUrls(hebrewMake, modelName) }
+    var isLoaded by remember(hebrewMake, modelName) { mutableStateOf(false) }
 
     Surface(
         shape = CircleShape,

@@ -120,18 +120,18 @@ fun StatisticsScreen(
 
     val topBrands = remember(displayTotal) {
         listOf(
-            BrandStat("יונדאי", "Hyundai", (12.1f / 100f * displayTotal).toInt(), 12.1f, listOf("I10", "I20", "Tucson", "Ioniq 5", "Elantra")),
-            BrandStat("טויוטה", "Toyota", (11.5f / 100f * displayTotal).toInt(), 11.5f, listOf("Corolla", "Yaris", "RAV4", "C-HR", "Prius")),
-            BrandStat("קיה", "Kia", (10.1f / 100f * displayTotal).toInt(), 10.1f, listOf("Picanto", "Sportage", "Niro", "Stonic", "EV6")),
-            BrandStat("סקודה", "Skoda", (6.8f / 100f * displayTotal).toInt(), 6.8f, listOf("Octavia", "Kodiaq", "Superb", "Kamiq", "Fabia")),
-            BrandStat("מאזדה", "Mazda", (6.5f / 100f * displayTotal).toInt(), 6.5f, listOf("Mazda 3", "CX-5", "Mazda 2", "CX-30", "CX-90")),
-            BrandStat("BYD", "BYD", (2.5f / 100f * displayTotal).toInt(), 2.5f, listOf("Atto 3", "Dolphin", "Seal", "Tang", "Seal U")),
-            BrandStat("טסלה", "Tesla", (1.7f / 100f * displayTotal).toInt(), 1.7f, listOf("Model 3", "Model Y", "Model S", "Model X")),
-            BrandStat("סיאט", "Seat", (4.1f / 100f * displayTotal).toInt(), 4.1f, listOf("Ibiza", "Arona", "Ateca", "Leon")),
-            BrandStat("פולקסווגן", "Volkswagen", (3.7f / 100f * displayTotal).toInt(), 3.7f, listOf("Golf", "Polo", "Tiguan", "Passat", "ID.4")),
-            BrandStat("שברולט", "Chevrolet", (3.4f / 100f * displayTotal).toInt(), 3.4f, listOf("Spark", "Traverse", "Equinox", "Malibu", "Cruze")),
-            BrandStat("פיג'ו", "Peugeot", (3.2f / 100f * displayTotal).toInt(), 3.2f, listOf("208", "2008", "3008", "5008")),
-            BrandStat("סובארו", "Subaru", (2.9f / 100f * displayTotal).toInt(), 2.9f, listOf("Forester", "Crosstrek", "Outback", "XV", "Impreza"))
+            BrandStat("יונדאי", "Hyundai", (12.1f / 100f * displayTotal).toInt(), 12.1f, listOf("טוסון (Tucson)", "איוניק 5 (Ioniq 5)", "אלנטרה (Elantra)", "קונה (Kona)", "i10", "i20", "סנטה פה (Santa Fe)")),
+            BrandStat("טויוטה", "Toyota", (11.5f / 100f * displayTotal).toInt(), 11.5f, listOf("קורולה (Corolla)", "יאריס (Yaris)", "ראב 4 (RAV4)", "C-HR", "קאמרי (Camry)", "פריוס (Prius)", "לנד קרוזר (Land Cruiser)")),
+            BrandStat("קיה", "Kia", (10.1f / 100f * displayTotal).toInt(), 10.1f, listOf("פיקנטו (Picanto)", "ספורטאז' (Sportage)", "נירו (Niro)", "סטוניק (Stonic)", "EV6", "סורנטו (Sorento)", "סיד (Ceed)")),
+            BrandStat("סקודה", "Skoda", (6.8f / 100f * displayTotal).toInt(), 6.8f, listOf("אוקטביה (Octavia)", "קודיאק (Kodiaq)", "סופרב (Superb)", "קאמיק (Kamiq)", "פאביה (Fabia)", "אניאק (Enyaq)")),
+            BrandStat("מאזדה", "Mazda", (6.5f / 100f * displayTotal).toInt(), 6.5f, listOf("מאזדה 3 (Mazda 3)", "CX-5", "מאזדה 2 (Mazda 2)", "CX-30", "מאזדה 6", "CX-60")),
+            BrandStat("סיאט", "Seat", (4.1f / 100f * displayTotal).toInt(), 4.1f, listOf("איביזה (Ibiza)", "ארונה (Arona)", "אטקה (Ateca)", "לאון (Leon)")),
+            BrandStat("פולקסווגן", "Volkswagen", (3.7f / 100f * displayTotal).toInt(), 3.7f, listOf("גולף (Golf)", "פולו (Polo)", "טיגואן (Tiguan)", "ID.4", "פאסאט (Passat)", "טי-רוק (T-Roc)")),
+            BrandStat("שברולט", "Chevrolet", (3.4f / 100f * displayTotal).toInt(), 3.4f, listOf("ספארק (Spark)", "טראוורס (Traverse)", "אקווינוקס (Equinox)", "בלייזר (Blazer)", "קרוז (Cruze)")),
+            BrandStat("פיג'ו", "Peugeot", (3.2f / 100f * displayTotal).toInt(), 3.2f, listOf("208", "2008", "3008", "5008", "308", "פרטנר (Partner)")),
+            BrandStat("סובארו", "Subaru", (2.9f / 100f * displayTotal).toInt(), 2.9f, listOf("פורסטר (Forester)", "קרוסטרק / XV", "אאוטבק (Outback)", "אימפרזה (Impreza)", "B4")),
+            BrandStat("BYD", "BYD", (2.5f / 100f * displayTotal).toInt(), 2.5f, listOf("אטו 3 (Atto 3)", "דולפין (Dolphin)", "סיל (Seal)", "סיל U", "טאנג (Tang)")),
+            BrandStat("טסלה", "Tesla", (1.7f / 100f * displayTotal).toInt(), 1.7f, listOf("מודל 3 (Model 3)", "מודל Y (Model Y)", "מודל S", "מודל X", "סייברטראק (Cybertruck)"))
         )
     }
 
@@ -386,7 +386,7 @@ fun StatisticsScreen(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             AutoBrandLogo(
-                                                brandName = suggestion.brandHebrew,
+                                                hebrewMake = suggestion.brandHebrew,
                                                 size = 30.dp
                                             )
                                             Spacer(Modifier.width(10.dp))
@@ -736,11 +736,48 @@ fun StatisticsScreen(
                                 if (isSelected) {
                                     Spacer(Modifier.height(8.dp))
                                     Text(
-                                        text = "דגמים נפוצים בישראל: ${brand.topModels.joinToString(", ")}",
+                                        text = "דגמים נפוצים בישראל (לחץ לניתוח):",
                                         fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold,
+                                        fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
                                     )
+                                    Spacer(Modifier.height(4.dp))
+                                    androidx.compose.foundation.lazy.LazyRow(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        items(brand.topModels.size) { mIdx ->
+                                            val model = brand.topModels[mIdx]
+                                            val cleanModelName = model.substringBefore(" (").trim()
+                                            val fullModelQuery = "${brand.nameHe} $cleanModelName"
+                                            AssistChip(
+                                                onClick = {
+                                                    focusManager.clearFocus()
+                                                    viewModel.searchModelStatistics(fullModelQuery)
+                                                },
+                                                label = {
+                                                    Text(
+                                                        text = model,
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Medium,
+                                                        maxLines = 1
+                                                    )
+                                                },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        imageVector = Icons.Default.DirectionsCar,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(13.dp)
+                                                    )
+                                                },
+                                                shape = RoundedCornerShape(8.dp),
+                                                colors = AssistChipDefaults.assistChipColors(
+                                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                                )
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
