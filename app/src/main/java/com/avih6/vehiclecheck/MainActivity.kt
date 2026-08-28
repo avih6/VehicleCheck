@@ -342,6 +342,10 @@ fun MainAppShell(viewModel: MainViewModel) {
                     )
                     2 -> com.avih6.vehiclecheck.ui.screens.StatisticsScreen(
                         viewModel = viewModel,
+                        onNavigateToGallery = { modelQuery ->
+                            viewModel.onQueryChange(modelQuery)
+                            selectedTab = 5
+                        },
                         modifier = Modifier.fillMaxSize()
                     )
                     3 -> com.avih6.vehiclecheck.ui.screens.RecallsScreen(

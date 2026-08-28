@@ -35,6 +35,14 @@ interface GovApiService {
         @Query("limit") limit: Int = 1
     ): GovApiResponse<VehicleTechnicalSpecRecord>
 
+    // 3b. Search Models & Technical Specs by Text Query (מאגר דגמים ומפרט טכני)
+    @GET("api/3/action/datastore_search")
+    suspend fun searchModelsTechnicalSpec(
+        @Query("resource_id") resourceId: String = "142afde2-6228-49f9-8a29-9b6c3a0cbe40",
+        @Query("q") query: String,
+        @Query("limit") limit: Int = 10
+    ): GovApiResponse<VehicleTechnicalSpecRecord>
+
     // 4. Extra History & Mileage (מאגר קילומטראז' ומקוריות)
     @GET("api/3/action/datastore_search")
     suspend fun getExtraHistory(

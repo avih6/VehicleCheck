@@ -452,6 +452,23 @@ data class ModelStatistics(
     val activePercentage: Float get() = if (totalVehicles > 0) (totalActive.toFloat() / totalVehicles) * 100f else 100f
 }
 
+data class ModelStatisticsDetail(
+    val makeHe: String,
+    val makeEn: String,
+    val modelName: String,
+    val commercialName: String? = null,
+    val vehicleType: String? = null,
+    val classification: String,
+    val totalActive: Int,
+    val totalInactive: Int,
+    val survivalRate: Float,
+    val safetyScore: Double? = null,
+    val fuelTypes: List<String> = emptyList(),
+    val enginePowerHp: Int? = null,
+    val transmission: String? = null,
+    val yearDistribution: List<ModelYearCount> = emptyList()
+)
+
 sealed interface TestStatus {
     data class Valid(val daysLeft: Long) : TestStatus
     data class ExpiringSoon(val daysLeft: Long) : TestStatus
