@@ -731,7 +731,22 @@ object VehicleUtils {
         var str = raw.trim()
         val countrySuffixes = listOf(
             " גרמנ", " גרמניה", " יפן", " צרפת", " איטליה", " איטלי",
-            " ארה    fun getBrandLogoUrls(hebrewMake: String?): List<String> {
+            " ארה\"ב", " ארהב\"", " ארהב", " שוודיה", " שוודי",
+            " בריטניה", " אנגליה", " סין", " הודו", " טורקיה", " תורכיה",
+            " דרום קוריאה", " קוריאה", " צ'כיה", " ספרד", " רומניה",
+            " הונגריה", " פולין", " מקסיקו", " קנדה", " תאילנד", " אוסטריה", " בלגיה"
+        )
+        for (suffix in countrySuffixes) {
+            if (str.endsWith(suffix, ignoreCase = true)) {
+                str = str.removeSuffix(suffix).trim()
+            }
+        }
+        str = str.replace("ארהב\"", "ארה\"ב")
+        str = str.replace("ארהב", "ארה\"ב")
+        return str
+    }
+
+    fun getBrandLogoUrls(hebrewMake: String?): List<String> {
         val slug = getBrandSlug(hebrewMake)
         if (slug == "car" || slug == "trailer") return emptyList()
 
@@ -1467,5 +1482,6 @@ object VehicleUtils {
 
             // 11. Default Passenger Car (פרטי / סדאן / מנהלים)
             else -> "🚗 רכב פרטי"
+        }
     }
 }
