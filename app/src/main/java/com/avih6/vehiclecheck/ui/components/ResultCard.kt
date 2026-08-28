@@ -2575,7 +2575,7 @@ data class OwnershipHistoryItem(
 fun AutoBrandLogo(
     hebrewMake: String?,
     modifier: Modifier = Modifier,
-    logoSize: androidx.compose.ui.unit.Dp = 80.dp,
+    size: androidx.compose.ui.unit.Dp = 80.dp,
     isEngineeringEquipment: Boolean = false,
     useWhiteBackground: Boolean = true
 ) {
@@ -2586,14 +2586,14 @@ fun AutoBrandLogo(
     Surface(
         shape = CircleShape,
         color = if (useWhiteBackground) Color.White else Color.Transparent,
-        modifier = modifier.size(logoSize)
+        modifier = modifier.size(size)
     ) {
         Box(
-            modifier = Modifier.fillMaxSize().padding(logoSize * 0.1f),
+            modifier = Modifier.fillMaxSize().padding(size * 0.1f),
             contentAlignment = Alignment.Center
         ) {
             val isTrailer = slug == "trailer" || (hebrewMake != null && (hebrewMake.contains("סירני") || hebrewMake.contains("גרור") || hebrewMake.contains("נתמך")))
-            if (urls.isEmpty() || logoUrlIndex >= urls.size || slug == "car") {
+            if (urls.isEmpty() || logoUrlIndex >= urls.count() || slug == "car") {
                 val icon = when {
                     isEngineeringEquipment -> Icons.Default.Construction
                     isTrailer -> Icons.Default.LocalShipping
@@ -2616,7 +2616,7 @@ fun AutoBrandLogo(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Fit,
                     onError = {
-                        if (logoUrlIndex < urls.size) {
+                        if (logoUrlIndex < urls.count()) {
                             logoUrlIndex++
                         }
                     }
