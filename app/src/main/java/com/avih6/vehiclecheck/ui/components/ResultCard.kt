@@ -679,6 +679,7 @@ private fun GeneralTabContent(
     recalls: List<VehicleRecallRestrictionRecord>,
     recallDetail: RecallDetailRecord?,
     stats: ModelStatistics,
+    isEngineeringEquipment: Boolean = false,
     onShowAllCounts: () -> Unit
 ) {
     val context = LocalContext.current
