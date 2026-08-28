@@ -1077,6 +1077,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val q = (query ?: _modelSearchQuery.value).trim()
         if (q.isBlank()) return
         _modelSearchQuery.value = q
+        _selectedModelDetail.value = null // Clear previous result immediately
         _isSearchingModel.value = true
         _modelSearchError.value = null
 
@@ -1113,19 +1114,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         trimLevel = first.trimLevel
                     )
 
-                    // Total active count from MOT across the full model population
+                    // Find TRUE total active vehicle count by taking the maximum across all model query candidates
                     var activeCount = 0
-                    val bestQuery = candidateQueries.firstOrNull { it.contains(" ") } ?: candidateQueries.firstOrNull() ?: q
+                    var bestQueryForYears = q
 
                     for (cand in candidateQueries) {
                         try {
-                            val activeSearch = NetworkClient.apiService.searchVehicleByQuery(query = cand, limit = 5)
+                            val activeSearch = NetworkClient.apiService.searchVehicleByQuery(query = cand, limit = 1)
                             val tot = activeSearch.result?.total ?: 0
-                            if (tot > 50) {
+                            if (tot > activeCount) {
                                 activeCount = tot
-                                break
-                            } else if (tot > activeCount) {
-                                activeCount = tot
+                                bestQueryForYears = cand
                             }
                         } catch (_: Exception) {}
                     }
@@ -1145,21 +1144,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val totalVehicles = activeCount + inactiveCount
                     val survivalRate = if (totalVehicles > 0) (activeCount.toFloat() / totalVehicles) * 100f else 96.5f
 
-                    // Build Year Distribution breakdown (past 5 years)
+                    // Build Year Distribution breakdown (past 5 years: from oldest to newest)
                     val currentYear = java.time.LocalDate.now().year
                     val distribution = mutableListOf<ModelYearCount>()
-                    val years = listOf(currentYear, currentYear - 1, currentYear - 2, currentYear - 3, currentYear - 4)
+                    val years = listOf(currentYear - 4, currentYear - 3, currentYear - 2, currentYear - 1, currentYear)
 
                     years.forEachIndexed { idx, yr ->
                         var yrActive = 0
                         try {
-                            val yrResp = NetworkClient.apiService.searchVehicleByQuery(query = "$bestQuery $yr", limit = 1)
+                            val yrResp = NetworkClient.apiService.searchVehicleByQuery(query = "$bestQueryForYears $yr", limit = 1)
                             yrActive = yrResp.result?.total ?: 0
                         } catch (_: Exception) {}
 
                         if (yrActive == 0 && activeCount > 0) {
-                            val weights = listOf(0.28, 0.25, 0.20, 0.15, 0.12)
-                            val weight = weights.getOrElse(idx) { 0.10 }
+                            val weights = listOf(0.18, 0.22, 0.25, 0.23, 0.12)
+                            val weight = weights.getOrElse(idx) { 0.20 }
                             yrActive = (activeCount * weight).toInt().coerceAtLeast(1)
                         }
                         if (yrActive > 0) {

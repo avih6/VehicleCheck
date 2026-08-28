@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,13 +20,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -1309,7 +1317,7 @@ fun ModelDetailStatisticsCard(
                 }
             }
 
-            // Year Distribution Breakdown Chart
+            // Year Distribution Breakdown Chart (Smooth Line Chart)
             if (detail.yearDistribution.isNotEmpty()) {
                 Spacer(Modifier.height(16.dp))
                 Text(
@@ -1317,55 +1325,158 @@ fun ModelDetailStatisticsCard(
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(10.dp))
 
-                val maxCount = detail.yearDistribution.maxOfOrNull { it.activeCount }?.coerceAtLeast(1) ?: 1
+                val sorted = remember(detail.yearDistribution) { detail.yearDistribution.sortedBy { it.year } }
+                val maxCount = remember(sorted) { sorted.maxOfOrNull { it.activeCount }?.coerceAtLeast(1) ?: 1 }
+                val minCount = remember(sorted) { sorted.minOfOrNull { it.activeCount }?.coerceAtLeast(0) ?: 0 }
+
+                val primaryColor = MaterialTheme.colorScheme.primary
+                val cyanColor = Color(0xFF00E5FF)
+                val gridColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
 
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(120.dp)
-                            .padding(horizontal = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Bottom
+                            .background(
+                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(14.dp)
+                            )
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
+                                RoundedCornerShape(14.dp)
+                            )
+                            .padding(horizontal = 12.dp, vertical = 12.dp)
                     ) {
-                        detail.yearDistribution.sortedBy { it.year }.forEach { yr ->
-                            val fraction = (yr.activeCount.toFloat() / maxCount).coerceIn(0.15f, 1f)
-                            val animatedHeight = fraction * animProgress.value
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp)
+                        ) {
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                val width = size.width
+                                val height = size.height
+                                val topPadding = 20.dp.toPx()
+                                val bottomPadding = 12.dp.toPx()
+                                val usableHeight = height - topPadding - bottomPadding
+                                val stepX = if (sorted.size > 1) width / (sorted.size - 1) else width
 
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(horizontal = 3.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Bottom
-                            ) {
-                                Text(
-                                    text = "%,d".format((yr.activeCount * animProgress.value).toInt()),
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    maxLines = 1
-                                )
-                                Spacer(Modifier.height(4.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height((75 * animatedHeight).dp)
-                                        .clip(RoundedCornerShape(topStart = 5.dp, topEnd = 5.dp))
-                                        .background(
-                                            Brush.verticalGradient(
-                                                listOf(Color(0xFF00E5FF), Color(0xFF0091EA))
-                                            )
+                                val points = sorted.mapIndexed { index, item ->
+                                    val x = if (sorted.size > 1) index * stepX else width / 2
+                                    val normalized = if (maxCount > minCount) {
+                                        ((item.activeCount - minCount).toFloat() / (maxCount - minCount)).coerceIn(0.1f, 1f)
+                                    } else 0.5f
+                                    val y = height - bottomPadding - (normalized * usableHeight * animProgress.value)
+                                    Offset(x, y)
+                                }
+
+                                // Draw subtle dashed grid lines
+                                for (i in 0..2) {
+                                    val gridY = topPadding + (usableHeight * i / 2)
+                                    drawLine(
+                                        color = gridColor,
+                                        start = Offset(0f, gridY),
+                                        end = Offset(width, gridY),
+                                        strokeWidth = 1.dp.toPx(),
+                                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f)
+                                    )
+                                }
+
+                                if (points.isNotEmpty()) {
+                                    val strokePath = Path()
+                                    val fillPath = Path()
+
+                                    strokePath.moveTo(points.first().x, points.first().y)
+                                    fillPath.moveTo(points.first().x, height - bottomPadding)
+                                    fillPath.lineTo(points.first().x, points.first().y)
+
+                                    for (i in 0 until points.size - 1) {
+                                        val p0 = points[i]
+                                        val p1 = points[i + 1]
+                                        val controlPoint1 = Offset(p0.x + (p1.x - p0.x) / 2, p0.y)
+                                        val controlPoint2 = Offset(p0.x + (p1.x - p0.x) / 2, p1.y)
+                                        strokePath.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, p1.x, p1.y)
+                                        fillPath.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, p1.x, p1.y)
+                                    }
+
+                                    fillPath.lineTo(points.last().x, height - bottomPadding)
+                                    fillPath.close()
+
+                                    // Gradient fill
+                                    drawPath(
+                                        path = fillPath,
+                                        brush = Brush.verticalGradient(
+                                            colors = listOf(
+                                                cyanColor.copy(alpha = 0.35f * animProgress.value),
+                                                primaryColor.copy(alpha = 0.08f * animProgress.value),
+                                                Color.Transparent
+                                            ),
+                                            startY = topPadding,
+                                            endY = height
                                         )
-                                )
-                                Spacer(Modifier.height(4.dp))
+                                    )
+
+                                    // Smooth line stroke
+                                    drawPath(
+                                        path = strokePath,
+                                        brush = Brush.horizontalGradient(listOf(cyanColor, primaryColor)),
+                                        style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+                                    )
+
+                                    // Data point circles
+                                    points.forEachIndexed { idx, pt ->
+                                        val isLast = idx == points.lastIndex
+                                        drawCircle(
+                                            color = if (isLast) cyanColor else primaryColor,
+                                            radius = if (isLast) 5.dp.toPx() else 4.dp.toPx(),
+                                            center = pt
+                                        )
+                                        drawCircle(
+                                            color = Color.White,
+                                            radius = if (isLast) 2.5.dp.toPx() else 1.8.dp.toPx(),
+                                            center = pt
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Value labels above chart
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .align(Alignment.TopCenter),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                sorted.forEach { yr ->
+                                    val countText = if (yr.activeCount >= 1000) "%.1fK".format((yr.activeCount * animProgress.value) / 1000f)
+                                    else "%,d".format((yr.activeCount * animProgress.value).toInt())
+                                    Text(
+                                        text = countText,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(6.dp))
+
+                        // Year labels underneath
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            sorted.forEach { yr ->
                                 Text(
                                     text = "${yr.year}",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
                                 )
                             }
                         }
