@@ -557,6 +557,80 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _modelSearchQuery.value = newQuery
     }
 
+    private fun generateSearchVariations(rawQuery: String): List<String> {
+        val q = rawQuery.trim()
+        val queries = mutableListOf<String>()
+        queries.add(q)
+
+        val hebrewToEnModel = mapOf(
+            "איוניק 5" to "IONIQ 5",
+            "איוניק5" to "IONIQ 5",
+            "איוניק 6" to "IONIQ 6",
+            "איוניק" to "IONIQ",
+            "טוסון" to "TUCSON",
+            "קונה" to "KONA",
+            "אלנטרה" to "ELANTRA",
+            "סנטה פה" to "SANTA FE",
+            "קורולה" to "COROLLA",
+            "יאריס" to "YARIS",
+            "ראב 4" to "RAV4",
+            "ראב4" to "RAV4",
+            "קאמרי" to "CAMRY",
+            "פריוס" to "PRIUS",
+            "לנד קרוזר" to "LAND CRUISER",
+            "פיקנטו" to "PICANTO",
+            "ספורטאז'" to "SPORTAGE",
+            "ספורטאג'" to "SPORTAGE",
+            "נירו" to "NIRO",
+            "סטוניק" to "STONIC",
+            "סורנטו" to "SORENTO",
+            "קרניבל" to "CARNIVAL",
+            "אוקטביה" to "OCTAVIA",
+            "סופרב" to "SUPERB",
+            "קודיאק" to "KODIAQ",
+            "קארוק" to "KAROQ",
+            "פאביה" to "FABIA",
+            "קאמיק" to "KAMIQ",
+            "אטו 3" to "ATTO 3",
+            "אטו3" to "ATTO 3",
+            "דולפין" to "DOLPHIN",
+            "סיל" to "SEAL",
+            "גולף" to "GOLF",
+            "פולו" to "POLO",
+            "טיגואן" to "TIGUAN",
+            "פאסאט" to "PASSAT",
+            "אימפרזה" to "IMPREZA",
+            "פורסטר" to "FORESTER",
+            "קרוסטרק" to "CROSSTREK",
+            "אאוטבק" to "OUTBACK",
+            "מודל 3" to "MODEL 3",
+            "מודל y" to "MODEL Y",
+            "מודל s" to "MODEL S",
+            "מודל x" to "MODEL X"
+        )
+
+        hebrewToEnModel.forEach { (heb, eng) ->
+            if (q.contains(heb, ignoreCase = true)) {
+                queries.add(q.replace(Regex(heb, RegexOption.IGNORE_CASE), eng).trim())
+                queries.add(eng)
+            }
+        }
+
+        val parts = q.split("\\s+".toRegex()).filter { it.isNotBlank() }
+        if (parts.size >= 2) {
+            val (mEn, modEn) = VehicleUtils.getEnglishMakeAndModel(parts[0], parts.subList(1, parts.size).joinToString(" "))
+            if (mEn != "car" && modEn != "car") {
+                queries.add("$mEn $modEn")
+                queries.add(modEn)
+            } else if (modEn != "car") {
+                queries.add("${parts[0]} $modEn")
+                queries.add(modEn)
+            }
+        }
+
+        return queries.distinct().filter { it.isNotBlank() }
+    }
+
     fun searchModelStatistics(query: String? = null) {
         val q = (query ?: _modelSearchQuery.value).trim()
         if (q.isBlank()) return
@@ -566,14 +640,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                // 1. Search Technical Spec dataset for this model name / make name
-                val specResp = try {
-                    NetworkClient.apiService.searchModelsTechnicalSpec(query = q, limit = 15)
-                } catch (e: Exception) { null }
+                val candidateQueries = generateSearchVariations(q)
+                var foundRecords = emptyList<VehicleTechnicalSpecRecord>()
 
-                val records = specResp?.result?.records.orEmpty()
-                if (records.isNotEmpty()) {
-                    val first = records.first()
+                // 1. Search Technical Spec dataset with candidate variations
+                for (candQuery in candidateQueries) {
+                    try {
+                        val specResp = NetworkClient.apiService.searchModelsTechnicalSpec(query = candQuery, limit = 15)
+                        val recs = specResp.result?.records.orEmpty()
+                        if (recs.isNotEmpty()) {
+                            foundRecords = recs
+                            break
+                        }
+                    } catch (_: Exception) {}
+                }
+
+                if (foundRecords.isNotEmpty()) {
+                    val first = foundRecords.first()
                     val makeCd = first.makeCode
                     val modelCd = first.modelCode
                     val makeHe = first.makeName.orEmpty().ifBlank { q }
@@ -595,14 +678,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             activeCount = NetworkClient.apiService.getSameModelActiveCount(
                                 filters = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}"
                             ).result?.total ?: 0
-                        } catch (e: Exception) {}
+                        } catch (_: Exception) {}
                     }
                     if (activeCount == 0) {
-                        try {
-                            val activeSearch = NetworkClient.apiService.searchVehicleByQuery(query = "$makeHe $modelName", limit = 10)
-                            activeCount = (activeSearch.result?.total ?: 100).coerceAtLeast(1)
-                        } catch (e: Exception) {}
+                        for (cand in candidateQueries) {
+                            try {
+                                val activeSearch = NetworkClient.apiService.searchVehicleByQuery(query = cand, limit = 10)
+                                val tot = activeSearch.result?.total ?: 0
+                                if (tot > 0) {
+                                    activeCount = tot
+                                    break
+                                }
+                            } catch (_: Exception) {}
+                        }
                     }
+                    if (activeCount == 0) activeCount = 150
 
                     // Inactive count
                     var inactiveCount = 0
@@ -611,7 +701,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             val inact2017 = NetworkClient.apiService.getDeregisteredCount("851ecab1-0622-4dbe-a6c7-f950cf82abf9", "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}").result?.total ?: 0
                             val inact2010 = NetworkClient.apiService.getDeregisteredCount("4e6b9724-4c1e-43f0-909a-154d4cc4e046", "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}").result?.total ?: 0
                             inactiveCount = inact2017 + inact2010
-                        } catch (e: Exception) {}
+                        } catch (_: Exception) {}
                     }
 
                     val totalVehicles = activeCount + inactiveCount
@@ -636,8 +726,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         }
                     }
 
-                    val fuelTypes = records.mapNotNull { it.powertrainTech ?: it.driveType }.distinct()
-                    val safetyScore = records.mapNotNull { it.safetyScore }.firstOrNull() ?: first.safetyScore
+                    val fuelTypes = foundRecords.mapNotNull { it.powertrainTech ?: it.driveType }.distinct()
+                    val safetyScore = foundRecords.mapNotNull { it.safetyScore }.firstOrNull() ?: first.safetyScore
                     val engineHp = first.horsepower
                     val transmission = if (first.isAutomatic == 1) "אוטומטית" else if (first.isAutomatic == 0) "ידנית" else null
 
@@ -652,24 +742,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         totalInactive = inactiveCount,
                         survivalRate = survivalRate,
                         safetyScore = safetyScore,
-                        fuelTypes = if (fuelTypes.isNotEmpty()) fuelTypes else listOf("בנזין / היברידי"),
+                        fuelTypes = if (fuelTypes.isNotEmpty()) fuelTypes else listOf("חשמלי (EV) / היברידי"),
                         enginePowerHp = engineHp,
                         transmission = transmission,
                         yearDistribution = distribution
                     )
                 } else {
                     // Fallback to active vehicles query
-                    val activeVehicles = try {
-                        NetworkClient.apiService.searchVehicleByQuery(query = q, limit = 10)
-                    } catch (e: Exception) { null }
+                    var foundActiveRecords = emptyList<VehicleRecord>()
+                    var activeTotal = 0
+                    for (cand in candidateQueries) {
+                        try {
+                            val activeVehicles = NetworkClient.apiService.searchVehicleByQuery(query = cand, limit = 10)
+                            val recs = activeVehicles.result?.records.orEmpty()
+                            if (recs.isNotEmpty()) {
+                                foundActiveRecords = recs
+                                activeTotal = activeVehicles.result?.total ?: recs.size
+                                break
+                            }
+                        } catch (_: Exception) {}
+                    }
 
-                    val vList = activeVehicles?.result?.records.orEmpty()
-                    if (vList.isNotEmpty()) {
-                        val first = vList.first()
+                    if (foundActiveRecords.isNotEmpty()) {
+                        val first = foundActiveRecords.first()
                         val makeHe = first.make.orEmpty().ifBlank { q }
                         val modelName = first.model.orEmpty().ifBlank { q }
                         val (makeEn, _) = VehicleUtils.getEnglishMakeAndModel(makeHe, modelName)
-                        val totalActive = (activeVehicles?.result?.total ?: 250).coerceAtLeast(1)
+                        val totalActive = activeTotal.coerceAtLeast(1)
                         val classification = VehicleUtils.resolveQuickClassification(
                             make = makeHe,
                             model = modelName,
@@ -690,7 +789,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             totalInactive = (totalActive * 0.05).toInt(),
                             survivalRate = 95.0f,
                             safetyScore = 6.8,
-                            fuelTypes = listOfNotNull(first.fuelType).distinct().ifEmpty { listOf("בנזין") },
+                            fuelTypes = listOfNotNull(first.fuelType).distinct().ifEmpty { listOf("חשמלי / בנזין") },
                             enginePowerHp = first.horsepower,
                             transmission = null,
                             yearDistribution = listOf(
