@@ -167,7 +167,13 @@ private fun HistoryItemCard(
             val statusColor = if (isNotFound) {
                 Color(0xFFFF9800)
             } else if (item.isTestValid) {
-                if (item.daysUntilTest <= 30) TestExpiringSoonAmber else TestValidGreen
+                if (item.testExpiryDate == null) {
+                    TestValidGreen
+                } else if (item.daysUntilTest in 0..30) {
+                    TestExpiringSoonAmber
+                } else {
+                    TestValidGreen
+                }
             } else {
                 TestExpiredRed
             }
@@ -213,7 +219,8 @@ private fun HistoryItemCard(
                             modelType = item.modelType,
                             ownership = item.ownership,
                             trimLevel = item.trimLevel,
-                            fuel = item.fuelType
+                            fuel = item.fuelType,
+                            category = item.modelType
                         )
                         Surface(
                             shape = RoundedCornerShape(6.dp),
@@ -247,6 +254,7 @@ private fun HistoryItemCard(
                 // Test Status summary / Retry status
                 val testText = when {
                     isNotFound -> "לא אותר במאגר • לחץ לבדיקה חוזרת 🔄"
+                    item.isTestValid && item.testExpiryDate.isNullOrBlank() -> "רכב פעיל ברישיון • ללא נתוני תוקף טסט במאגר"
                     item.isTestValid -> {
                         val diff = VehicleUtils.calculateDateDifferenceHebrew(item.testExpiryDate)
                         if (diff != null) "טסט בתוקף • $diff" else "טסט בתוקף (עוד ${item.daysUntilTest} ימים)"

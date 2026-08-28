@@ -558,6 +558,12 @@ fun ResultCard(
             )
         }
 
+        // 3b. Ownership History Timeline (היסטוריית בעלות ומקוריות)
+        OwnershipHistorySection(
+            vehicle = vehicle,
+            extraHistory = extraHistory
+        )
+
         // 4. Importer & Price Banner
         val price = importerInfo?.importerPrice
         val impName = importerInfo?.importerName
@@ -862,20 +868,44 @@ private fun GeneralTabContent(
 
                 // Off-road cancellation date & legal status
                 if (isOffRoad) {
-                    if (!offRoadDate.isNullOrBlank()) {
-                        val offRoadAgo = VehicleUtils.formatTimeAgo(offRoadDate)
-                        SpecRow(
-                            label = "מועד הורדה מהכביש (ביטול רישום):",
-                            value = if (offRoadAgo != null) "$offRoadDate ($offRoadAgo)" else offRoadDate
-                        )
-                    }
+                    val formattedOffRoad = offRoadDate?.let { VehicleUtils.formatDate(it) } ?: vehicle.testExpiryDate?.let { VehicleUtils.formatDate(it) }
+                    val offRoadAgo = VehicleUtils.formatTimeAgo(offRoadDate ?: vehicle.testExpiryDate)
+                    
                     Surface(
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                        shape = RoundedCornerShape(12.dp),
                         color = Color(0xFFC62828).copy(alpha = 0.12f),
-                        border = BorderStroke(1.dp, Color(0xFFEF5350).copy(alpha = 0.4f))
+                        border = BorderStroke(1.dp, Color(0xFFEF5350).copy(alpha = 0.35f))
                     ) {
-                        Column(modifier = Modifier.padding(10.dp)) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "מועד ביטול רישום (הורדה):",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = formattedOffRoad ?: "רישום בוטל",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFFF5252)
+                                )
+                            }
+                            if (offRoadAgo != null) {
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = "חלוף זמן: $offRoadAgo",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFFFF5252).copy(alpha = 0.85f)
+                                )
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            HorizontalDivider(color = Color(0xFFEF5350).copy(alpha = 0.2f), thickness = 0.5.dp)
+                            Spacer(Modifier.height(8.dp))
                             Text(
                                 text = "⚖️ מעמד משפטי: ביטול רישום סופי ומוחלט",
                                 fontWeight = FontWeight.Bold,
@@ -887,7 +917,7 @@ private fun GeneralTabContent(
                                 text = "על פי תקנות התעבורה (טוטאל לוס / פירוק / גריטה), הרכב נגרע לצמיתות ממצבת כלי הרכב ונאסר לחלוטין לתנועה בכביש.",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 11.sp,
-                                lineHeight = 15.sp
+                                lineHeight = 16.sp
                             )
                         }
                     }
@@ -2383,6 +2413,165 @@ private fun EngineeringTechSpecContent(
 }
 
 @Composable
+fun OwnershipHistorySection(
+    vehicle: VehicleRecord,
+    extraHistory: VehicleExtraHistoryRecord?,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    val items = remember(vehicle, extraHistory) {
+        val list = mutableListOf<OwnershipHistoryItem>()
+        
+        val currentOwnership = if (!vehicle.ownership.isNullOrBlank()) vehicle.ownership else "פרטי"
+        val currentDate = vehicle.onRoadDate ?: vehicle.lastTestDate ?: extraHistory?.firstRegistrationDate
+        val currentTimeAgo = currentDate?.let { VehicleUtils.formatTimeAgo(it) } ?: "עדכני"
+        
+        list.add(
+            OwnershipHistoryItem(
+                ownership = currentOwnership,
+                date = currentDate?.let { VehicleUtils.formatDate(it) } ?: "נוכחי",
+                duration = currentTimeAgo
+            )
+        )
+
+        val orig = extraHistory?.originality
+        val firstRegDate = extraHistory?.firstRegistrationDate
+        if (!orig.isNullOrBlank() && (orig != currentOwnership || firstRegDate != null)) {
+            val origTimeAgo = firstRegDate?.let { VehicleUtils.formatTimeAgo(it) } ?: "רישום מקורי"
+            list.add(
+                OwnershipHistoryItem(
+                    ownership = "$orig (מקוריות)",
+                    date = firstRegDate?.let { VehicleUtils.formatDate(it) } ?: vehicle.onRoadDate?.let { VehicleUtils.formatDate(it) } ?: "רישום ראשון",
+                    duration = origTimeAgo
+                )
+            )
+        }
+        list
+    }
+
+    Column(
+        modifier = modifier.fillMaxWidth().padding(top = 4.dp, bottom = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        OutlinedButton(
+            onClick = { expanded = !expanded },
+            shape = RoundedCornerShape(20.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = MaterialTheme.colorScheme.primary
+            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+            modifier = Modifier.height(34.dp),
+            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 2.dp)
+        ) {
+            Icon(
+                imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.History,
+                contentDescription = null,
+                modifier = Modifier.size(15.dp)
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = if (expanded) "הסתר היסטוריית בעלות" else "הצג היסטוריית בעלות",
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        androidx.compose.animation.AnimatedVisibility(
+            visible = expanded,
+            enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
+            exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
+        ) {
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // Header Row (Orange Banner style)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFE65100))
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "בעלות",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.5.sp,
+                            modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = "מתאריך",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.5.sp,
+                            modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = "זמן בעלות",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.5.sp,
+                            modifier = Modifier.weight(1.2f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+
+                    // Content Rows
+                    items.forEachIndexed { index, item ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(if (index % 2 == 0) Color.Transparent else MaterialTheme.colorScheme.surface.copy(alpha = 0.3f))
+                                .padding(horizontal = 10.dp, vertical = 9.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = item.ownership,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 11.5.sp,
+                                modifier = Modifier.weight(1f),
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = item.date,
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f),
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = item.duration,
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1.2f),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        if (index < items.size - 1) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f), thickness = 0.5.dp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+data class OwnershipHistoryItem(
+    val ownership: String,
+    val date: String,
+    val duration: String
+)
+
+@Composable
 fun AutoBrandLogo(
     hebrewMake: String?,
     modifier: Modifier = Modifier,
@@ -2392,26 +2581,7 @@ fun AutoBrandLogo(
 ) {
     var logoUrlIndex by remember(hebrewMake) { mutableIntStateOf(0) }
     val slug = remember(hebrewMake) { VehicleUtils.getBrandSlug(hebrewMake) }
-    
-    val urls = remember(slug) {
-        val cleanSlug = slug.replace("-", "")
-        val underscoreSlug = slug.replace("-", "_")
-        listOf(
-            "https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/$slug.png",
-            "https://raw.githubusercontent.com/filippofilip95/car-logos-dataset/master/logos/optimized/$slug.png",
-            "https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/thumb/$slug.png",
-            "https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/local-logos/$slug.png",
-            "https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/$cleanSlug.png",
-            "https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/$underscoreSlug.png",
-            "https://cdn.jsdelivr.net/gh/vehiclespecs/brand-logos@master/logos/png/$slug.png",
-            "https://cdn.jsdelivr.net/gh/vehiclespecs/brand-logos@master/logos/svg/$slug.svg",
-            "https://logo.clearbit.com/$slug.com",
-            "https://logo.clearbit.com/$cleanSlug.com",
-            "https://img.logo.dev/$slug.com?token=pk_anonymous",
-            "https://www.google.com/s2/favicons?domain=$slug.com&sz=128",
-            "https://icons.duckduckgo.com/ip3/$slug.com.ico"
-        ).distinct()
-    }
+    val urls = remember(hebrewMake) { VehicleUtils.getBrandLogoUrls(hebrewMake) }
 
     Surface(
         shape = CircleShape,
@@ -2422,9 +2592,15 @@ fun AutoBrandLogo(
             modifier = Modifier.fillMaxSize().padding(size * 0.1f),
             contentAlignment = Alignment.Center
         ) {
-            if (logoUrlIndex >= urls.size || slug == "car") {
+            val isTrailer = slug == "trailer" || (hebrewMake != null && (hebrewMake.contains("סירני") || hebrewMake.contains("גרור") || hebrewMake.contains("נתמך")))
+            if (urls.isEmpty() || logoUrlIndex >= urls.size || slug == "car") {
+                val icon = when {
+                    isEngineeringEquipment -> Icons.Default.Construction
+                    isTrailer -> Icons.Default.LocalShipping
+                    else -> Icons.Default.DirectionsCar
+                }
                 Icon(
-                    imageVector = if (isEngineeringEquipment) Icons.Default.Construction else Icons.Default.DirectionsCar,
+                    imageVector = icon,
                     contentDescription = null,
                     tint = if (useWhiteBackground) Color(0xFF1E88E5) else MaterialTheme.colorScheme.primary,
                     modifier = Modifier.fillMaxSize(0.7f)
@@ -2440,7 +2616,9 @@ fun AutoBrandLogo(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Fit,
                     onError = {
-                        logoUrlIndex++
+                        if (logoUrlIndex < urls.size) {
+                            logoUrlIndex++
+                        }
                     }
                 )
             }

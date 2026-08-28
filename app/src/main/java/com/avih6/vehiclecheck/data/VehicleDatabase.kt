@@ -93,6 +93,7 @@ class HistoryRepository(private val dao: VehicleDao) {
             else -> 0L
         }
 
+        val isReallyValid = isTestValid || (record != null && record.testExpiryDate == null && testStatus !is TestStatus.Expired && testStatus !is TestStatus.OffRoad)
         val entry = VehicleHistoryEntity(
             licensePlate = cleanPlate,
             make = record?.make,
@@ -101,9 +102,9 @@ class HistoryRepository(private val dao: VehicleDao) {
             color = record?.color,
             fuelType = record?.fuelType,
             testExpiryDate = record?.testExpiryDate,
-            isTestValid = isTestValid,
+            isTestValid = isReallyValid,
             daysUntilTest = daysUntilTest,
-            modelType = record?.modelType,
+            modelType = record?.effectiveVehicleCategory ?: record?.modelType,
             ownership = record?.ownership,
             trimLevel = record?.trimLevel,
             timestamp = System.currentTimeMillis()

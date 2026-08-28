@@ -731,24 +731,102 @@ object VehicleUtils {
         var str = raw.trim()
         val countrySuffixes = listOf(
             " גרמנ", " גרמניה", " יפן", " צרפת", " איטליה", " איטלי",
-            " ארה\"ב", " ארהב\"", " ארהב", " שוודיה", " שוודי",
-            " בריטניה", " אנגליה", " סין", " הודו", " טורקיה", " תורכיה",
-            " דרום קוריאה", " קוריאה", " צ'כיה", " ספרד", " רומניה",
-            " הונגריה", " פולין", " מקסיקו", " קנדה", " תאילנד", " אוסטריה", " בלגיה"
-        )
-        for (suffix in countrySuffixes) {
-            if (str.endsWith(suffix, ignoreCase = true)) {
-                str = str.removeSuffix(suffix).trim()
+            " ארה    fun getBrandLogoUrls(hebrewMake: String?): List<String> {
+        val slug = getBrandSlug(hebrewMake)
+        if (slug == "car" || slug == "trailer") return emptyList()
+
+        val list = mutableListOf<String>()
+
+        // 1. Direct high-res vectors and verified fallbacks for specialized/new brands
+        when (slug) {
+            "jaecoo" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Jaecoo_logo.svg/500px-Jaecoo_logo.svg.png")
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Chery_logo.svg/500px-Chery_logo.svg.png")
+                list.add("https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/chery.png")
+            }
+            "omoda" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Omoda_logo.svg/500px-Omoda_logo.svg.png")
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Chery_logo.svg/500px-Chery_logo.svg.png")
+                list.add("https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/chery.png")
+            }
+            "zeekr" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Zeekr_logo.svg/500px-Zeekr_logo.svg.png")
+                list.add("https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/zeekr.png")
+            }
+            "xpeng" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/XPeng_logo.svg/500px-XPeng_logo.svg.png")
+                list.add("https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/xpeng.png")
+            }
+            "byd" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/BYD_Auto_2022_logo.svg/500px-BYD_Auto_2022_logo.svg.png")
+                list.add("https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/byd.png")
+            }
+            "chery" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Chery_logo.svg/500px-Chery_logo.svg.png")
+                list.add("https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/chery.png")
+            }
+            "leapmotor" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Leapmotor_logo.svg/500px-Leapmotor_logo.svg.png")
+            }
+            "voyah" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/2/27/Voyah_logo.svg/500px-Voyah_logo.svg.png")
+            }
+            "seres" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/SERES_Logo.svg/500px-SERES_Logo.svg.png")
+            }
+            "hongqi" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Hongqi_logo.svg/500px-Hongqi_logo.svg.png")
+            }
+            "ora" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/6/63/ORA_logo.svg/500px-ORA_logo.svg.png")
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Great_Wall_Motors_logo.svg/500px-Great_Wall_Motors_logo.svg.png")
+            }
+            "wey" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/WEY_logo.svg/500px-WEY_logo.svg.png")
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Great_Wall_Motors_logo.svg/500px-Great_Wall_Motors_logo.svg.png")
+            }
+            "cupra" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Cupra_Logo.svg/500px-Cupra_Logo.svg.png")
+                list.add("https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/cupra.png")
+            }
+            "lynk-co" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Lynk_%26_Co_logo.svg/500px-Lynk_%26_Co_logo.svg.png")
+            }
+            "polestar" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Polestar_logo.svg/500px-Polestar_logo.svg.png")
+                list.add("https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/polestar.png")
+            }
+            "smart" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Smart_logo_2022.svg/500px-Smart_logo_2022.svg.png")
+                list.add("https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/smart.png")
+            }
+            "aiways" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Aiways_Logo_2019.svg/500px-Aiways_Logo_2019.svg.png")
+            }
+            "forthing" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Forthing_logo.svg/500px-Forthing_logo.svg.png")
+            }
+            "skywell" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Skywell_logo.svg/500px-Skywell_logo.svg.png")
             }
         }
-        str = str.replace("ארהב\"", "ארה\"ב")
-        str = str.replace("ארהב", "ארה\"ב")
-        return str
+
+        // 2. High-speed jsDelivr CDN & GitHub raw
+        list.add("https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/$slug.png")
+        list.add("https://raw.githubusercontent.com/filippofilip95/car-logos-dataset/master/logos/optimized/$slug.png")
+        list.add("https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/thumb/$slug.png")
+        
+        val cleanSlug = slug.replace("-", "")
+        if (cleanSlug != slug) {
+            list.add("https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/$cleanSlug.png")
+        }
+
+        return list.distinct()
     }
 
     fun getBrandLogoUrl(hebrewMake: String?): String {
-        val slug = getBrandSlug(hebrewMake)
-        return "https://raw.githubusercontent.com/filippofilip95/car-logos-dataset/master/logos/optimized/$slug.png"
+        return getBrandLogoUrls(hebrewMake).firstOrNull() 
+            ?: "https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/car.png"
     }
 
     fun extractEnglishName(make: String?): String? {
@@ -787,7 +865,7 @@ object VehicleUtils {
             m.contains("סיאט") || m.contains("seat") -> "seat"
             m.contains("וולוו") || m.contains("volvo") -> "volvo"
             m.contains("מיצובישי") || m.contains("mitsubishi") -> "mitsubishi"
-            m.contains("בי ואי די") || m.contains("בי.ואי.די") || m.contains("בי וי די") || m.contains("בי.וויי.די") || m.contains("byd") || m.contains("b.y.d") -> "byd"
+            m.contains("בי ואי די") || m.contains("בי.ואי.די") || m.contains("בי וי די") || m.contains("בי.וויי.די") || m.contains("ביוואידי") || m.contains("byd") || m.contains("b.y.d") -> "byd"
             m.contains("מ.ג") || m.contains("מ.ג.") || m.contains("מ ג") || m.contains("אם ג'י") || m.contains("אם.ג'י") || m.contains("אי אם ג'י") || m.contains("mg") || m.contains("m.g") -> "mg"
             m.contains("ב.מ.וו") || m.contains("במוו") || m.contains("ב מ וו") || m.contains("bmw") || m.contains("b.m.w") -> "bmw"
             m.contains("מ.א.ן") || m.contains("מ א ן") || m.contains("מאן") || m.contains("man") -> "man"
@@ -795,7 +873,7 @@ object VehicleUtils {
             m.contains("פורד") || m.contains("ford") -> "ford"
             m.contains("שברולט") || m.contains("chevrolet") || m.contains("chevy") -> "chevrolet"
             m.contains("לנד רובר") || m.contains("לנדרובר") || m.contains("land rover") || m.contains("land-rover") -> "land-rover"
-            m.contains("ג'ילי") || m.contains("geely") || m.contains("ג.י.ל.י") -> "geely"
+            m.contains("ג'ילי") || m.contains("geely") || m.contains("גילי") || m.contains("גיאומטרי") || m.contains("ג'יאומטרי") || m.contains("ג.י.ל.י") -> "geely"
             m.contains("קופרה") || m.contains("cupra") -> "cupra"
             m.contains("ג'יפ") || m.contains("גיפ") || m.contains("jeep") -> "jeep"
             m.contains("פורשה") || m.contains("porsche") -> "porsche"
@@ -824,10 +902,10 @@ object VehicleUtils {
             m.contains("מקלארן") || m.contains("mclaren") -> "mclaren"
             m.contains("זיקר") || m.contains("זיקיר") || m.contains("zeekr") -> "zeekr"
             m.contains("אקספנג") || m.contains("xpeng") -> "xpeng"
-            m.contains("צ'רי") || m.contains("צרי") || m.contains("chery") -> "chery"
+            m.contains("צ'רי") || m.contains("צרי") || m.contains("שרי") || m.contains("chery") -> "chery"
             m.contains("איוויז") || m.contains("איווייז") || m.contains("aiways") -> "aiways"
             m.contains("ליפמוטור") || m.contains("ליפ מוטור") || m.contains("leapmotor") || m.contains("leap") -> "leapmotor"
-            m.contains("סרס") || m.contains("seres") || m.contains("dfsk") -> "seres"
+            m.contains("סרס") || m.contains("סירס") || m.contains("seres") || m.contains("dfsk") -> "seres"
             m.contains("וויה") || m.contains("ויה") || m.contains("voyah") -> "voyah"
             m.contains("פולסטאר") || m.contains("פול סטאר") || m.contains("polestar") -> "polestar"
             m.contains("לינק") || m.contains("lynk") -> "lynk-co"
@@ -836,7 +914,7 @@ object VehicleUtils {
             m.contains("אורה") || m.contains("ora") || m.contains("gwm") || m.contains("גרייט וול") -> "ora"
             m.contains("סקייוול") || m.contains("סקיי וול") || m.contains("skywell") -> "skywell"
             m.contains("דונגפנג") || m.contains("dongfeng") -> "dongfeng"
-            m.contains("ג'קו") || m.contains("ג'אקו") || m.contains("גקו") || m.contains("jaecoo") -> "jaecoo"
+            m.contains("ג'קו") || m.contains("ג'אקו") || m.contains("גקו") || m.contains("גאקו") || m.contains("ג'ייקו") || m.contains("גייקו") || m.contains("jaecoo") -> "jaecoo"
             m.contains("אומודה") || m.contains("omoda") -> "omoda"
             m.contains("מקסוס") || m.contains("maxus") -> "maxus"
             m.contains("נטה") || m.contains("נטא") || m.contains("neta") -> "neta"
@@ -876,6 +954,7 @@ object VehicleUtils {
             m.contains("קינג לונג") || m.contains("king long") -> "king-long"
             m.contains("אנקאי") || m.contains("ankai") -> "ankai"
             m.contains("פוטון") || m.contains("foton") -> "foton"
+            m.contains("נצר סירני") || m.contains("סירני") || m.contains("גרור") || m.contains("נגרר") || m.contains("נתמך") || m.contains("מריצה") -> "trailer"
             m.contains("ימאהה") || m.contains("yamaha") -> "yamaha"
             m.contains("קוואסאקי") || m.contains("קאוואסאקי") || m.contains("kawasaki") -> "kawasaki"
             m.contains("הארלי") || m.contains("harley") -> "harley-davidson"
@@ -1286,16 +1365,27 @@ object VehicleUtils {
         modelType: String? = null,
         ownership: String? = null,
         trimLevel: String? = null,
-        fuel: String? = null
+        fuel: String? = null,
+        category: String? = null
     ): String {
         val m = model.orEmpty().lowercase()
         val mk = make.orEmpty().lowercase()
         val t = modelType.orEmpty().lowercase()
         val o = ownership.orEmpty().lowercase()
         val tl = trimLevel.orEmpty().lowercase()
-        val combined = "$m $mk $t $o $tl"
+        val cat = category.orEmpty().lowercase()
+        val combined = "$m $mk $t $o $tl $cat"
 
         return when {
+            // 0. Trailers & Semi-trailers (גרורים ונתמכים - נצר סירני וכו')
+            combined.contains("סירני") || combined.contains("נתמך") || combined.contains("גרור") || 
+            combined.contains("נגרר") || combined.contains("trailer") || combined.contains("o4") || 
+            combined.contains("o3") || combined.contains("o2") || combined.contains("o1") -> "🚛 נתמך / גרור"
+
+            // 0b. Heavy Machinery / Construction (צמ"ה)
+            combined.contains("הנדסי") || combined.contains("צמ\"ה") || combined.contains("צמה") || 
+            mk.contains("קטרפילר") || mk.contains("komatsu") || mk.contains("caterpillar") || mk.contains("jcb") || mk.contains("bobcat") -> "🚜 ציוד הנדסי"
+
             // 1. Ambulance & Emergency Vehicles (מד"א / איחוד הצלה / אמבולנס / ספרינטר מד"א)
             combined.contains("אמבולנס") || combined.contains("ambulance") || combined.contains("הצלה") ||
             combined.contains("רפואי") || combined.contains("מגן דוד") || combined.contains("מד\"א") ||
@@ -1305,7 +1395,7 @@ object VehicleUtils {
             combined.contains("אוטובוס") || combined.contains("bus") || combined.contains("o404") || combined.contains("o405") ||
             combined.contains("tourismo") || combined.contains("citaro") || combined.contains("travego") || combined.contains("b12") ||
             combined.contains("b7") || combined.contains("centroliner") || combined.contains("lion") || (mk.contains("מרצדס") && m.contains("o 404")) ||
-            t.contains("אוטובוס") -> "🚌 אוטובוס"
+            t.contains("אוטובוס") || cat.contains("אוטובוס") -> "🚌 אוטובוס"
 
             // 3. Commercial Vans & Transporters (הייאס, טרנזיט, קנגו, ברלינגו, דוקאטו, טרנספורטר, ספרינטר, קאדי, סוואנה)
             m.contains("hiace") || m.contains("הייאס") || m.contains("היאס") || m.contains("transit") || m.contains("טרנזיט") ||
@@ -1315,20 +1405,21 @@ object VehicleUtils {
             m.contains("transporter") || m.contains("crafter") || m.contains("master") || m.contains("מאסטר") || m.contains("savana") ||
             m.contains("סוואנה") || m.contains("סבאנה") || m.contains("express") || m.contains("אקספרס") || m.contains("expert") ||
             m.contains("proace") || m.contains("nv200") || m.contains("nv400") || m.contains("vivaro") || m.contains("sprinter") ||
-            m.contains("ספרינטר") || t.contains("משא אחוד") || t.contains("מסחרי") || t.contains("n1") -> "🚐 מסחרית / ואן"
+            m.contains("ספרינטר") || t.contains("משא אחוד") || t.contains("מסחרי") || t.contains("n1") || cat.contains("משא אחוד") -> "🚐 מסחרית / ואן"
 
             // 4. Heavy Trucks (משאית / משא כבד)
-            combined.contains("משאית") || t.contains("משא") || m.contains("משא") || m.contains("actros") || m.contains("atego") ||
-            m.contains("axor") || m.contains("fh") || m.contains("fm") || m.contains("tgx") || m.contains("tgs") || m.contains("tgl") ||
-            m.contains("stralis") || m.contains("eurocargo") || m.contains("scania") || m.contains("man ") || mk.contains("סקניה") ||
-            mk.contains("דאף") || mk.contains("daf") -> "🚚 משאית"
+            combined.contains("משאית") || combined.contains("משא כבד") || t.contains("משא") || cat.contains("משא") || 
+            m.contains("משא") || m.contains("actros") || m.contains("atego") || m.contains("axor") || m.contains("fh") || 
+            m.contains("fm") || m.contains("tgx") || m.contains("tgs") || m.contains("tgl") || m.contains("stralis") || 
+            m.contains("eurocargo") || m.contains("scania") || m.contains("man ") || mk.contains("סקניה") ||
+            mk.contains("דאף") || mk.contains("daf") || mk.contains("מאק") || mk.contains("mack") -> "🚚 משא / מסחרי"
 
             // 5. Motorcycles & Scooters (אופנוע / קטנוע)
             combined.contains("אופנוע") || combined.contains("קטנוע") || combined.contains("scooter") || combined.contains("motorcycle") ||
             mk.contains("ימאהה") || mk.contains("yamaha") || mk.contains("סאנגיאנג") || mk.contains("sym") || mk.contains("קימקו") ||
             mk.contains("kymco") || mk.contains("הארלי") || mk.contains("harley") || mk.contains("דוקאטי") || mk.contains("ducati") ||
             mk.contains("ק.ט.מ") || mk.contains("ktm") || mk.contains("קוואסאקי") || mk.contains("kawasaki") || mk.contains("פיאג'ו") ||
-            mk.contains("piaggio") || mk.contains("vespa") || mk.contains("וספה") -> "🏍️ אופנוע"
+            mk.contains("piaggio") || mk.contains("vespa") || mk.contains("וספה") || t.contains("אופנוע") || cat.contains("אופנוע") -> "🏍️ אופנוע"
 
             // 6. Pickups (טנדר)
             m.contains("hilux") || m.contains("היילקס") || m.contains("d-max") || m.contains("דימקס") || m.contains("די מקס") ||
@@ -1376,6 +1467,5 @@ object VehicleUtils {
 
             // 11. Default Passenger Car (פרטי / סדאן / מנהלים)
             else -> "🚗 רכב פרטי"
-        }
     }
 }

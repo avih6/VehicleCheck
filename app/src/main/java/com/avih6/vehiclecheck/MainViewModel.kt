@@ -389,6 +389,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             } catch (e: Exception) {}
                         }
 
+                        // 3. Heavy Vehicle / Commercial Fleet fallback (resource cd3acc5c)
+                        if (totalActive <= 1 && makeCd != null) {
+                            try {
+                                val heavyFilter = if (!modelName.isNullOrBlank()) "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"${modelName.trim()}\"}" else "{\"tozeret_cd\":$makeCd}"
+                                val heavyResp = NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", heavyFilter)
+                                val heavyTotal = heavyResp.result?.total ?: 0
+                                if (heavyTotal > 0) {
+                                    totalActive = heavyTotal
+                                    val heavyYearResp = NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$year}")
+                                    activeYearCount = heavyYearResp.result?.total ?: 0
+                                } else {
+                                    val allMakeHeavy = NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", "{\"tozeret_cd\":$makeCd}").result?.total ?: 0
+                                    if (allMakeHeavy > 0) {
+                                        totalActive = allMakeHeavy
+                                    }
+                                }
+                            } catch (e: Exception) {}
+                        }
+
                         // Inactive count from deregistered datasets (2017+ and 2010+)
                         var inactCount2017 = 0
                         var inactCount2010 = 0
