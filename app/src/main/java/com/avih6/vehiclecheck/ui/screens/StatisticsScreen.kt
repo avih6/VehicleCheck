@@ -231,41 +231,25 @@ fun StatisticsScreen(
 
                     Spacer(Modifier.height(10.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Button(
+                        onClick = {
+                            focusManager.clearFocus()
+                            viewModel.searchModelStatistics()
+                        },
+                        enabled = modelQuery.isNotBlank() && !isSearchingModel,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth().height(46.dp)
                     ) {
-                        Button(
-                            onClick = {
-                                focusManager.clearFocus()
-                                viewModel.searchModelStatistics()
-                            },
-                            enabled = modelQuery.isNotBlank() && !isSearchingModel,
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.weight(1f).height(44.dp)
-                        ) {
-                            if (isSearchingModel) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.onPrimary
-                                )
-                            } else {
-                                Icon(Icons.Default.Analytics, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text("נתח דגם", fontWeight = FontWeight.Bold)
-                            }
-                        }
-
-                        if (selectedModelDetail != null) {
-                            OutlinedButton(
-                                onClick = { viewModel.clearModelStatistics() },
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.height(44.dp)
-                            ) {
-                                Text("נקה")
-                            }
+                        if (isSearchingModel) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        } else {
+                            Icon(Icons.Default.Analytics, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("נתח נתוני דגם", fontWeight = FontWeight.Bold)
                         }
                     }
 
@@ -1095,6 +1079,33 @@ fun ModelDetailStatisticsCard(
         )
     }
 
+    val cleanMake = detail.makeHe
+        .replace(Regex(" (יפן|גרמנ|גרמניה|ארהב|ארה\"ב|צרפת|קוריאה|סין|צ'כיה|ספרד|איטליה|בריטניה|טורקיה|הודו)$"), "")
+        .trim()
+
+    var cleanModel = detail.modelName
+        .replace(Regex("^${Regex.escape(cleanMake)}\\s*", RegexOption.IGNORE_CASE), "")
+        .replace(" ILG", "")
+        .replace(Regex("\\bסד\\b"), "סדאן")
+        .replace(Regex("\\bהצ\\b"), "האצ'בק")
+        .replace(Regex("\\bסט\\b"), "סטיישן")
+        .replace(Regex("\\bקב\\b"), "קבריולט")
+        .trim()
+    if (cleanModel.isBlank()) cleanModel = detail.modelName
+
+    val displayTitle = if (detail.modelName.contains(cleanMake, ignoreCase = true)) cleanModel else "$cleanMake $cleanModel"
+
+    val cleanCommercial = detail.commercialName
+        ?.replace(" ILG", "")
+        ?.replace(Regex("\\bסד\\b"), "סדאן")
+        ?.replace(Regex("\\bהצ\\b"), "האצ'בק")
+        ?.takeIf { it.isNotBlank() && !displayTitle.contains(it, ignoreCase = true) }
+
+    val subtitle = listOfNotNull(
+        if (detail.makeEn.isNotBlank() && detail.makeEn != "car" && !displayTitle.contains(detail.makeEn, ignoreCase = true)) detail.makeEn else null,
+        cleanCommercial
+    ).filter { it.isNotBlank() }.joinToString(" • ")
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
@@ -1102,40 +1113,40 @@ fun ModelDetailStatisticsCard(
         border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Header Row: Brand Logo, Make, Model, Classification & Close Button
+            // Header Row: Brand Logo, Clean Title, Subtitle, Classification & Close Button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 AutoBrandLogo(
-                    hebrewMake = detail.makeHe,
+                    hebrewMake = cleanMake,
                     size = 56.dp
                 )
 
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(14.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "${detail.makeHe} ${detail.modelName}",
-                        style = MaterialTheme.typography.titleLarge,
+                        text = displayTitle,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
 
-                    val subtitle = listOfNotNull(
-                        if (detail.makeEn.isNotBlank() && detail.makeEn != "car") detail.makeEn else null,
-                        detail.commercialName
-                    ).filter { it.isNotBlank() }.joinToString(" • ")
-
                     if (subtitle.isNotBlank()) {
+                        Spacer(Modifier.height(2.dp))
                         Text(
                             text = subtitle,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
 
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(6.dp))
 
                     Surface(
                         shape = RoundedCornerShape(6.dp),
@@ -1147,19 +1158,29 @@ fun ModelDetailStatisticsCard(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
                         )
                     }
                 }
 
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "סגור", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "סגור",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
 
             Spacer(Modifier.height(16.dp))
 
-            // 4 Metrics Grid
+            // 4 Metrics Grid (Aligned & Single-Line Safe)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -1172,18 +1193,23 @@ fun ModelDetailStatisticsCard(
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                 ) {
                     Column(
-                        modifier = Modifier.padding(10.dp),
+                        modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = "%,d".format(detail.totalActive),
                             fontWeight = FontWeight.Black,
-                            fontSize = 16.sp,
+                            fontSize = 15.sp,
+                            maxLines = 1,
+                            softWrap = false,
                             color = Color(0xFF0091EA)
                         )
+                        Spacer(Modifier.height(2.dp))
                         Text(
                             text = "פעילים בכביש",
                             fontSize = 10.sp,
+                            maxLines = 1,
+                            softWrap = false,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -1197,18 +1223,23 @@ fun ModelDetailStatisticsCard(
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                 ) {
                     Column(
-                        modifier = Modifier.padding(10.dp),
+                        modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = "%.1f%%".format(detail.survivalRate),
                             fontWeight = FontWeight.Black,
-                            fontSize = 16.sp,
+                            fontSize = 15.sp,
+                            maxLines = 1,
+                            softWrap = false,
                             color = Color(0xFF2E7D32)
                         )
+                        Spacer(Modifier.height(2.dp))
                         Text(
                             text = "שרידות דגם",
                             fontSize = 10.sp,
+                            maxLines = 1,
+                            softWrap = false,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -1222,18 +1253,23 @@ fun ModelDetailStatisticsCard(
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                 ) {
                     Column(
-                        modifier = Modifier.padding(10.dp),
+                        modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
                             text = if (detail.safetyScore != null && detail.safetyScore > 0) "%.1f/8".format(detail.safetyScore) else "7.0/8",
                             fontWeight = FontWeight.Black,
-                            fontSize = 16.sp,
+                            fontSize = 15.sp,
+                            maxLines = 1,
+                            softWrap = false,
                             color = Color(0xFFFF8F00)
                         )
+                        Spacer(Modifier.height(2.dp))
                         Text(
                             text = "ציון בטיחות",
                             fontSize = 10.sp,
+                            maxLines = 1,
+                            softWrap = false,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -1247,18 +1283,23 @@ fun ModelDetailStatisticsCard(
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
                 ) {
                     Column(
-                        modifier = Modifier.padding(10.dp),
+                        modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = if (detail.enginePowerHp != null && detail.enginePowerHp > 0) "${detail.enginePowerHp}" else "סטנדרט",
+                            text = if (detail.enginePowerHp != null && detail.enginePowerHp > 0) "${detail.enginePowerHp}" else "רגיל",
                             fontWeight = FontWeight.Black,
-                            fontSize = 16.sp,
+                            fontSize = 15.sp,
+                            maxLines = 1,
+                            softWrap = false,
                             color = MaterialTheme.colorScheme.primary
                         )
+                        Spacer(Modifier.height(2.dp))
                         Text(
-                            text = if (detail.enginePowerHp != null && detail.enginePowerHp > 0) "כ\"ס מנוע" else "הספק",
+                            text = if (detail.enginePowerHp != null && detail.enginePowerHp > 0) "כ\"ס מנוע" else "הספק מנוע",
                             fontSize = 10.sp,
+                            maxLines = 1,
+                            softWrap = false,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -1361,21 +1402,21 @@ fun ModelDetailStatisticsCard(
                 }
             }
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(16.dp))
 
             // Action Button: View Gallery Images
             Button(
                 onClick = {
-                    val query = "${detail.makeHe} ${detail.modelName}".trim()
+                    val query = "$cleanMake $cleanModel".trim()
                     onNavigateToGallery?.invoke(query)
                 },
-                modifier = Modifier.fillMaxWidth().height(44.dp),
-                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth().height(46.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Icon(Icons.Default.Collections, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("הצג תמונות מגלריית הרכב 📷", fontWeight = FontWeight.Bold)
+                Text("הצג תמונות מגלריית הרכב", fontWeight = FontWeight.Bold, fontSize = 15.sp)
             }
         }
     }
