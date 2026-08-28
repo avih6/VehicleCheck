@@ -84,7 +84,10 @@ fun AnimatedModelDistributionChart(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.weight(1f).padding(end = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Box(
                         modifier = Modifier
                             .size(36.dp)
@@ -99,16 +102,18 @@ fun AnimatedModelDistributionChart(
                         )
                     }
                     Spacer(Modifier.width(10.dp))
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "התפלגות ושרידות דגם לפי שנתונים",
+                            text = "התפלגות ושרידות דגם",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
                         )
                         Text(
-                            text = "מתוך מאגר כלי רכב פעילים ונגרעים",
+                            text = "מתוך מאגר פעילים ונגרעים",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
                         )
                     }
                 }
@@ -123,8 +128,9 @@ fun AnimatedModelDistributionChart(
                         text = "%.1f%% שרידות".format(stats.activePercentage),
                         color = Color(0xFF0091EA),
                         fontWeight = FontWeight.Black,
-                        fontSize = 11.sp,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                     )
                 }
             }

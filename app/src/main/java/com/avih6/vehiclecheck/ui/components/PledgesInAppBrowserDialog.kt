@@ -48,7 +48,7 @@ fun PledgesInAppBrowserDialog(
     var webViewInstance by remember { mutableStateOf<WebView?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var progress by remember { mutableFloatStateOf(0f) }
-    var currentUrl by remember { mutableStateOf("https://www.gov.il/he/service/pledge_search") }
+    var currentUrl by remember { mutableStateOf("https://www.gov.il/he/departments/general/pledge_search") }
 
     BackHandler {
         if (webViewInstance?.canGoBack() == true) {

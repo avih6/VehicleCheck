@@ -770,8 +770,11 @@ object VehicleUtils {
             m.contains("סיאט") || m.contains("seat") -> "seat"
             m.contains("וולוו") || m.contains("volvo") -> "volvo"
             m.contains("מיצובישי") || m.contains("mitsubishi") -> "mitsubishi"
-            m.contains("בי ואי די") || m.contains("בי.ואי.די") || m.contains("byd") || m.contains("b.y.d") -> "byd"
-            m.contains("אם ג'י") || m.contains("אם.ג'י") || m.contains("mg") || m.contains("m.g") -> "mg"
+            m.contains("בי ואי די") || m.contains("בי.ואי.די") || m.contains("בי וי די") || m.contains("בי.וויי.די") || m.contains("byd") || m.contains("b.y.d") -> "byd"
+            m.contains("מ.ג") || m.contains("מ.ג.") || m.contains("מ ג") || m.contains("אם ג'י") || m.contains("אם.ג'י") || m.contains("אי אם ג'י") || m.contains("mg") || m.contains("m.g") -> "mg"
+            m.contains("ב.מ.וו") || m.contains("במוו") || m.contains("ב מ וו") || m.contains("bmw") || m.contains("b.m.w") -> "bmw"
+            m.contains("מ.א.ן") || m.contains("מ א ן") || m.contains("מאן") || m.contains("man") -> "man"
+            m.contains("ג.מ.ס") || m.contains("ג'י אם סי") || m.contains("ג'י.אם.סי") || m.contains("ג'מאס") || m.contains("gmc") -> "gmc"
             m.contains("פורד") || m.contains("ford") -> "ford"
             m.contains("שברולט") || m.contains("chevrolet") || m.contains("chevy") -> "chevrolet"
             m.contains("לנד רובר") || m.contains("לנדרובר") || m.contains("land rover") || m.contains("land-rover") -> "land-rover"
@@ -1197,6 +1200,84 @@ object VehicleUtils {
                 Pair("משא / מסחרי קל ($std) • עד 3.5 טון", "משקל כולל עד 3,500 ק\"ג (דרגת רישיון B)")
             else ->
                 Pair("פרטי נוסעים (M1) • עד 3.5 טון", "משקל כולל עד 3,500 ק\"ג (דרגת רישיון B רגיל)")
+        }
+    }
+
+    fun resolveCountryOfOrigin(vehicle: VehicleRecord, techSpec: VehicleTechnicalSpecRecord?): String? {
+        // Priority 1: Official country of origin field from tech spec or vehicle record
+        val rawCountry = techSpec?.countryOfOrigin ?: vehicle.countryOfOrigin
+        if (!rawCountry.isNullOrBlank() && rawCountry != "אין מידע" && rawCountry != "null") {
+            return formatCountry(rawCountry)
+        }
+
+        // Priority 2: Extract country token explicitly mentioned in make/model/trim
+        val combinedText = "${vehicle.make.orEmpty()} ${vehicle.model.orEmpty()} ${vehicle.trimLevel.orEmpty()}".lowercase()
+        val detectedFromText = when {
+            combinedText.contains("גרמנ") || combinedText.contains("גרמניה") || combinedText.contains("germany") -> "גרמניה"
+            combinedText.contains("יפן") || combinedText.contains("japan") -> "יפן"
+            combinedText.contains("צרפת") || combinedText.contains("france") -> "צרפת"
+            combinedText.contains("איטלי") || combinedText.contains("איטליה") || combinedText.contains("italy") -> "איטליה"
+            combinedText.contains("ארהב") || combinedText.contains("ארה\"ב") || combinedText.contains("usa") -> "ארה\"ב"
+            combinedText.contains("שוודי") || combinedText.contains("שוודיה") || combinedText.contains("שבדיה") || combinedText.contains("sweden") -> "שוודיה"
+            combinedText.contains("קוריאה") || combinedText.contains("korea") -> "דרום קוריאה"
+            combinedText.contains("בריטניה") || combinedText.contains("אנגליה") || combinedText.contains("uk") -> "בריטניה"
+            combinedText.contains("ספרד") || combinedText.contains("spain") -> "ספרד"
+            combinedText.contains("צ'כיה") || combinedText.contains("צכיה") || combinedText.contains("czech") -> "צ'כיה"
+            combinedText.contains("רומניה") || combinedText.contains("romania") -> "רומניה"
+            combinedText.contains("הונגריה") || combinedText.contains("hungary") -> "הונגריה"
+            combinedText.contains("פולין") || combinedText.contains("poland") -> "פולין"
+            combinedText.contains("בלגיה") || combinedText.contains("belgium") -> "בלגיה"
+            combinedText.contains("סין") || combinedText.contains("china") -> "סין"
+            combinedText.contains("הודו") || combinedText.contains("india") -> "הודו"
+            combinedText.contains("טורקיה") || combinedText.contains("תורכיה") || combinedText.contains("turkey") -> "טורקיה"
+            combinedText.contains("תאילנד") || combinedText.contains("thailand") -> "תאילנד"
+            combinedText.contains("מקסיקו") || combinedText.contains("mexico") -> "מקסיקו"
+            combinedText.contains("קנדה") || combinedText.contains("canada") -> "קנדה"
+            combinedText.contains("אוסטריה") || combinedText.contains("austria") -> "אוסטריה"
+            combinedText.contains("הולנד") || combinedText.contains("netherlands") -> "הולנד"
+            else -> null
+        }
+        if (detectedFromText != null) return detectedFromText
+
+        // Priority 3 (Last Resort): Infer origin from brand manufacturer headquarters
+        val brandSlug = getBrandSlug(vehicle.make)
+        return when (brandSlug) {
+            "mercedes-benz", "bmw", "volkswagen", "audi", "porsche", "opel", "man" -> "גרמניה"
+            "toyota", "mazda", "honda", "subaru", "nissan", "suzuki", "mitsubishi", "lexus", "daihatsu", "infiniti", "isuzu", "yamaha", "kawasaki" -> "יפן"
+            "hyundai", "kia", "genesis", "ssangyong" -> "דרום קוריאה"
+            "volvo", "polestar", "scania", "husqvarna" -> "שוודיה"
+            "renault", "peugeot", "citroen", "alpine", "bugatti" -> "צרפת"
+            "fiat", "alfa-romeo", "ferrari", "maserati", "lamborghini", "abarth", "lancia", "iveco", "ducati", "piaggio", "vespa", "aprilia", "moto-guzzi" -> "איטליה"
+            "ford", "chevrolet", "tesla", "cadillac", "jeep", "dodge", "ram", "chrysler", "gmc", "lincoln", "buick", "pontiac", "oldsmobile", "rivian", "lucid", "harley-davidson", "caterpillar", "john-deere", "bobcat", "mack" -> "ארה\"ב"
+            "skoda" -> "צ'כיה"
+            "seat", "cupra" -> "ספרד"
+            "dacia" -> "רומניה"
+            "land-rover", "jaguar", "mini", "aston-martin", "bentley", "rolls-royce", "mclaren", "lotus", "rover", "triumph", "royal-enfield" -> "בריטניה"
+            "byd", "geely", "mg", "chery", "zeekr", "xpeng", "nio", "voyah", "omoda", "jaecoo", "leapmotor", "seres", "skywell", "maxus", "forthing", "gac", "changan", "dongfeng", "hongqi", "ora", "neta", "farizon", "wey", "golden-dragon", "yutong", "higer", "king-long", "ankai", "foton", "cfmoto", "voge", "qjmotor" -> "סין"
+            "ktm" -> "אוסטריה"
+            "sym", "kymco" -> "טאיוואן"
+            "daf" -> "הולנד"
+            "jcb" -> "בריטניה"
+            "komatsu" -> "יפן"
+            else -> null
+        }
+    }
+
+    fun resolveQuickClassification(make: String?, model: String?, category: String? = null, fuel: String? = null): String {
+        val m = model.orEmpty().lowercase()
+        val c = category.orEmpty().lowercase()
+        val mk = make.orEmpty().lowercase()
+        return when {
+            c.contains("אמבולנס") || m.contains("ambulance") || m.contains("הצלה") || m.contains("רפואי") -> "🚑 אמבולנס"
+            c.contains("אוטובוס") || m.contains("אוטובוס") || m.contains("o404") || m.contains("o405") -> "🚌 אוטובוס"
+            c.contains("משא") || m.contains("משאית") || m.contains("משא") -> "🚚 משא"
+            c.contains("אופנוע") || c.contains("קטנוע") || mk.contains("ימאהה") || mk.contains("סאנגיאנג") || mk.contains("הארלי") || mk.contains("דוקאטי") || mk.contains("ק.ט.מ") -> "🏍️ דו-גלגלי"
+            m.contains("carnival") || m.contains("savana") || m.contains("vandura") || m.contains("van") || m.contains("סיינה") || m.contains("וויאג'ר") || c.contains("מיניוואן") -> "🚐 מיניוואן"
+            m.contains("cross") || m.contains("suv") || m.contains("sportage") || m.contains("tucson") || m.contains("qashqai") || m.contains("duster") || m.contains("rav4") || m.contains("x-trail") || m.contains("cx-5") || m.contains("cx-30") || m.contains("3008") || m.contains("2008") || m.contains("outlander") || m.contains("kuga") || m.contains("tiguan") || m.contains("kodiaq") || m.contains("ateca") || m.contains("arona") || m.contains("kamiq") || m.contains("karoq") || m.contains("ev6") || m.contains("ioniq 5") || m.contains("model y") -> "🚙 רכב פנאי (SUV)"
+            m.contains("הצ'בק") || m.contains("האצ'בק") || m.contains("mg4") || m.contains("golf") || m.contains("polo") || m.contains("ibiza") || m.contains("leon") || m.contains("clio") || m.contains("208") || m.contains("yaris") || m.contains("i20") || m.contains("i10") || m.contains("picanto") || m.contains("micra") || m.contains("fiesta") || m.contains("focus 5") -> "🚗 הצ'בק"
+            m.contains("hilux") || m.contains("d-max") || m.contains("navara") || m.contains("triton") || m.contains("טנדר") -> "🛻 טנדר"
+            c.contains("אספנות") -> "🏆 אספנות"
+            else -> "🚗 רכב פרטי"
         }
     }
 }

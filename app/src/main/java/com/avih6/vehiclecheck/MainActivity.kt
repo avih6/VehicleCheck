@@ -99,7 +99,6 @@ fun MainAppShell(viewModel: MainViewModel) {
     var selectedTab by remember { mutableIntStateOf(0) }
     var showRatingDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
-    var showOptionsMenu by remember { mutableStateOf(false) }
 
     val privacyPolicyUrl = "https://avih6.github.io/vehicle-check/privacy-policy"
     val termsUrl = "https://avih6.github.io/vehicle-check/terms-of-service"
@@ -234,75 +233,6 @@ fun MainAppShell(viewModel: MainViewModel) {
                             Icon(Icons.Default.Menu, contentDescription = "Menu")
                         }
                     },
-                    actions = {
-                        com.avih6.vehiclecheck.ui.components.HoverTooltipIconButton(
-                            onClick = { showOptionsMenu = true },
-                            tooltipText = "אפשרויות נוספות"
-                        ) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "More Options")
-                        }
-                        DropdownMenu(
-                            expanded = showOptionsMenu,
-                            onDismissRequest = { showOptionsMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.menu_settings)) },
-                                onClick = {
-                                    showOptionsMenu = false
-                                    showSettingsDialog = true
-                                },
-                                leadingIcon = { Icon(Icons.Default.Settings, null) },
-                                modifier = Modifier.handCursor()
-                            )
-                            HorizontalDivider()
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.menu_share)) },
-                                onClick = {
-                                    showOptionsMenu = false
-                                    shareApp(context)
-                                },
-                                leadingIcon = { Icon(Icons.Default.Share, null) },
-                                modifier = Modifier.handCursor()
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.menu_rate)) },
-                                onClick = {
-                                    showOptionsMenu = false
-                                    showRatingDialog = true
-                                },
-                                leadingIcon = { Icon(Icons.Default.Star, null) },
-                                modifier = Modifier.handCursor()
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.menu_contact)) },
-                                onClick = {
-                                    showOptionsMenu = false
-                                    sendEmail(context)
-                                },
-                                leadingIcon = { Icon(Icons.Default.Email, null) },
-                                modifier = Modifier.handCursor()
-                            )
-                            HorizontalDivider()
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.menu_privacy)) },
-                                onClick = {
-                                    showOptionsMenu = false
-                                    launchCustomTab(context, privacyPolicyUrl)
-                                },
-                                leadingIcon = { Icon(Icons.Default.PrivacyTip, null) },
-                                modifier = Modifier.handCursor()
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.menu_terms)) },
-                                onClick = {
-                                    showOptionsMenu = false
-                                    launchCustomTab(context, termsUrl)
-                                },
-                                leadingIcon = { Icon(Icons.Default.Description, null) },
-                                modifier = Modifier.handCursor()
-                            )
-                        }
-                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.background
                     )
@@ -345,10 +275,10 @@ fun MainAppShell(viewModel: MainViewModel) {
                             icon = {
                                 Icon(
                                     if (selectedTab == 2) Icons.Filled.BarChart else Icons.Outlined.BarChart,
-                                    contentDescription = "סטטיסטיקה"
+                                    contentDescription = stringResource(R.string.tab_statistics)
                                 )
                             },
-                            label = { Text("סטטיסטיקה", fontSize = 10.sp) },
+                            label = { Text(stringResource(R.string.tab_statistics), fontSize = 10.sp) },
                             modifier = Modifier.handCursor()
                         )
                         NavigationBarItem(
@@ -357,10 +287,10 @@ fun MainAppShell(viewModel: MainViewModel) {
                             icon = {
                                 Icon(
                                     if (selectedTab == 3) Icons.Filled.Warning else Icons.Outlined.WarningAmber,
-                                    contentDescription = "ריקולים"
+                                    contentDescription = stringResource(R.string.tab_recalls)
                                 )
                             },
-                            label = { Text("ריקולים", fontSize = 10.sp) },
+                            label = { Text(stringResource(R.string.tab_recalls), fontSize = 10.sp) },
                             modifier = Modifier.handCursor()
                         )
                         NavigationBarItem(
@@ -369,10 +299,10 @@ fun MainAppShell(viewModel: MainViewModel) {
                             icon = {
                                 Icon(
                                     if (selectedTab == 4) Icons.Filled.Build else Icons.Outlined.Build,
-                                    contentDescription = "קודי תקלה"
+                                    contentDescription = stringResource(R.string.tab_dtc)
                                 )
                             },
-                            label = { Text("תקלות", fontSize = 10.sp) },
+                            label = { Text(stringResource(R.string.tab_dtc), fontSize = 10.sp) },
                             modifier = Modifier.handCursor()
                         )
                         NavigationBarItem(
@@ -380,58 +310,41 @@ fun MainAppShell(viewModel: MainViewModel) {
                             onClick = { selectedTab = 5 },
                             icon = {
                                 Icon(
-                                    if (selectedTab == 5) Icons.Filled.Image else Icons.Outlined.Image,
-                                    contentDescription = "גלריה"
+                                    if (selectedTab == 5) Icons.Filled.Collections else Icons.Outlined.Collections,
+                                    contentDescription = stringResource(R.string.tab_gallery)
                                 )
                             },
-                            label = { Text("גלריה", fontSize = 10.sp) },
+                            label = { Text(stringResource(R.string.tab_gallery), fontSize = 10.sp) },
                             modifier = Modifier.handCursor()
                         )
                     }
                 }
             }
-        ) { innerPadding ->
+        ) { paddingValues ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding)
+                    .padding(paddingValues)
             ) {
                 when (selectedTab) {
                     0 -> SearchScreen(
                         viewModel = viewModel,
-                        modifier = Modifier.fillMaxSize()
+                        onNavigateToHistory = { selectedTab = 1 }
                     )
                     1 -> HistoryScreen(
                         viewModel = viewModel,
                         onSelectVehicle = { plate ->
-                            viewModel.searchPlateDirect(plate)
+                            viewModel.onQueryChange(plate)
                             selectedTab = 0
-                        },
-                        modifier = Modifier.fillMaxSize()
+                            viewModel.searchVehicle()
+                        }
                     )
-                    2 -> com.avih6.vehiclecheck.ui.screens.StatisticsScreen(
-                        viewModel = viewModel,
-                        modifier = Modifier.fillMaxSize()
+                    2 -> StatisticsScreen(viewModel = viewModel)
+                    3 -> RecallsScreen(viewModel = viewModel)
+                    4 -> ObdFaultCodesScreen(viewModel = viewModel)
+                    5 -> GalleryScreen(
+                        initialQuery = viewModel.searchQuery.value.ifBlank { "הכל" }
                     )
-                    3 -> com.avih6.vehiclecheck.ui.screens.RecallsScreen(
-                        modifier = Modifier.fillMaxSize()
-                    )
-                    4 -> com.avih6.vehiclecheck.ui.screens.DtcScreen(
-                        modifier = Modifier.fillMaxSize()
-                    )
-                    5 -> {
-                        val currentSearchState = viewModel.searchState.collectAsState().value
-                        val initialQuery = if (currentSearchState is com.avih6.vehiclecheck.data.SearchState.Success) {
-                            val v = currentSearchState.vehicle
-                            val (makeEn, modelEn) = com.avih6.vehiclecheck.data.VehicleUtils.getEnglishMakeAndModel(v.make, v.model)
-                            "$makeEn $modelEn"
-                        } else "הכל"
-
-                        com.avih6.vehiclecheck.ui.screens.GalleryScreen(
-                            initialQuery = initialQuery,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
                 }
             }
         }
@@ -456,19 +369,22 @@ private fun DrawerHeader() {
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Surface(
-                modifier = Modifier.size(80.dp),
+                modifier = Modifier.size(84.dp),
                 shape = CircleShape,
-                shadowElevation = 4.dp
+                shadowElevation = 6.dp,
+                color = Color.White
             ) {
                 Box(
-                    modifier = Modifier.fillMaxSize().background(Color.White),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        Icons.Default.DirectionsCar,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(48.dp)
+                    Image(
+                        painter = painterResource(id = R.mipmap.ic_launcher),
+                        contentDescription = stringResource(R.string.app_name),
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Fit
                     )
                 }
             }

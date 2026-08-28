@@ -402,21 +402,11 @@ fun ResultCard(
                 Spacer(Modifier.height(16.dp))
 
                 // Brand Emblem Badge (Centered & High Contrast White Badge)
-                Surface(
-                    shape = CircleShape,
-                    color = Color.White,
-                    shadowElevation = 4.dp,
-                    border = BorderStroke(2.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-                    modifier = Modifier.size(92.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(10.dp)) {
-                        AutoBrandLogo(
-                            hebrewMake = vehicle.make,
-                            isEngineeringEquipment = isEngineeringEquipment,
-                            size = 72.dp
-                        )
-                    }
-                }
+                AutoBrandLogo(
+                    hebrewMake = vehicle.make,
+                    isEngineeringEquipment = isEngineeringEquipment,
+                    size = 96.dp
+                )
 
                 Spacer(Modifier.height(12.dp))
 
@@ -705,48 +695,76 @@ private fun GeneralTabContent(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "${stats.totalInactive} " + if (stats.totalInactive == 1) "לא פעיל" else "לא פעילים",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    // Inactive Count (Right in RTL)
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "${stats.totalInactive}",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 18.sp,
+                            color = Color(0xFFEF5350)
+                        )
+                        Text(
+                            text = if (stats.totalInactive == 1) "לא פעיל" else "לא פעילים",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
 
-                    // Circular Progress Ring
+                    // Circular Progress Ring (Center)
                     Box(
-                        modifier = Modifier.size(80.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(84.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(
-                            progress = { (stats.activePercentage / 100f).coerceIn(0f, 1f) },
-                            modifier = Modifier.fillMaxSize(),
-                            color = Color(0xFF0091EA),
-                            trackColor = Color(0xFFEF5350),
-                            strokeWidth = 6.dp,
-                        )
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "%.1f%%".format(stats.activePercentage),
-                                fontWeight = FontWeight.Black,
-                                fontSize = 13.sp
+                        Box(
+                            modifier = Modifier.size(76.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                progress = { (stats.activePercentage / 100f).coerceIn(0f, 1f) },
+                                modifier = Modifier.fillMaxSize(),
+                                color = Color(0xFF0091EA),
+                                trackColor = Color(0xFFEF5350).copy(alpha = 0.25f),
+                                strokeWidth = 6.dp,
                             )
-                            Text(
-                                text = "פעילים",
-                                fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "%.1f%%".format(stats.activePercentage),
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 13.sp
+                                )
+                                Text(
+                                    text = "פעילים",
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
 
-                    Text(
-                        text = "${stats.totalActive} " + if (stats.totalActive == 1) "פעיל" else "פעילים",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF0091EA)
-                    )
+                    // Active Count (Left in RTL)
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "${stats.totalActive}",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 18.sp,
+                            color = Color(0xFF0091EA)
+                        )
+                        Text(
+                            text = if (stats.totalActive == 1) "פעיל" else "פעילים",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF0091EA)
+                        )
+                    }
                 }
 
                 Spacer(Modifier.height(10.dp))
@@ -1022,7 +1040,8 @@ private fun GeneralTabContent(
                     }
                 }
 
-                techSpec?.countryOfOrigin?.let {
+                val resolvedCountry = remember(vehicle, techSpec) { VehicleUtils.resolveCountryOfOrigin(vehicle, techSpec) }
+                resolvedCountry?.let {
                     if (it.isNotBlank()) {
                         Spacer(Modifier.height(8.dp))
                         CountrySpecRow("ארץ ייצור:", it)
@@ -1698,57 +1717,73 @@ private fun EnvironmentTabContent(
         }
 
         // Environmental Standards Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "תקינה וממיר",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 10.dp)
-                )
+        val standardType = techSpec?.standardType ?: vehicle.effectiveStandardType
+        val catalystType = techSpec?.catalystType
+        val hasStandards = !standardType.isNullOrBlank() || !catalystType.isNullOrBlank()
 
-                techSpec?.standardType?.let { SpecRow("סוג תקינה:", it) }
-                techSpec?.catalystType?.let { SpecRow("סוג ממיר:", it) }
+        if (hasStandards) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "תקינה וממיר",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 10.dp)
+                    )
+
+                    standardType?.let { if (it.isNotBlank()) SpecRow("סוג תקינה:", it) }
+                    catalystType?.let { if (it.isNotBlank()) SpecRow("סוג ממיר:", it) }
+                }
             }
         }
 
         // Emissions Table (CO, CO2, NOX, HC, PM10)
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "טבלת כמויות פליטה מהרכב",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 10.dp)
-                )
+        val hasEmissionTableData = listOfNotNull(
+            techSpec?.cityCO2, techSpec?.hwayCO2, techSpec?.wltpCO2,
+            techSpec?.cityCO, techSpec?.hwayCO, techSpec?.wltpCO,
+            techSpec?.cityNOX, techSpec?.hwayNOX, techSpec?.wltpNOX,
+            techSpec?.cityHC, techSpec?.hwayHC, techSpec?.wltpHC,
+            techSpec?.cityPM10, techSpec?.hwayPM10, techSpec?.wltpPM
+        ).any { it > 0.0 }
 
-                // Table Header
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(6.dp))
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("מזהם", fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.weight(1.2f))
-                    Text("עירוני", fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                    Text("בין-עירוני", fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                    Text("WLTP", fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
+        if (hasEmissionTableData) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "טבלת כמויות פליטה מהרכב",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 10.dp)
+                    )
+
+                    // Table Header
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(6.dp))
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("מזהם", fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.weight(1.2f))
+                        Text("עירוני", fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                        Text("בין-עירוני", fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                        Text("WLTP", fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
+                    }
+
+                    EmissionRow("פחמן דו חמצני (CO2)", techSpec?.cityCO2?.let { "%.0f".format(it) }, techSpec?.hwayCO2?.let { "%.0f".format(it) }, techSpec?.wltpCO2?.let { "%.0f".format(it) })
+                    EmissionRow("פחמן חד חמצני (CO)", techSpec?.cityCO?.let { "%.4f".format(it) }, techSpec?.hwayCO?.let { "%.4f".format(it) }, techSpec?.wltpCO?.let { "%.1f".format(it) })
+                    EmissionRow("תחמוצות חנקן (NOX)", techSpec?.cityNOX?.let { "%.4f".format(it) }, techSpec?.hwayNOX?.let { "%.4f".format(it) }, techSpec?.wltpNOX?.let { "%.1f".format(it) })
+                    EmissionRow("פחמימנים (HC)", techSpec?.cityHC?.let { "%.4f".format(it) }, techSpec?.hwayHC?.let { "%.4f".format(it) }, techSpec?.wltpHC?.let { "%.1f".format(it) })
+                    EmissionRow("חלקיקים (PM10)", techSpec?.cityPM10?.let { "%.4f".format(it) }, techSpec?.hwayPM10?.let { "%.4f".format(it) }, techSpec?.wltpPM?.let { "%.2f".format(it) })
                 }
-
-                EmissionRow("פחמן דו חמצני (CO2)", techSpec?.cityCO2?.let { "%.0f".format(it) }, techSpec?.hwayCO2?.let { "%.0f".format(it) }, techSpec?.wltpCO2?.let { "%.0f".format(it) })
-                EmissionRow("פחמן חד חמצני (CO)", techSpec?.cityCO?.let { "%.4f".format(it) }, techSpec?.hwayCO?.let { "%.4f".format(it) }, techSpec?.wltpCO?.let { "%.1f".format(it) })
-                EmissionRow("תחמוצות חנקן (NOX)", techSpec?.cityNOX?.let { "%.4f".format(it) }, techSpec?.hwayNOX?.let { "%.4f".format(it) }, techSpec?.wltpNOX?.let { "%.1f".format(it) })
-                EmissionRow("פחמימנים (HC)", techSpec?.cityHC?.let { "%.4f".format(it) }, techSpec?.hwayHC?.let { "%.4f".format(it) }, techSpec?.wltpHC?.let { "%.1f".format(it) })
-                EmissionRow("חלקיקים (PM10)", techSpec?.cityPM10?.let { "%.4f".format(it) }, techSpec?.hwayPM10?.let { "%.4f".format(it) }, techSpec?.wltpPM?.let { "%.2f".format(it) })
             }
         }
     }

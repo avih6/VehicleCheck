@@ -275,7 +275,7 @@ object WikimediaGalleryService {
 
                         val rawDesc = extMetadata?.optJSONObject("ImageDescription")?.optString("value").orEmpty()
                         val cleanDesc = rawDesc.replace(Regex("<[^>]*>"), "").replace("\n", " ").trim()
-                        val altText = if (cleanDesc.isNotBlank()) cleanDesc else "תמונת רכב $title"
+                        val altText = if (cleanDesc.isNotBlank() && cleanDesc.length > 5) cleanDesc else if (title.isNotBlank()) "תמונת רכב: $title" else "תמונת רכב ממאגר ויקימדיה"
 
                         val checkPath = fullUrl.substringBefore("?")
                         val isValidExtension = checkPath.endsWith(".jpg", ignoreCase = true) ||
@@ -284,6 +284,7 @@ object WikimediaGalleryService {
                                               checkPath.endsWith(".webp", ignoreCase = true)
 
                         val lowerTitle = title.lowercase()
+                        val lowerDesc = cleanDesc.lowercase()
                         val isJunk = lowerTitle.contains("logo") || lowerTitle.contains("icon") ||
                                      lowerTitle.contains("flag") || lowerTitle.contains("diagram") ||
                                      lowerTitle.contains("map") || lowerTitle.contains("badge") ||
@@ -295,7 +296,12 @@ object WikimediaGalleryService {
                                      lowerTitle.contains("sketch") || lowerTitle.contains("blueprint") ||
                                      lowerTitle.contains("patent") || lowerTitle.contains("graph") ||
                                      lowerTitle.contains("chart") || lowerTitle.contains("table") ||
-                                     lowerTitle.contains("stats") || lowerTitle.contains("infographic")
+                                     lowerTitle.contains("stats") || lowerTitle.contains("infographic") ||
+                                     lowerTitle.contains("portrait") || lowerTitle.contains("singer") ||
+                                     lowerTitle.contains("actor") || lowerTitle.contains("politician") ||
+                                     lowerTitle.contains("benayoun") || lowerTitle.contains("bundesarchiv bild") ||
+                                     lowerTitle.contains("concert") || lowerTitle.contains("album") ||
+                                     lowerDesc.contains("israeli singer") || lowerDesc.contains("portrait of")
 
                         if (thumbUrl.isNotBlank() && isValidExtension && !isJunk) {
                             results.add(CarGalleryImage(
@@ -549,9 +555,9 @@ object WikimediaGalleryService {
 
         if (trimmedMake.isBlank() || trimmedMake == "הכל" || trimmedMake.equals("all", ignoreCase = true)) {
             return if (trimmedModel.isNotBlank()) {
-                "$trimmedModel car vehicle"
+                "$trimmedModel car vehicle -person -portrait"
             } else {
-                "automobiles passenger cars vehicle modern"
+                "automobiles modern passenger cars incategory:Automobiles"
             }
         }
 
