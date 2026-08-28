@@ -16,6 +16,9 @@ data class VehicleHistoryEntity(
     val testExpiryDate: String?,
     val isTestValid: Boolean,
     val daysUntilTest: Long,
+    val modelType: String? = null,
+    val ownership: String? = null,
+    val trimLevel: String? = null,
     val isFavorite: Boolean = false,
     val timestamp: Long = System.currentTimeMillis()
 )
@@ -50,7 +53,7 @@ interface VehicleDao {
     suspend fun setFavoriteByPlate(plate: String, isFavorite: Boolean)
 }
 
-@Database(entities = [VehicleHistoryEntity::class], version = 1, exportSchema = false)
+@Database(entities = [VehicleHistoryEntity::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun vehicleDao(): VehicleDao
 
@@ -100,6 +103,9 @@ class HistoryRepository(private val dao: VehicleDao) {
             testExpiryDate = record?.testExpiryDate,
             isTestValid = isTestValid,
             daysUntilTest = daysUntilTest,
+            modelType = record?.modelType,
+            ownership = record?.ownership,
+            trimLevel = record?.trimLevel,
             timestamp = System.currentTimeMillis()
         )
         dao.deleteByPlate(cleanPlate)

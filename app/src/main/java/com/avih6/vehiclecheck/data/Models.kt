@@ -1280,20 +1280,101 @@ object VehicleUtils {
         }
     }
 
-    fun resolveQuickClassification(make: String?, model: String?, category: String? = null, fuel: String? = null): String {
+    fun resolveQuickClassification(
+        make: String?,
+        model: String?,
+        modelType: String? = null,
+        ownership: String? = null,
+        trimLevel: String? = null,
+        fuel: String? = null
+    ): String {
         val m = model.orEmpty().lowercase()
-        val c = category.orEmpty().lowercase()
         val mk = make.orEmpty().lowercase()
+        val t = modelType.orEmpty().lowercase()
+        val o = ownership.orEmpty().lowercase()
+        val tl = trimLevel.orEmpty().lowercase()
+        val combined = "$m $mk $t $o $tl"
+
         return when {
-            c.contains("אמבולנס") || m.contains("ambulance") || m.contains("הצלה") || m.contains("רפואי") -> "🚑 אמבולנס"
-            c.contains("אוטובוס") || m.contains("אוטובוס") || m.contains("o404") || m.contains("o405") -> "🚌 אוטובוס"
-            c.contains("משא") || m.contains("משאית") || m.contains("משא") -> "🚚 משא"
-            c.contains("אופנוע") || c.contains("קטנוע") || mk.contains("ימאהה") || mk.contains("סאנגיאנג") || mk.contains("הארלי") || mk.contains("דוקאטי") || mk.contains("ק.ט.מ") -> "🏍️ דו-גלגלי"
-            m.contains("carnival") || m.contains("savana") || m.contains("vandura") || m.contains("van") || m.contains("סיינה") || m.contains("וויאג'ר") || c.contains("מיניוואן") -> "🚐 מיניוואן"
-            m.contains("cross") || m.contains("suv") || m.contains("sportage") || m.contains("tucson") || m.contains("qashqai") || m.contains("duster") || m.contains("rav4") || m.contains("x-trail") || m.contains("cx-5") || m.contains("cx-30") || m.contains("3008") || m.contains("2008") || m.contains("outlander") || m.contains("kuga") || m.contains("tiguan") || m.contains("kodiaq") || m.contains("ateca") || m.contains("arona") || m.contains("kamiq") || m.contains("karoq") || m.contains("ev6") || m.contains("ioniq 5") || m.contains("model y") -> "🚙 רכב פנאי (SUV)"
-            m.contains("הצ'בק") || m.contains("האצ'בק") || m.contains("mg4") || m.contains("golf") || m.contains("polo") || m.contains("ibiza") || m.contains("leon") || m.contains("clio") || m.contains("208") || m.contains("yaris") || m.contains("i20") || m.contains("i10") || m.contains("picanto") || m.contains("micra") || m.contains("fiesta") || m.contains("focus 5") -> "🚗 הצ'בק"
-            m.contains("hilux") || m.contains("d-max") || m.contains("navara") || m.contains("triton") || m.contains("טנדר") -> "🛻 טנדר"
-            c.contains("אספנות") -> "🏆 אספנות"
+            // 1. Ambulance & Emergency Vehicles (מד"א / איחוד הצלה / אמבולנס / ספרינטר מד"א)
+            combined.contains("אמבולנס") || combined.contains("ambulance") || combined.contains("הצלה") ||
+            combined.contains("רפואי") || combined.contains("מגן דוד") || combined.contains("מד\"א") ||
+            combined.contains("מדא") || (mk.contains("מרצדס") && (m.contains("ספרינטר") || m.contains("sprinter")) && (o.contains("חברה") || o.contains("עירייה") || t.contains("בטחון") || t.contains("מיוחד"))) -> "🚑 אמבולנס"
+
+            // 2. Bus & Minibus (אוטובוס / אוטובוס זעיר)
+            combined.contains("אוטובוס") || combined.contains("bus") || combined.contains("o404") || combined.contains("o405") ||
+            combined.contains("tourismo") || combined.contains("citaro") || combined.contains("travego") || combined.contains("b12") ||
+            combined.contains("b7") || combined.contains("centroliner") || combined.contains("lion") || (mk.contains("מרצדס") && m.contains("o 404")) ||
+            t.contains("אוטובוס") -> "🚌 אוטובוס"
+
+            // 3. Commercial Vans & Transporters (הייאס, טרנזיט, קנגו, ברלינגו, דוקאטו, טרנספורטר, ספרינטר, קאדי, סוואנה)
+            m.contains("hiace") || m.contains("הייאס") || m.contains("היאס") || m.contains("transit") || m.contains("טרנזיט") ||
+            m.contains("kangoo") || m.contains("קנגו") || m.contains("קנגורו") || m.contains("berlingo") || m.contains("ברלינגו") ||
+            m.contains("partner") || m.contains("פרטנר") || m.contains("caddy") || m.contains("קאדי") || m.contains("ducato") ||
+            m.contains("דוקאטו") || m.contains("jumper") || m.contains("ג'אמפר") || m.contains("boxer") || m.contains("בוקסר") ||
+            m.contains("transporter") || m.contains("crafter") || m.contains("master") || m.contains("מאסטר") || m.contains("savana") ||
+            m.contains("סוואנה") || m.contains("סבאנה") || m.contains("express") || m.contains("אקספרס") || m.contains("expert") ||
+            m.contains("proace") || m.contains("nv200") || m.contains("nv400") || m.contains("vivaro") || m.contains("sprinter") ||
+            m.contains("ספרינטר") || t.contains("משא אחוד") || t.contains("מסחרי") || t.contains("n1") -> "🚐 מסחרית / ואן"
+
+            // 4. Heavy Trucks (משאית / משא כבד)
+            combined.contains("משאית") || t.contains("משא") || m.contains("משא") || m.contains("actros") || m.contains("atego") ||
+            m.contains("axor") || m.contains("fh") || m.contains("fm") || m.contains("tgx") || m.contains("tgs") || m.contains("tgl") ||
+            m.contains("stralis") || m.contains("eurocargo") || m.contains("scania") || m.contains("man ") || mk.contains("סקניה") ||
+            mk.contains("דאף") || mk.contains("daf") -> "🚚 משאית"
+
+            // 5. Motorcycles & Scooters (אופנוע / קטנוע)
+            combined.contains("אופנוע") || combined.contains("קטנוע") || combined.contains("scooter") || combined.contains("motorcycle") ||
+            mk.contains("ימאהה") || mk.contains("yamaha") || mk.contains("סאנגיאנג") || mk.contains("sym") || mk.contains("קימקו") ||
+            mk.contains("kymco") || mk.contains("הארלי") || mk.contains("harley") || mk.contains("דוקאטי") || mk.contains("ducati") ||
+            mk.contains("ק.ט.מ") || mk.contains("ktm") || mk.contains("קוואסאקי") || mk.contains("kawasaki") || mk.contains("פיאג'ו") ||
+            mk.contains("piaggio") || mk.contains("vespa") || mk.contains("וספה") -> "🏍️ אופנוע"
+
+            // 6. Pickups (טנדר)
+            m.contains("hilux") || m.contains("היילקס") || m.contains("d-max") || m.contains("דימקס") || m.contains("די מקס") ||
+            m.contains("navara") || m.contains("נבארה") || m.contains("triton") || m.contains("טרייטון") || m.contains("l200") ||
+            m.contains("amarok") || m.contains("אמארוק") || m.contains("f-150") || m.contains("f-250") || m.contains("f-350") ||
+            m.contains("silverado") || m.contains("סילברדו") || m.contains("ram 1500") || m.contains("ram 2500") || m.contains("טנדר") -> "🛻 טנדר"
+
+            // 7. Minivans / MPV (מיניוואן משפחתי)
+            m.contains("carnival") || m.contains("קרניבל") || m.contains("sienna") || m.contains("סיינה") || m.contains("voyager") ||
+            m.contains("וויאג'ר") || m.contains("pacifica") || m.contains("פסיפיקה") || m.contains("galaxy") || m.contains("s-max") ||
+            m.contains("sharan") || m.contains("carens") || m.contains("קארנס") || m.contains("touran") || m.contains("גרנד סניק") ||
+            m.contains("grand scenic") || m.contains("lodgy") || m.contains("לודג'י") || m.contains("routan") || combined.contains("מיניוואן") -> "🚐 מיניוואן"
+
+            // 8. SUV & Crossovers (פנאי-שטח SUV) - Note: Fix "cross" word boundary so "lacrosse" does NOT match!
+            m.contains("suv") || m.contains("sportage") || m.contains("ספורטאז") || m.contains("tucson") || m.contains("טוסון") ||
+            m.contains("qashqai") || m.contains("קשקאי") || m.contains("duster") || m.contains("דאסטר") || m.contains("rav4") ||
+            m.contains("ראב 4") || m.contains("ראב4") || m.contains("x-trail") || m.contains("אקס טרייל") || m.contains("cx-5") ||
+            m.contains("cx-30") || m.contains("cx-60") || m.contains("cx-90") || m.contains("3008") || m.contains("2008") ||
+            m.contains("5008") || m.contains("outlander") || m.contains("אאוטלנדר") || m.contains("kuga") || m.contains("קוגה") ||
+            m.contains("tiguan") || m.contains("טיגואן") || m.contains("kodiaq") || m.contains("קודיאק") || m.contains("ateca") ||
+            m.contains("אטקה") || m.contains("arona") || m.contains("ארונה") || m.contains("kamiq") || m.contains("קאמיק") ||
+            m.contains("karoq") || m.contains("קארוק") || m.contains("ev6") || m.contains("ioniq 5") || m.contains("איוניק 5") ||
+            m.contains("model y") || m.contains("מודל y") || m.contains("atto 3") || m.contains("אטו 3") || m.contains("tang") ||
+            m.contains("seal u") || m.contains("ch-r") || m.contains("c-hr") || m.contains("corolla cross") || m.contains("yaris cross") ||
+            m.contains("t-roc") || m.contains("t-cross") || m.contains("taigo") || m.contains("stonic") || m.contains("סטוניק") ||
+            m.contains("niro") || m.contains("נירו") || m.contains("seltos") || m.contains("פורסטר") || m.contains("forester") ||
+            m.contains("crosstrek") || m.contains("קרוסטרק") || m.contains("xv") || m.contains("wrangler") || m.contains("רנגלר") ||
+            m.contains("cherokee") || m.contains("צ'ירוקי") || m.contains("land cruiser") || m.contains("לנד קרוזר") || m.contains("land-cruiser") ||
+            m.contains("pajero") || m.contains("פאג'רו") || m.contains("defender") || m.contains("דיפנדר") || m.contains("discovery") ||
+            m.contains("דיסקברי") || m.contains("patrol") || m.contains("פאטרול") || (m.contains("cross") && !m.contains("lacrosse")) -> "🚙 פנאי-שטח SUV"
+
+            // 9. Hatchbacks & Small City Cars (הצ'בק / סופרמיני)
+            m.contains("הצ'בק") || m.contains("האצ'בק") || m.contains("mg4") || m.contains("golf") || m.contains("גולף") ||
+            m.contains("polo") || m.contains("פולו") || m.contains("ibiza") || m.contains("איביזה") || m.contains("leon") ||
+            m.contains("לאון") || m.contains("clio") || m.contains("קליאו") || m.contains("208") || m.contains("yaris") ||
+            m.contains("יאריס") || m.contains("i20") || m.contains("i10") || m.contains("picanto") || m.contains("פיקנטו") ||
+            m.contains("micra") || m.contains("מיקרה") || m.contains("fiesta") || m.contains("פיאסטה") || m.contains("spark") ||
+            m.contains("ספארק") || m.contains("space star") || m.contains("ספייס סטאר") || m.contains("fabia") || m.contains("פאביה") ||
+            m.contains("sandero") || m.contains("סנדרו") || m.contains("c3") || m.contains("500") || m.contains("swift") ||
+            m.contains("סוויפט") || m.contains("ignis") || m.contains("איגניס") || m.contains("aygo") || m.contains("אייגו") ||
+            m.contains("leaf") || m.contains("ליף") || m.contains("zoe") || m.contains("dolphin") || m.contains("דולפין") -> "🚗 הצ'בק"
+
+            // 10. Vintage / Collector
+            combined.contains("אספנות") || (t.contains("רכב אספנות")) -> "🏆 אספנות"
+
+            // 11. Default Passenger Car (פרטי / סדאן / מנהלים)
             else -> "🚗 רכב פרטי"
         }
     }

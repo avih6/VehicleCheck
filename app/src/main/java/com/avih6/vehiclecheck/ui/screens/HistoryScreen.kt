@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.avih6.vehiclecheck.MainViewModel
@@ -186,7 +187,10 @@ private fun HistoryItemCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.weight(1f, fill = false),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
                             text = VehicleUtils.formatPlate(item.licensePlate),
                             style = MaterialTheme.typography.titleMedium,
@@ -203,16 +207,27 @@ private fun HistoryItemCard(
                     }
 
                     if (!isNotFound) {
-                        val classification = VehicleUtils.resolveQuickClassification(item.make, item.model, fuel = item.fuelType)
+                        val classification = VehicleUtils.resolveQuickClassification(
+                            make = item.make,
+                            model = item.model,
+                            modelType = item.modelType,
+                            ownership = item.ownership,
+                            trimLevel = item.trimLevel,
+                            fuel = item.fuelType
+                        )
                         Surface(
                             shape = RoundedCornerShape(6.dp),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+                            modifier = Modifier.padding(start = 6.dp)
                         ) {
                             Text(
                                 text = classification,
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )

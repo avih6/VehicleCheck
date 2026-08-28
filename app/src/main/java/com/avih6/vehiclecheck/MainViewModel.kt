@@ -581,7 +581,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val commercialName = first.commercialName ?: first.trimLevel
                     val vehicleType = first.bodyType
                     val (makeEn, _) = VehicleUtils.getEnglishMakeAndModel(makeHe, modelName)
-                    val classification = VehicleUtils.resolveQuickClassification(makeHe, modelName)
+                    val classification = VehicleUtils.resolveQuickClassification(
+                        make = makeHe,
+                        model = modelName,
+                        modelType = first.bodyType,
+                        trimLevel = first.trimLevel
+                    )
 
                     // Total active count from MOT
                     var activeCount = 0
@@ -665,7 +670,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         val modelName = first.model.orEmpty().ifBlank { q }
                         val (makeEn, _) = VehicleUtils.getEnglishMakeAndModel(makeHe, modelName)
                         val totalActive = (activeVehicles?.result?.total ?: 250).coerceAtLeast(1)
-                        val classification = VehicleUtils.resolveQuickClassification(makeHe, modelName, fuel = first.fuelType)
+                        val classification = VehicleUtils.resolveQuickClassification(
+                            make = makeHe,
+                            model = modelName,
+                            modelType = first.modelType,
+                            ownership = first.ownership,
+                            trimLevel = first.trimLevel,
+                            fuel = first.fuelType
+                        )
 
                         _selectedModelDetail.value = ModelStatisticsDetail(
                             makeHe = makeHe,
