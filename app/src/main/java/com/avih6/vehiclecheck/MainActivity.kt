@@ -17,6 +17,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
+import coil.compose.AsyncImage
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -400,8 +401,8 @@ private fun DrawerHeader() {
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Image(
-                        painter = painterResource(id = R.mipmap.ic_launcher),
+                    AsyncImage(
+                        model = R.mipmap.ic_launcher,
                         contentDescription = stringResource(R.string.app_name),
                         modifier = Modifier
                             .size(72.dp)
