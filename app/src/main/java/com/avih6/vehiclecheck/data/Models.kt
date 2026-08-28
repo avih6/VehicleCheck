@@ -283,7 +283,8 @@ data class EngineeringEquipmentRecord(
             year = year ?: 0,
             onRoadDate = registrationDate,
             testExpiryDate = expirationDate,
-            ownership = "ציוד מכני הנדסי (צמ\"ה)",
+            ownership = "ציוד עבודה / חברה",
+            modelType = vehicleType ?: "ציוד מכני הנדסי (צמ\"ה)",
             fuelType = "דיזל / מנוע תעשייתי",
             color = "צהוב / תעשייתי",
             vin = vin
@@ -824,6 +825,10 @@ object VehicleUtils {
             "skywell" -> {
                 list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Skywell_logo.svg/500px-Skywell_logo.svg.png")
             }
+            "atlas-copco" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Atlas_Copco_logo.svg/500px-Atlas_Copco_logo.svg.png")
+                list.add("https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/atlas-copco.png")
+            }
         }
 
         // 2. High-speed jsDelivr CDN & GitHub raw
@@ -958,6 +963,7 @@ object VehicleUtils {
             m.contains("ג'י סי בי") || m.contains("jcb") -> "jcb"
             m.contains("בובקט") || m.contains("bobcat") -> "bobcat"
             m.contains("ג'ון דיר") || m.contains("john deere") -> "john-deere"
+            m.contains("אטלס קופקו") || m.contains("אטלס-קופקו") || m.contains("אטלס") || m.contains("atlas copco") || m.contains("atlas-copco") || m.contains("atlas") -> "atlas-copco"
             m.contains("סקניה") || m.contains("scania") -> "scania"
             m.contains("מאן") || m.contains("man") -> "man"
             m.contains("דאף") || m.contains("daf") -> "daf"

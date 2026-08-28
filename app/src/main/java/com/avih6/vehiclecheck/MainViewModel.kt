@@ -513,6 +513,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 alternateEquipment = altEq,
                 alternateVehicle = null
             )
+            viewModelScope.launch(Dispatchers.IO) {
+                repository.saveSearch(altVeh.licensePlate.toString(), altVeh, testStatus)
+            }
         } else {
             val altEq = curr.alternateEquipment ?: return
             val altVeh = curr.vehicle
@@ -526,6 +529,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 alternateEquipment = null,
                 alternateVehicle = altVeh
             )
+            viewModelScope.launch(Dispatchers.IO) {
+                repository.saveSearch(eqVehicle.licensePlate.toString(), eqVehicle, testStatus)
+            }
         }
     }
 

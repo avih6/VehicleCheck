@@ -92,19 +92,29 @@ object WikimediaGalleryService {
             commonsQueries.add("Israel Police car")
         }
 
+        if (brand.equals("dodge", ignoreCase = true) && (modelClean.contains("500") || model.contains("די 500") || model.contains("500"))) {
+            commonsQueries.add("Dodge D series truck")
+            commonsQueries.add("Dodge D500 truck")
+            commonsQueries.add("Dodge D500")
+            commonsQueries.add("Dodge truck 1969")
+        }
+
         if (!colorEn.isNullOrBlank() && year != null && brand.isNotBlank() && modelClean.isNotBlank()) {
-            commonsQueries.add("$brand $modelClean $year $colorEn")
+            commonsQueries.add("$brand $modelClean $year $colorEn car")
         }
         if (!colorEn.isNullOrBlank() && brand.isNotBlank() && modelClean.isNotBlank()) {
-            commonsQueries.add("$brand $modelClean $colorEn")
+            commonsQueries.add("$brand $modelClean $colorEn car")
         }
         if (year != null && brand.isNotBlank() && modelClean.isNotBlank()) {
             commonsQueries.add("$brand $modelClean $year")
+            commonsQueries.add("$brand $modelClean $year car")
         }
         if (brand.isNotBlank() && modelClean.isNotBlank()) {
             commonsQueries.add("$brand $modelClean")
+            commonsQueries.add("$brand $modelClean car")
         }
         if (brand.isNotBlank()) {
+            commonsQueries.add("$brand automobile")
             commonsQueries.add(brand)
         }
 
@@ -263,7 +273,7 @@ object WikimediaGalleryService {
         offset: Int = 0,
         limit: Int = 40
     ): GalleryPageResult = withContext(Dispatchers.IO) {
-        val lightExclusions = " -logo -icon -diagram -flag -symbol -badge -map -drawing -blueprint -singer -portrait -politician"
+        val lightExclusions = " -logo -icon -diagram -flag -symbol -badge -map -drawing -blueprint -singer -portrait -politician -satellite -observatory -space -spacecraft -telescope -rocket -missile -aircraft -ship -train -helicopter"
         val fullQuery = "$rawQuery$lightExclusions"
         val encodedQuery = URLEncoder.encode(fullQuery, "UTF-8")
         val offsetParam = if (offset > 0) "&gsroffset=$offset" else ""

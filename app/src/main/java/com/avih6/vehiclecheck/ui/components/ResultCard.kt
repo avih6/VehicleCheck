@@ -520,13 +520,17 @@ fun ResultCard(
             )
 
             // Ownership
-            val ownerStr = if (!vehicle.ownership.isNullOrBlank()) vehicle.ownership else "פרטי"
-            val isCompany = ownerStr.contains("חברה") || ownerStr.contains("ליסינג") || ownerStr.contains("השכרה")
+            val ownerStr = when {
+                isEngineeringEquipment -> "ציוד עבודה"
+                !vehicle.ownership.isNullOrBlank() -> vehicle.ownership
+                else -> "פרטי"
+            }
+            val isCompany = isEngineeringEquipment || ownerStr.contains("חברה") || ownerStr.contains("ליסינג") || ownerStr.contains("השכרה") || ownerStr.contains("עבודה")
             StatusPill(
                 title = "בעלות",
                 value = ownerStr,
-                isPositive = !isCompany,
-                icon = if (isCompany) Icons.Default.Business else Icons.Default.Person,
+                isPositive = !isCompany || isEngineeringEquipment,
+                icon = if (isEngineeringEquipment) Icons.Default.Construction else if (isCompany) Icons.Default.Business else Icons.Default.Person,
                 modifier = Modifier.weight(1f)
             )
 
@@ -938,41 +942,51 @@ private fun GeneralTabContent(
         }
 
         // Collector Vehicle Official Notice (רכב אספנות)
+        // Engineering equipment cannot be a road collector vehicle, and cancelled/off-road vehicles have cancelled registration.
         val currentYear = java.time.LocalDate.now().year
-        val isCollector = (vehicle.year != null && currentYear - vehicle.year >= 30) ||
+        val isCollector = !isEngineeringEquipment && ((vehicle.year != null && vehicle.year > 1900 && currentYear - vehicle.year >= 30) ||
                 vehicle.effectiveVehicleCategory?.contains("אספנות") == true ||
-                vehicle.trimLevel?.contains("אספנות") == true
+                vehicle.trimLevel?.contains("אספנות") == true)
 
         if (isCollector) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFB300).copy(alpha = 0.12f)),
-                border = BorderStroke(1.dp, Color(0xFFFFB300).copy(alpha = 0.5f))
+                colors = CardDefaults.cardColors(containerColor = if (isOffRoad) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f) else Color(0xFFFFB300).copy(alpha = 0.12f)),
+                border = BorderStroke(1.dp, if (isOffRoad) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f) else Color(0xFFFFB300).copy(alpha = 0.5f))
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(text = "🏆", fontSize = 22.sp)
+                        Text(text = if (isOffRoad) "⏳" else "🏆", fontSize = 22.sp)
                         Text(
-                            text = "רכב אספנות רשמי (מעל 30 שנה)",
+                            text = if (isOffRoad) "רכב בגיל אספנות (רישום מבוטל)" else "רכב אספנות רשמי (מעל 30 שנה)",
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleMedium,
-                            color = Color(0xFFFFC107)
+                            color = if (isOffRoad) MaterialTheme.colorScheme.onSurface else Color(0xFFFFC107)
                         )
                     }
                     Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = "• איסור נסיעה בימי חול (א'-ה') בין השעות 07:00 עד 09:00 בבוקר.\n" +
-                                "• חובת מבחן רישוי (טסט) חצי-שנתי פעמיים בשנה.\n" +
-                                "• פטור מבדיקת מעבדה מוסמכת לרכב מיושן.\n" +
-                                "• זכאות לתעריפי ביטוח חובה מופחתים בהתאם לחוק.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        lineHeight = 18.sp
-                    )
+                    if (isOffRoad) {
+                        Text(
+                            text = "רכב זה עומד בקריטריון הגיל לרכב אספנות (מעל 30 שנה), אך מאחר שרישומו בוטל והוא נגרע מהמצבה (טוטאל לוס / פירוק / הורדה מהכביש), לא חלים עליו הסדרי תנועה וביטוח של רכב אספנות פעיל.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 18.sp
+                        )
+                    } else {
+                        Text(
+                            text = "• איסור נסיעה בימי חול (א'-ה') בין השעות 07:00 עד 09:00 בבוקר.\n" +
+                                    "• חובת מבחן רישוי (טסט) חצי-שנתי פעמיים בשנה.\n" +
+                                    "• פטור מבדיקת מעבדה מוסמכת לרכב מיושן.\n" +
+                                    "• זכאות לתעריפי ביטוח חובה מופחתים בהתאם לחוק.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            lineHeight = 18.sp
+                        )
+                    }
                 }
             }
         }

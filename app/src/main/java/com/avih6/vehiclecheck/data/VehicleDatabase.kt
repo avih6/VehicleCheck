@@ -37,6 +37,9 @@ interface VehicleDao {
     @Query("DELETE FROM vehicle_history WHERE id = :id")
     suspend fun deleteById(id: Long)
 
+    @Query("DELETE FROM vehicle_history WHERE licensePlate = :plate AND make = :make")
+    suspend fun deleteByPlateAndMake(plate: String, make: String)
+
     @Query("DELETE FROM vehicle_history WHERE licensePlate = :plate")
     suspend fun deleteByPlate(plate: String)
 
@@ -109,7 +112,12 @@ class HistoryRepository(private val dao: VehicleDao) {
             trimLevel = record?.trimLevel,
             timestamp = System.currentTimeMillis()
         )
-        dao.deleteByPlate(cleanPlate)
+        val make = record?.make.orEmpty()
+        if (make.isNotBlank()) {
+            dao.deleteByPlateAndMake(cleanPlate, make)
+        } else {
+            dao.deleteByPlate(cleanPlate)
+        }
         dao.insert(entry)
     }
 

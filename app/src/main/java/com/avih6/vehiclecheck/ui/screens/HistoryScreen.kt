@@ -259,11 +259,15 @@ private fun HistoryItemCard(
                         val diff = VehicleUtils.calculateDateDifferenceHebrew(item.testExpiryDate)
                         if (diff != null) "טסט בתוקף • $diff" else "טסט בתוקף (עוד ${item.daysUntilTest} ימים)"
                     }
+                    !item.testExpiryDate.isNullOrBlank() -> {
+                        val diff = VehicleUtils.calculateDateDifferenceHebrew(item.testExpiryDate)
+                        if (diff != null) "טסט פג תוקף • $diff" else "טסט לא בתוקף"
+                    }
                     item.daysUntilTest < 0 -> {
                         val diff = VehicleUtils.calculateDateDifferenceHebrew(item.testExpiryDate)
-                        if (diff != null) "טסט לא בתוקף • $diff" else "טסט לא בתוקף (איחור)"
+                        if (diff != null) "טסט לא בתוקף • $diff" else "טסט לא בתוקף"
                     }
-                    else -> "רכב לא פעיל / טסט לא בתוקף"
+                    else -> "רכב לא פעיל / נגרע מהמצבה"
                 }
                 Text(
                     text = testText,

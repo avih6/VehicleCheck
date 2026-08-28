@@ -867,9 +867,9 @@ fun NationalFleetTrendGraph(
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 val currentPoints = remember(selectedChartMode, totalCount) {
                     when (selectedChartMode) {
-                        1 -> dailyData.map { ChartPointData(it.dayShort, "${(it.count * animProgress.value).toInt()}", it.count.toFloat()) }
-                        2 -> monthlyData.map { ChartPointData(it.monthName, "%.1fK".format((it.count * animProgress.value) / 1000f), it.count.toFloat()) }
-                        else -> fleetHistory.map { ChartPointData("${it.year % 100}'", "%.2fM".format((it.count * animProgress.value) / 1000000f), it.count.toFloat()) }
+                        1 -> dailyData.map { ChartPointData(it.dayShort, "${it.count}", it.count.toFloat()) }
+                        2 -> monthlyData.map { ChartPointData(it.monthName, "%.1fK".format(it.count / 1000f), it.count.toFloat()) }
+                        else -> fleetHistory.map { ChartPointData("${it.year % 100}'", "%.2fM".format(it.count / 1000000f), it.count.toFloat()) }
                     }
                 }
 
