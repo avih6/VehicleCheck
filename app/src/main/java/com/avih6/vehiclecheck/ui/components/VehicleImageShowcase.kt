@@ -417,3 +417,4 @@ fun VehicleImageShowcase(
         }
     }
 }
+}
