@@ -167,20 +167,66 @@ object WikimediaGalleryService {
         scored.map { it.first }.take(limit)
     }
 
+    private fun isJunkOrNonVehicle(title: String, description: String = "", artist: String = ""): Boolean {
+        val t = title.lowercase()
+        val d = description.lowercase()
+        val a = artist.lowercase()
+        val combined = "$t $d $a"
+
+        val blockedKeywords = listOf(
+            // Diagrams, graphics, non-photo assets
+            "logo", "icon", "flag", "diagram", "map", "badge", "emblem", "symbol",
+            "drawing", "sketch", "blueprint", "patent", "graph", "chart", "table", "stats", "infographic",
+            // Car parts / interior only
+            "interior", "dashboard", "seats", "steering wheel",
+            // People, portraits, entertainment, politics
+            "portrait", "singer", "actor", "actress", "politician", "minister", "prime minister", "president",
+            "knesset", "rabbi", "general", "officer", "soldier", "army", "military base",
+            "benayoun", "dor daniel", "habibi", "hakol over habibi", "bennett", "netanyahu", "gaza", "genocide", "war",
+            "attack", "october 7", "terror", "conflict", "protest", "memorial", "cemetery", "grave",
+            "concert", "album", "cover", "band", "music", "song", "group", "person", "man", "woman", "people",
+            "headshot", "selfie", "bundesarchiv bild", "israeli singer", "portrait of"
+        )
+
+        return blockedKeywords.any { combined.contains(it) }
+    }
+
     suspend fun fetchGalleryPage(
         rawMake: String,
         rawModel: String = "",
         offset: Int = 0,
         limit: Int = 40
     ): GalleryPageResult = withContext(Dispatchers.IO) {
-        val query = buildSearchQuery(rawMake, rawModel)
+        val cleanMake = if (rawMake == "הכל" || rawMake.equals("all", ignoreCase = true) || rawMake.contains("כל הרכבים")) "" else rawMake.trim()
+        val cleanModel = if (rawModel == "כל הדגמים" || rawModel.equals("all", ignoreCase = true)) "" else rawModel.trim()
+
+        if (cleanMake.isBlank() && cleanModel.isBlank()) {
+            val featuredCategories = listOf(
+                "Category:Modern_automobiles",
+                "Category:Electric_vehicles",
+                "Category:Sport_utility_vehicles",
+                "Category:Sports_cars"
+            )
+            val results = coroutineScope {
+                featuredCategories.map { cat -> async { fetchCommonsCategoryMembers(cat, limit = 15) } }
+                    .awaitAll()
+                    .flatten()
+                    .distinctBy { it.imageUrl }
+            }
+            if (results.isNotEmpty()) {
+                return@withContext GalleryPageResult(results, null)
+            }
+            return@withContext fetchCommonsSearch("automobiles modern passenger cars incategory:Automobiles", offset, limit)
+        }
+
+        val query = buildSearchQuery(cleanMake, cleanModel)
         val commonsResult = fetchCommonsSearch(query, offset, limit)
 
         // For initial load (offset == 0), augment with Wikipedia & Category images for maximum richness
         if (offset == 0) {
-            val (makeEn, modelEn) = VehicleUtils.getEnglishMakeAndModel(rawMake, rawModel)
-            val brand = if (makeEn != "car") makeEn else rawMake
-            val model = if (modelEn != "car") modelEn else rawModel
+            val (makeEn, modelEn) = VehicleUtils.getEnglishMakeAndModel(cleanMake, cleanModel)
+            val brand = if (makeEn != "car") makeEn else cleanMake
+            val model = if (modelEn != "car") modelEn else cleanModel
 
             val extraImages = coroutineScope {
                 val dWikiEn = async {
@@ -189,7 +235,7 @@ object WikimediaGalleryService {
                     else emptyList()
                 }
                 val dWikiHe = async {
-                    if (rawMake.isNotBlank()) fetchWikipediaSearch("$rawMake $rawModel".trim(), limit = 6, isHebrew = true)
+                    if (cleanMake.isNotBlank()) fetchWikipediaSearch("$cleanMake $cleanModel".trim(), limit = 6, isHebrew = true)
                     else emptyList()
                 }
                 val dCat = async {
@@ -212,7 +258,7 @@ object WikimediaGalleryService {
         offset: Int = 0,
         limit: Int = 40
     ): GalleryPageResult = withContext(Dispatchers.IO) {
-        val lightExclusions = " -logo -icon -diagram -flag -symbol -badge -map -drawing -blueprint"
+        val lightExclusions = " -logo -icon -diagram -flag -symbol -badge -map -drawing -blueprint -singer -portrait -politician"
         val fullQuery = "$rawQuery$lightExclusions"
         val encodedQuery = URLEncoder.encode(fullQuery, "UTF-8")
         val offsetParam = if (offset > 0) "&gsroffset=$offset" else ""
@@ -283,25 +329,7 @@ object WikimediaGalleryService {
                                               checkPath.endsWith(".png", ignoreCase = true) ||
                                               checkPath.endsWith(".webp", ignoreCase = true)
 
-                        val lowerTitle = title.lowercase()
-                        val lowerDesc = cleanDesc.lowercase()
-                        val isJunk = lowerTitle.contains("logo") || lowerTitle.contains("icon") ||
-                                     lowerTitle.contains("flag") || lowerTitle.contains("diagram") ||
-                                     lowerTitle.contains("map") || lowerTitle.contains("badge") ||
-                                     lowerTitle.contains("emblem") || lowerTitle.contains("symbol") ||
-                                     lowerTitle.contains("interior") || lowerTitle.contains("dashboard") ||
-                                     lowerTitle.contains("engine") || lowerTitle.contains("seats") ||
-                                     lowerTitle.contains("steering") || lowerTitle.contains("wheel") ||
-                                     lowerTitle.contains("part") || lowerTitle.contains("drawing") ||
-                                     lowerTitle.contains("sketch") || lowerTitle.contains("blueprint") ||
-                                     lowerTitle.contains("patent") || lowerTitle.contains("graph") ||
-                                     lowerTitle.contains("chart") || lowerTitle.contains("table") ||
-                                     lowerTitle.contains("stats") || lowerTitle.contains("infographic") ||
-                                     lowerTitle.contains("portrait") || lowerTitle.contains("singer") ||
-                                     lowerTitle.contains("actor") || lowerTitle.contains("politician") ||
-                                     lowerTitle.contains("benayoun") || lowerTitle.contains("bundesarchiv bild") ||
-                                     lowerTitle.contains("concert") || lowerTitle.contains("album") ||
-                                     lowerDesc.contains("israeli singer") || lowerDesc.contains("portrait of")
+                        val isJunk = isJunkOrNonVehicle(title, cleanDesc, cleanArtist)
 
                         if (thumbUrl.isNotBlank() && isValidExtension && !isJunk) {
                             results.add(CarGalleryImage(
@@ -333,8 +361,13 @@ object WikimediaGalleryService {
         limit: Int = 10,
         isHebrew: Boolean = false
     ): List<CarGalleryImage> = withContext(Dispatchers.IO) {
+        val qTrimmed = query.trim()
+        if (qTrimmed.isBlank() || qTrimmed == "הכל" || qTrimmed.equals("all", ignoreCase = true)) {
+            return@withContext emptyList()
+        }
+
         val host = if (isHebrew) "he.wikipedia.org" else "en.wikipedia.org"
-        val encodedQuery = URLEncoder.encode(query, "UTF-8")
+        val encodedQuery = URLEncoder.encode(qTrimmed, "UTF-8")
         val urlStr = "https://$host/w/api.php?action=query&generator=search&gsrsearch=$encodedQuery&gsrlimit=$limit&prop=pageimages&pithumbsize=800&format=json&origin=*"
 
         val results = mutableListOf<CarGalleryImage>()
@@ -362,7 +395,8 @@ object WikimediaGalleryService {
                         val thumbUrl = thumbObj.optString("source")
                         val w = thumbObj.optInt("width", 800)
                         val h = thumbObj.optInt("height", 600)
-                        if (thumbUrl.isNotBlank() && !thumbUrl.contains("svg", ignoreCase = true)) {
+                        val isJunk = isJunkOrNonVehicle(title, "")
+                        if (thumbUrl.isNotBlank() && !thumbUrl.contains("svg", ignoreCase = true) && !isJunk) {
                             val fullUrl = thumbUrl.replace(Regex("/thumb/"), "/")
                                 .replace(Regex("/\\d+px-[^/]+$"), "")
                             val descUrl = "https://$host/wiki/${URLEncoder.encode(title.replace(" ", "_"), "UTF-8")}"
@@ -442,10 +476,7 @@ object WikimediaGalleryService {
                                               checkPath.endsWith(".png", ignoreCase = true) ||
                                               checkPath.endsWith(".webp", ignoreCase = true)
 
-                        val lowerTitle = title.lowercase()
-                        val isJunk = lowerTitle.contains("logo") || lowerTitle.contains("icon") ||
-                                     lowerTitle.contains("flag") || lowerTitle.contains("diagram") ||
-                                     lowerTitle.contains("interior") || lowerTitle.contains("dashboard")
+                        val isJunk = isJunkOrNonVehicle(title, "")
 
                         if (thumbUrl.isNotBlank() && isValidExtension && !isJunk) {
                             results.add(CarGalleryImage(
@@ -454,9 +485,9 @@ object WikimediaGalleryService {
                                 thumbUrl = thumbUrl,
                                 descriptionUrl = descUrl,
                                 license = "Creative Commons (Wikimedia Commons)",
-                                artist = "Wikimedia Commons",
+                                artist = "",
                                 description = title,
-                                altText = title,
+                                altText = "תמונת רכב: $title",
                                 width = w,
                                 height = h
                             ))
@@ -465,7 +496,7 @@ object WikimediaGalleryService {
                 }
             }
         } catch (_: Exception) {
-            // Ignore Category members query errors
+            // Ignore category error
         }
         results
     }
