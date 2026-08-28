@@ -16,6 +16,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -275,10 +276,10 @@ fun MainAppShell(viewModel: MainViewModel) {
                             icon = {
                                 Icon(
                                     if (selectedTab == 2) Icons.Filled.BarChart else Icons.Outlined.BarChart,
-                                    contentDescription = stringResource(R.string.tab_statistics)
+                                    contentDescription = "סטטיסטיקה"
                                 )
                             },
-                            label = { Text(stringResource(R.string.tab_statistics), fontSize = 10.sp) },
+                            label = { Text("סטטיסטיקה", fontSize = 10.sp) },
                             modifier = Modifier.handCursor()
                         )
                         NavigationBarItem(
@@ -287,10 +288,10 @@ fun MainAppShell(viewModel: MainViewModel) {
                             icon = {
                                 Icon(
                                     if (selectedTab == 3) Icons.Filled.Warning else Icons.Outlined.WarningAmber,
-                                    contentDescription = stringResource(R.string.tab_recalls)
+                                    contentDescription = "ריקולים"
                                 )
                             },
-                            label = { Text(stringResource(R.string.tab_recalls), fontSize = 10.sp) },
+                            label = { Text("ריקולים", fontSize = 10.sp) },
                             modifier = Modifier.handCursor()
                         )
                         NavigationBarItem(
@@ -299,10 +300,10 @@ fun MainAppShell(viewModel: MainViewModel) {
                             icon = {
                                 Icon(
                                     if (selectedTab == 4) Icons.Filled.Build else Icons.Outlined.Build,
-                                    contentDescription = stringResource(R.string.tab_dtc)
+                                    contentDescription = "תקלות"
                                 )
                             },
-                            label = { Text(stringResource(R.string.tab_dtc), fontSize = 10.sp) },
+                            label = { Text("תקלות", fontSize = 10.sp) },
                             modifier = Modifier.handCursor()
                         )
                         NavigationBarItem(
@@ -311,10 +312,10 @@ fun MainAppShell(viewModel: MainViewModel) {
                             icon = {
                                 Icon(
                                     if (selectedTab == 5) Icons.Filled.Collections else Icons.Outlined.Collections,
-                                    contentDescription = stringResource(R.string.tab_gallery)
+                                    contentDescription = "גלריה"
                                 )
                             },
-                            label = { Text(stringResource(R.string.tab_gallery), fontSize = 10.sp) },
+                            label = { Text("גלריה", fontSize = 10.sp) },
                             modifier = Modifier.handCursor()
                         )
                     }
@@ -329,22 +330,39 @@ fun MainAppShell(viewModel: MainViewModel) {
                 when (selectedTab) {
                     0 -> SearchScreen(
                         viewModel = viewModel,
-                        onNavigateToHistory = { selectedTab = 1 }
+                        modifier = Modifier.fillMaxSize()
                     )
                     1 -> HistoryScreen(
                         viewModel = viewModel,
                         onSelectVehicle = { plate ->
-                            viewModel.onQueryChange(plate)
+                            viewModel.searchPlateDirect(plate)
                             selectedTab = 0
-                            viewModel.searchVehicle()
-                        }
+                        },
+                        modifier = Modifier.fillMaxSize()
                     )
-                    2 -> StatisticsScreen(viewModel = viewModel)
-                    3 -> RecallsScreen(viewModel = viewModel)
-                    4 -> ObdFaultCodesScreen(viewModel = viewModel)
-                    5 -> GalleryScreen(
-                        initialQuery = viewModel.searchQuery.value.ifBlank { "הכל" }
+                    2 -> com.avih6.vehiclecheck.ui.screens.StatisticsScreen(
+                        viewModel = viewModel,
+                        modifier = Modifier.fillMaxSize()
                     )
+                    3 -> com.avih6.vehiclecheck.ui.screens.RecallsScreen(
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    4 -> com.avih6.vehiclecheck.ui.screens.DtcScreen(
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    5 -> {
+                        val currentSearchState = viewModel.searchState.collectAsState().value
+                        val initialQuery = if (currentSearchState is com.avih6.vehiclecheck.data.SearchState.Success) {
+                            val v = currentSearchState.vehicle
+                            val (makeEn, modelEn) = com.avih6.vehiclecheck.data.VehicleUtils.getEnglishMakeAndModel(v.make, v.model)
+                            "$makeEn $modelEn"
+                        } else "הכל"
+
+                        com.avih6.vehiclecheck.ui.screens.GalleryScreen(
+                            initialQuery = initialQuery,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             }
         }
