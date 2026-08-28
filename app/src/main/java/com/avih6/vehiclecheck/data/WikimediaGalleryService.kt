@@ -201,22 +201,27 @@ object WikimediaGalleryService {
         val cleanModel = if (rawModel == "כל הדגמים" || rawModel.equals("all", ignoreCase = true)) "" else rawModel.trim()
 
         if (cleanMake.isBlank() && cleanModel.isBlank()) {
-            val featuredCategories = listOf(
-                "Category:Modern_automobiles",
-                "Category:Electric_vehicles",
-                "Category:Sport_utility_vehicles",
-                "Category:Sports_cars"
+            val showcaseQueries = listOf(
+                "Toyota Corolla",
+                "Hyundai Ioniq 5",
+                "Tesla Model 3",
+                "Mercedes-Benz",
+                "BMW",
+                "Porsche 911",
+                "Audi",
+                "Volkswagen Golf",
+                "Kia Sportage",
+                "BYD Atto 3"
             )
-            val results = coroutineScope {
-                featuredCategories.map { cat -> async { fetchCommonsCategoryMembers(cat, limit = 15) } }
-                    .awaitAll()
-                    .flatten()
-                    .distinctBy { it.imageUrl }
+            val parallelImages = coroutineScope {
+                showcaseQueries.map { q ->
+                    async { fetchCommonsSearch("$q car", offset = 0, limit = 5).images }
+                }.awaitAll().flatten().distinctBy { it.imageUrl }.shuffled()
             }
-            if (results.isNotEmpty()) {
-                return@withContext GalleryPageResult(results, null)
+            if (parallelImages.isNotEmpty()) {
+                return@withContext GalleryPageResult(parallelImages, null)
             }
-            return@withContext fetchCommonsSearch("automobiles modern passenger cars incategory:Automobiles", offset, limit)
+            return@withContext fetchCommonsSearch("automobiles modern passenger cars", offset, limit)
         }
 
         val query = buildSearchQuery(cleanMake, cleanModel)
@@ -427,7 +432,7 @@ object WikimediaGalleryService {
         limit: Int = 20
     ): List<CarGalleryImage> = withContext(Dispatchers.IO) {
         val encodedCat = URLEncoder.encode(categoryTitle, "UTF-8")
-        val urlStr = "https://commons.wikimedia.org/w/api.php?action=query&generator=categorymembers&gcmtitle=$encodedCat&gcmlimit=$limit&prop=imageinfo&iiprop=url|size&iiurlwidth=800&format=json&origin=*"
+        val urlStr = "https://commons.wikimedia.org/w/api.php?action=query&generator=categorymembers&gcmtitle=$encodedCat&gcmtype=file&gcmlimit=$limit&prop=imageinfo&iiprop=url|size|extmetadata&iiurlwidth=800&format=json&origin=*"
 
         val results = mutableListOf<CarGalleryImage>()
         try {
