@@ -189,6 +189,9 @@ object WikimediaGalleryService {
             "drawing", "sketch", "blueprint", "patent", "graph", "chart", "table", "stats", "infographic",
             // Car parts / interior only
             "interior", "dashboard", "seats", "steering wheel",
+            // Space, astronomy, aviation, naval, military hardware
+            "satellite", "observatory", "spacecraft", "space probe", "telescope", "orbiting", "oao-", "oao", "astronomy", "celestial",
+            "nasa", "rocket", "missile", "fighter jet", "aircraft", "airplane", "aerospace", "submarine", "warship", "space",
             // People, portraits, entertainment, politics
             "portrait", "singer", "actor", "actress", "politician", "minister", "prime minister", "president",
             "knesset", "rabbi", "general", "officer", "soldier", "army", "military base",
@@ -549,6 +552,10 @@ object WikimediaGalleryService {
         colorEn: String?,
         isIsraeliPreferred: Boolean = false
     ): Int {
+        if (isJunkOrNonVehicle(image.title, image.description, image.artist)) {
+            return -100000
+        }
+
         var score = 0
         val textToSearch = "${image.title} ${image.description}".lowercase()
 

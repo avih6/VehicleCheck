@@ -2597,6 +2597,7 @@ fun AutoBrandLogo(
     var logoUrlIndex by remember(hebrewMake) { mutableIntStateOf(0) }
     val slug = remember(hebrewMake) { VehicleUtils.getBrandSlug(hebrewMake) }
     val urls = remember(hebrewMake) { VehicleUtils.getBrandLogoUrls(hebrewMake) }
+    var isLoaded by remember(hebrewMake) { mutableStateOf(false) }
 
     Surface(
         shape = CircleShape,
@@ -2608,19 +2609,23 @@ fun AutoBrandLogo(
             contentAlignment = Alignment.Center
         ) {
             val isTrailer = slug == "trailer" || (hebrewMake != null && (hebrewMake.contains("סירני") || hebrewMake.contains("גרור") || hebrewMake.contains("נתמך")))
-            if (urls.isEmpty() || logoUrlIndex >= urls.count() || slug == "car") {
-                val icon = when {
-                    isEngineeringEquipment -> Icons.Default.Construction
-                    isTrailer -> Icons.Default.LocalShipping
-                    else -> Icons.Default.DirectionsCar
-                }
+            val fallbackIcon = when {
+                isEngineeringEquipment -> Icons.Default.Construction
+                isTrailer -> Icons.Default.LocalShipping
+                else -> Icons.Default.DirectionsCar
+            }
+
+            // Immediately display the fallback icon so there is never a blank white circle
+            if (!isLoaded || urls.isEmpty() || logoUrlIndex >= urls.count() || slug == "car") {
                 Icon(
-                    imageVector = icon,
+                    imageVector = fallbackIcon,
                     contentDescription = null,
-                    tint = if (useWhiteBackground) Color(0xFF1E88E5) else MaterialTheme.colorScheme.primary,
+                    tint = if (useWhiteBackground) Color(0xFF1E88E5).copy(alpha = if (urls.isNotEmpty() && logoUrlIndex < urls.count()) 0.45f else 1f) else MaterialTheme.colorScheme.primary,
                     modifier = Modifier.fillMaxSize(0.7f)
                 )
-            } else {
+            }
+
+            if (urls.isNotEmpty() && logoUrlIndex < urls.count() && slug != "car") {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(urls[logoUrlIndex])
@@ -2630,9 +2635,14 @@ fun AutoBrandLogo(
                     contentDescription = "סמל יצרן $hebrewMake",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Fit,
+                    onSuccess = {
+                        isLoaded = true
+                    },
                     onError = {
-                        if (logoUrlIndex < urls.count()) {
+                        if (logoUrlIndex < urls.count() - 1) {
                             logoUrlIndex++
+                        } else {
+                            logoUrlIndex = urls.count()
                         }
                     }
                 )
