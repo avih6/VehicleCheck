@@ -379,50 +379,43 @@ private fun DrawerHeader() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .height(200.dp)
             .background(
-                brush = Brush.verticalGradient(
+                Brush.verticalGradient(
                     colors = listOf(
                         MaterialTheme.colorScheme.primary,
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.82f)
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                     )
                 )
-            )
-            .padding(vertical = 24.dp, horizontal = 16.dp),
+            ),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Surface(
-                modifier = Modifier.size(76.dp),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(22.dp),
-                shadowElevation = 8.dp,
-                color = Color.White
+                modifier = Modifier.size(80.dp),
+                shape = CircleShape,
+                shadowElevation = 4.dp
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_launcher_foreground),
-                        contentDescription = stringResource(R.string.app_name),
-                        tint = MaterialTheme.colorScheme.primary,
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Image(
+                        painter = painterResource(id = R.mipmap.ic_launcher_background),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                        contentDescription = null,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
             }
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(16.dp))
             Text(
-                text = stringResource(R.string.app_name),
+                stringResource(R.string.app_name),
                 color = Color.White,
                 fontWeight = FontWeight.Black,
                 fontSize = 22.sp
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = "מאגר כלי הרכב הממשלתי",
-                color = Color.White.copy(alpha = 0.85f),
-                style = MaterialTheme.typography.labelMedium
             )
         }
     }
