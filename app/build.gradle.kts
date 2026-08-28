@@ -9,14 +9,16 @@ android {
     namespace = "com.avih6.vehiclecheck"
     compileSdk = 36
 
+    androidResources {
+        localeFilters += listOf("he", "en", "iw")
+    }
+
     defaultConfig {
         applicationId = "com.avih6.vehiclecheck"
         minSdk = 24
         targetSdk = 36
         versionCode = 75
         versionName = "0.75.0"
-
-        resourceConfigurations += listOf("he", "en", "iw")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
