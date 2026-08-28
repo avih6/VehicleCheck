@@ -1258,7 +1258,9 @@ fun ModelDetailStatisticsCard(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = if (detail.safetyScore != null && detail.safetyScore > 0) "%.1f/8".format(detail.safetyScore) else "7.0/8",
+                            text = if (detail.safetyScore != null && detail.safetyScore > 0) {
+                                if (detail.safetyScore % 1.0 == 0.0) "${detail.safetyScore.toInt()}/8" else "%.1f/8".format(detail.safetyScore)
+                            } else "—",
                             fontWeight = FontWeight.Black,
                             fontSize = 15.sp,
                             maxLines = 1,
