@@ -577,11 +577,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val makeCd = first.makeCode
                     val modelCd = first.modelCode
                     val makeHe = first.makeName.orEmpty().ifBlank { q }
-                    val modelName = first.modelName.orEmpty().ifBlank { q }
-                    val commercialName = first.commercialName
-                    val vehicleType = first.vehicleCategory
+                    val modelName = first.commercialName.orEmpty().ifBlank { first.trimLevel.orEmpty().ifBlank { q } }
+                    val commercialName = first.commercialName ?: first.trimLevel
+                    val vehicleType = first.bodyType
                     val (makeEn, _) = VehicleUtils.getEnglishMakeAndModel(makeHe, modelName)
-                    val classification = VehicleUtils.resolveQuickClassification(makeHe, modelName, vehicleCategory = vehicleType)
+                    val classification = VehicleUtils.resolveQuickClassification(makeHe, modelName)
 
                     // Total active count from MOT
                     var activeCount = 0
@@ -631,10 +631,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         }
                     }
 
-                    val fuelTypes = records.mapNotNull { it.fuelType }.distinct()
+                    val fuelTypes = records.mapNotNull { it.powertrainTech ?: it.driveType }.distinct()
                     val safetyScore = records.mapNotNull { it.safetyScore }.firstOrNull() ?: first.safetyScore
                     val engineHp = first.horsepower
-                    val transmission = first.transmissionType
+                    val transmission = if (first.isAutomatic == 1) "אוטומטית" else if (first.isAutomatic == 0) "ידנית" else null
 
                     _selectedModelDetail.value = ModelStatisticsDetail(
                         makeHe = makeHe,
@@ -647,7 +647,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         totalInactive = inactiveCount,
                         survivalRate = survivalRate,
                         safetyScore = safetyScore,
-                        fuelTypes = fuelTypes.ifEmpty { listOf("בנזין / היברידי") },
+                        fuelTypes = if (fuelTypes.isNotEmpty()) fuelTypes else listOf("בנזין / היברידי"),
                         enginePowerHp = engineHp,
                         transmission = transmission,
                         yearDistribution = distribution
