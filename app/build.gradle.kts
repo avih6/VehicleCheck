@@ -9,10 +9,6 @@ android {
     namespace = "com.avih6.vehiclecheck"
     compileSdk = 36
 
-    androidResources {
-        localeFilters += listOf("he", "en", "iw")
-    }
-
     defaultConfig {
         applicationId = "com.avih6.vehiclecheck"
         minSdk = 24
