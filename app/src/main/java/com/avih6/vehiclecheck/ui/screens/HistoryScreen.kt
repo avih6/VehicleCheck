@@ -281,7 +281,7 @@ private fun HistoryItemCard(
             IconButton(onClick = onToggleFavorite) {
                 Icon(
                     imageVector = if (item.isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                    contentDescription = "Favorite",
+                    contentDescription = if (item.isFavorite) "הסר רכב זה מהמועדפים" else "הוסף רכב זה למועדפים",
                     tint = if (item.isFavorite) Color(0xFFFFB300) else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -290,7 +290,7 @@ private fun HistoryItemCard(
             IconButton(onClick = onDelete) {
                 Icon(
                     imageVector = Icons.Outlined.Close,
-                    contentDescription = "Delete",
+                    contentDescription = "מחק רכב זה מהיסטוריית החיפושים",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     modifier = Modifier.size(18.dp)
                 )

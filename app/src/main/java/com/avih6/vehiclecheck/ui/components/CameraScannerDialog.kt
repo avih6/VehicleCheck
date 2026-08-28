@@ -249,7 +249,7 @@ fun CameraScannerDialog(
                 ) {
                     Icon(
                         imageVector = if (isTorchOn) Icons.Default.FlashOn else Icons.Default.FlashOff,
-                        contentDescription = "Flash",
+                        contentDescription = if (isTorchOn) "כבה פנס" else "הדלק פנס",
                         tint = if (isTorchOn) Color(0xFFFFD54F) else Color.White
                     )
                 }
@@ -259,7 +259,7 @@ fun CameraScannerDialog(
                     onClick = onDismiss,
                     modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), CircleShape)
                 ) {
-                    Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+                    Icon(Icons.Default.Close, contentDescription = "סגור סורק", tint = Color.White)
                 }
             }
 
@@ -281,7 +281,7 @@ fun CameraScannerDialog(
                                 cameraControl?.setZoomRatio(newRatio)
                             }
                         }) {
-                            Icon(Icons.Default.ZoomOut, contentDescription = "Zoom Out", tint = Color.White)
+                            Icon(Icons.Default.ZoomOut, contentDescription = "הקטן זום", tint = Color.White)
                         }
 
                         Text(
@@ -297,7 +297,7 @@ fun CameraScannerDialog(
                                 cameraControl?.setZoomRatio(newRatio)
                             }
                         }) {
-                            Icon(Icons.Default.ZoomIn, contentDescription = "Zoom In", tint = Color.White)
+                            Icon(Icons.Default.ZoomIn, contentDescription = "הגדל זום", tint = Color.White)
                         }
                     }
                 }

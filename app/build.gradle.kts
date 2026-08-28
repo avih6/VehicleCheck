@@ -13,8 +13,8 @@ android {
         applicationId = "com.avih6.vehiclecheck"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 75
+        versionName = "0.75.0"
 
         resourceConfigurations += listOf("he", "en", "iw")
 
