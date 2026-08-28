@@ -1491,3 +1491,477 @@ object VehicleUtils {
         }
     }
 }
+
+data class ModelSuggestion(
+    val brandHebrew: String,
+    val brandEnglish: String,
+    val modelHebrew: String,
+    val modelEnglish: String,
+    val searchQuery: String
+)
+
+object VehicleModelCatalog {
+    val allModels: List<ModelSuggestion> = listOf(
+        // Hyundai
+        ModelSuggestion("יונדאי", "Hyundai", "טוסון", "Tucson", "יונדאי טוסון"),
+        ModelSuggestion("יונדאי", "Hyundai", "איוניק 5", "Ioniq 5", "יונדאי איוניק 5"),
+        ModelSuggestion("יונדאי", "Hyundai", "איוניק 6", "Ioniq 6", "יונדאי איוניק 6"),
+        ModelSuggestion("יונדאי", "Hyundai", "איוניק 9", "Ioniq 9", "יונדאי איוניק 9"),
+        ModelSuggestion("יונדאי", "Hyundai", "איוניק", "Ioniq", "יונדאי איוניק"),
+        ModelSuggestion("יונדאי", "Hyundai", "קונה", "Kona", "יונדאי קונה"),
+        ModelSuggestion("יונדאי", "Hyundai", "אלנטרה", "Elantra", "יונדאי אלנטרה"),
+        ModelSuggestion("יונדאי", "Hyundai", "סנטה פה", "Santa Fe", "יונדאי סנטה פה"),
+        ModelSuggestion("יונדאי", "Hyundai", "פליסייד", "Palisade", "יונדאי פליסייד"),
+        ModelSuggestion("יונדאי", "Hyundai", "באיון", "Bayon", "יונדאי באיון"),
+        ModelSuggestion("יונדאי", "Hyundai", "וניו", "Venue", "יונדאי וניו"),
+        ModelSuggestion("יונדאי", "Hyundai", "סטאריה", "Staria", "יונדאי סטאריה"),
+        ModelSuggestion("יונדאי", "Hyundai", "אינספר", "Inster", "יונדאי אינספר"),
+        ModelSuggestion("יונדאי", "Hyundai", "i10", "I10", "יונדאי i10"),
+        ModelSuggestion("יונדאי", "Hyundai", "i20", "I20", "יונדאי i20"),
+        ModelSuggestion("יונדאי", "Hyundai", "i30", "I30", "יונדאי i30"),
+        ModelSuggestion("יונדאי", "Hyundai", "i35", "I35", "יונדאי i35"),
+        ModelSuggestion("יונדאי", "Hyundai", "i25", "I25", "יונדאי i25"),
+        ModelSuggestion("יונדאי", "Hyundai", "גטס", "Getz", "יונדאי גטס"),
+        ModelSuggestion("יונדאי", "Hyundai", "אקסנט", "Accent", "יונדאי אקסנט"),
+
+        // Toyota
+        ModelSuggestion("טויוטה", "Toyota", "קורולה", "Corolla", "טויוטה קורולה"),
+        ModelSuggestion("טויוטה", "Toyota", "קורולה קרוס", "Corolla Cross", "טויוטה קורולה קרוס"),
+        ModelSuggestion("טויוטה", "Toyota", "יאריס", "Yaris", "טויוטה יאריס"),
+        ModelSuggestion("טויוטה", "Toyota", "יאריס קרוס", "Yaris Cross", "טויוטה יאריס קרוס"),
+        ModelSuggestion("טויוטה", "Toyota", "ראב 4", "RAV4", "טויוטה ראב 4"),
+        ModelSuggestion("טויוטה", "Toyota", "C-HR", "C-HR", "טויוטה C-HR"),
+        ModelSuggestion("טויוטה", "Toyota", "קאמרי", "Camry", "טויוטה קאמרי"),
+        ModelSuggestion("טויוטה", "Toyota", "פריוס", "Prius", "טויוטה פריוס"),
+        ModelSuggestion("טויוטה", "Toyota", "פריוס פלוס", "Prius Plus", "טויוטה פריוס פלוס"),
+        ModelSuggestion("טויוטה", "Toyota", "לנד קרוזר", "Land Cruiser", "טויוטה לנד קרוזר"),
+        ModelSuggestion("טויוטה", "Toyota", "היילקס", "Hilux", "טויוטה היילקס"),
+        ModelSuggestion("טויוטה", "Toyota", "היילנדר", "Highlander", "טויוטה היילנדר"),
+        ModelSuggestion("טויוטה", "Toyota", "אייגו", "Aygo", "טויוטה אייגו"),
+        ModelSuggestion("טויוטה", "Toyota", "אייגו X", "Aygo X", "טויוטה אייגו X"),
+        ModelSuggestion("טויוטה", "Toyota", "bZ4X", "bZ4X", "טויוטה bZ4X"),
+        ModelSuggestion("טויוטה", "Toyota", "פרואייס", "Proace", "טויוטה פרואייס"),
+        ModelSuggestion("טויוטה", "Toyota", "אוריס", "Auris", "טויוטה אוריס"),
+        ModelSuggestion("טויוטה", "Toyota", "אוונסיס", "Avensis", "טויוטה אוונסיס"),
+        ModelSuggestion("טויוטה", "Toyota", "ורסו", "Verso", "טויוטה ורסו"),
+
+        // Kia
+        ModelSuggestion("קיה", "Kia", "פיקנטו", "Picanto", "קיה פיקנטו"),
+        ModelSuggestion("קיה", "Kia", "ספורטאז'", "Sportage", "קיה ספורטאז'"),
+        ModelSuggestion("קיה", "Kia", "נירו", "Niro", "קיה נירו"),
+        ModelSuggestion("קיה", "Kia", "נירו פלוס", "Niro Plus", "קיה נירו פלוס"),
+        ModelSuggestion("קיה", "Kia", "סטוניק", "Stonic", "קיה סטוניק"),
+        ModelSuggestion("קיה", "Kia", "סורנטו", "Sorento", "קיה סורנטו"),
+        ModelSuggestion("קיה", "Kia", "קרניבל", "Carnival", "קיה קרניבל"),
+        ModelSuggestion("קיה", "Kia", "סיד", "Ceed", "קיה סיד"),
+        ModelSuggestion("קיה", "Kia", "אקסיד", "XCeed", "קיה אקסיד"),
+        ModelSuggestion("קיה", "Kia", "פרוסיד", "Proceed", "קיה פרוסיד"),
+        ModelSuggestion("קיה", "Kia", "ריו", "Rio", "קיה ריו"),
+        ModelSuggestion("קיה", "Kia", "סלטוס", "Seltos", "קיה סלטוס"),
+        ModelSuggestion("קיה", "Kia", "EV3", "EV3", "קיה EV3"),
+        ModelSuggestion("קיה", "Kia", "EV6", "EV6", "קיה EV6"),
+        ModelSuggestion("קיה", "Kia", "EV9", "EV9", "קיה EV9"),
+        ModelSuggestion("קיה", "Kia", "סול", "Soul", "קיה סול"),
+        ModelSuggestion("קיה", "Kia", "פורטה", "Forte", "קיה פורטה"),
+        ModelSuggestion("קיה", "Kia", "קארנס", "Carens", "קיה קארנס"),
+        ModelSuggestion("קיה", "Kia", "אופטימה", "Optima", "קיה אופטימה"),
+
+        // Skoda
+        ModelSuggestion("סקודה", "Skoda", "אוקטביה", "Octavia", "סקודה אוקטביה"),
+        ModelSuggestion("סקודה", "Skoda", "סופרב", "Superb", "סקודה סופרב"),
+        ModelSuggestion("סקודה", "Skoda", "קודיאק", "Kodiaq", "סקודה קודיאק"),
+        ModelSuggestion("סקודה", "Skoda", "קארוק", "Karoq", "סקודה קארוק"),
+        ModelSuggestion("סקודה", "Skoda", "קאמיק", "Kamiq", "סקודה קאמיק"),
+        ModelSuggestion("סקודה", "Skoda", "פאביה", "Fabia", "סקודה פאביה"),
+        ModelSuggestion("סקודה", "Skoda", "סקאלה", "Scala", "סקודה סקאלה"),
+        ModelSuggestion("סקודה", "Skoda", "אניאק", "Enyaq", "סקודה אניאק"),
+        ModelSuggestion("סקודה", "Skoda", "אניאק קופה", "Enyaq Coupe", "סקודה אניאק קופה"),
+        ModelSuggestion("סקודה", "Skoda", "אלרוק", "Elroq", "סקודה אלרוק"),
+        ModelSuggestion("סקודה", "Skoda", "ראפיד", "Rapid", "סקודה ראפיד"),
+        ModelSuggestion("סקודה", "Skoda", "יטי", "Yeti", "סקודה יטי"),
+        ModelSuggestion("סקודה", "Skoda", "רומסטר", "Roomster", "סקודה רומסטר"),
+        ModelSuggestion("סקודה", "Skoda", "סיטיגו", "Citigo", "סקודה סיטיגו"),
+
+        // Mazda
+        ModelSuggestion("מאזדה", "Mazda", "מאזדה 3", "Mazda 3", "מאזדה 3"),
+        ModelSuggestion("מאזדה", "Mazda", "מאזדה 2", "Mazda 2", "מאזדה 2"),
+        ModelSuggestion("מאזדה", "Mazda", "מאזדה 6", "Mazda 6", "מאזדה 6"),
+        ModelSuggestion("מאזדה", "Mazda", "CX-5", "CX-5", "מאזדה CX-5"),
+        ModelSuggestion("מאזדה", "Mazda", "CX-30", "CX-30", "מאזדה CX-30"),
+        ModelSuggestion("מאזדה", "Mazda", "CX-60", "CX-60", "מאזדה CX-60"),
+        ModelSuggestion("מאזדה", "Mazda", "CX-90", "CX-90", "מאזדה CX-90"),
+        ModelSuggestion("מאזדה", "Mazda", "מיאטה MX-5", "MX-5 Miata", "מאזדה מיאטה"),
+
+        // BYD
+        ModelSuggestion("BYD", "BYD", "אטו 3", "Atto 3", "BYD Atto 3"),
+        ModelSuggestion("BYD", "BYD", "דולפין", "Dolphin", "BYD Dolphin"),
+        ModelSuggestion("BYD", "BYD", "דולפין מיני", "Dolphin Mini", "BYD Dolphin Mini"),
+        ModelSuggestion("BYD", "BYD", "סיגאל", "Seagull", "BYD Seagull"),
+        ModelSuggestion("BYD", "BYD", "סיל", "Seal", "BYD Seal"),
+        ModelSuggestion("BYD", "BYD", "סיל U", "Seal U", "BYD Seal U"),
+        ModelSuggestion("BYD", "BYD", "סילאיון 7", "Sealion 7", "BYD Sealion 7"),
+        ModelSuggestion("BYD", "BYD", "טאנג", "Tang", "BYD Tang"),
+        ModelSuggestion("BYD", "BYD", "האן", "Han", "BYD Han"),
+
+        // Tesla
+        ModelSuggestion("טסלה", "Tesla", "מודל 3", "Model 3", "טסלה מודל 3"),
+        ModelSuggestion("טסלה", "Tesla", "מודל Y", "Model Y", "טסלה מודל Y"),
+        ModelSuggestion("טסלה", "Tesla", "מודל S", "Model S", "טסלה מודל S"),
+        ModelSuggestion("טסלה", "Tesla", "מודל X", "Model X", "טסלה מודל X"),
+        ModelSuggestion("טסלה", "Tesla", "סייברטראק", "Cybertruck", "טסלה סייברטראק"),
+
+        // Volkswagen
+        ModelSuggestion("פולקסווגן", "Volkswagen", "גולף", "Golf", "פולקסווגן גולף"),
+        ModelSuggestion("פולקסווגן", "Volkswagen", "פולו", "Polo", "פולקסווגן פולו"),
+        ModelSuggestion("פולקסווגן", "Volkswagen", "טיגואן", "Tiguan", "פולקסווגן טיגואן"),
+        ModelSuggestion("פולקסווגן", "Volkswagen", "טיגואן אולספייס", "Tiguan Allspace", "פולקסווגן טיגואן אולספייס"),
+        ModelSuggestion("פולקסווגן", "Volkswagen", "טי-רוק", "T-Roc", "פולקסווגן טי רוק"),
+        ModelSuggestion("פולקסווגן", "Volkswagen", "טי-קרוס", "T-Cross", "פולקסווגן טי קרוס"),
+        ModelSuggestion("פולקסווגן", "Volkswagen", "טאיגו", "Taigo", "פולקסווגן טאיגו"),
+        ModelSuggestion("פולקסווגן", "Volkswagen", "טוארג", "Touareg", "פולקסווגן טוארג"),
+        ModelSuggestion("פולקסווגן", "Volkswagen", "פאסאט", "Passat", "פולקסווגן פאסאט"),
+        ModelSuggestion("פולקסווגן", "Volkswagen", "קאדי", "Caddy", "פולקסווגן קאדי"),
+        ModelSuggestion("פולקסווגן", "Volkswagen", "טרנספורטר", "Transporter", "פולקסווגן טרנספורטר"),
+        ModelSuggestion("פולקסווגן", "Volkswagen", "מולטיוואן", "Multivan", "פולקסווגן מולטיוואן"),
+        ModelSuggestion("פולקסווגן", "Volkswagen", "קראפטר", "Crafter", "פולקסווגן קראפטר"),
+        ModelSuggestion("פולקסווגן", "Volkswagen", "שירוקו", "Scirocco", "פולקסווגן שירוקו"),
+        ModelSuggestion("פולקסווגן", "Volkswagen", "ארטאון", "Arteon", "פולקסווגן ארטאון"),
+        ModelSuggestion("פולקסווגן", "Volkswagen", "ID.3", "ID.3", "פולקסווגן ID.3"),
+        ModelSuggestion("פולקסווגן", "Volkswagen", "ID.4", "ID.4", "פולקסווגן ID.4"),
+        ModelSuggestion("פולקסווגן", "Volkswagen", "ID.5", "ID.5", "פולקסווגן ID.5"),
+        ModelSuggestion("פולקסווגן", "Volkswagen", "ID.7", "ID.7", "פולקסווגן ID.7"),
+        ModelSuggestion("פולקסווגן", "Volkswagen", "ID.Buzz", "ID.Buzz", "פולקסווגן ID Buzz"),
+
+        // Seat & Cupra
+        ModelSuggestion("סיאט", "Seat", "איביזה", "Ibiza", "סיאט איביזה"),
+        ModelSuggestion("סיאט", "Seat", "ארונה", "Arona", "סיאט ארונה"),
+        ModelSuggestion("סיאט", "Seat", "אטקה", "Ateca", "סיאט אטקה"),
+        ModelSuggestion("סיאט", "Seat", "לאון", "Leon", "סיאט לאון"),
+        ModelSuggestion("סיאט", "Seat", "טראקו", "Tarraco", "סיאט טראקו"),
+        ModelSuggestion("קופרה", "Cupra", "פורמנטור", "Formentor", "קופרה פורמנטור"),
+        ModelSuggestion("קופרה", "Cupra", "לאון", "Leon", "קופרה לאון"),
+        ModelSuggestion("קופרה", "Cupra", "אטקה", "Ateca", "קופרה אטקה"),
+        ModelSuggestion("קופרה", "Cupra", "בורן", "Born", "קופרה בורן"),
+        ModelSuggestion("קופרה", "Cupra", "טוואסקאן", "Tavascan", "קופרה טוואסקאן"),
+
+        // Geely & Zeekr
+        ModelSuggestion("ג'ילי", "Geely", "גיאומטרי C", "Geometry C", "ג'ילי גיאומטרי C"),
+        ModelSuggestion("ג'ילי", "Geely", "EX5", "EX5", "ג'ילי EX5"),
+        ModelSuggestion("זיקר", "Zeekr", "זיקר 001", "001", "זיקר 001"),
+        ModelSuggestion("זיקר", "Zeekr", "זיקר X", "X", "זיקר X"),
+        ModelSuggestion("זיקר", "Zeekr", "זיקר 007", "007", "זיקר 007"),
+        ModelSuggestion("זיקר", "Zeekr", "זיקר 009", "009", "זיקר 009"),
+
+        // MG
+        ModelSuggestion("MG", "MG", "MG 4", "MG 4", "MG 4"),
+        ModelSuggestion("MG", "MG", "MG ZS", "MG ZS", "MG ZS"),
+        ModelSuggestion("MG", "MG", "MG ZS EV", "MG ZS EV", "MG ZS EV"),
+        ModelSuggestion("MG", "MG", "MG 5", "MG 5", "MG 5"),
+        ModelSuggestion("MG", "MG", "MG EHS", "MG EHS", "MG EHS"),
+        ModelSuggestion("MG", "MG", "MG HS", "MG HS", "MG HS"),
+        ModelSuggestion("MG", "MG", "מארוול R", "Marvel R", "MG מארוול R"),
+        ModelSuggestion("MG", "MG", "סייברסטר", "Cyberster", "MG סייברסטר"),
+
+        // Chery & Jaecoo & Omoda
+        ModelSuggestion("צ'רי", "Chery", "טיגו 8 פרו", "Tiggo 8 Pro", "צ'רי טיגו 8 פרו"),
+        ModelSuggestion("צ'רי", "Chery", "טיגו 7 פרו", "Tiggo 7 Pro", "צ'רי טיגו 7 פרו"),
+        ModelSuggestion("צ'רי", "Chery", "FX", "FX", "צ'רי FX"),
+        ModelSuggestion("ג'אקו", "Jaecoo", "ג'אקו 7", "Jaecoo 7", "ג'אקו 7"),
+        ModelSuggestion("ג'אקו", "Jaecoo", "ג'אקו 8", "Jaecoo 8", "ג'אקו 8"),
+        ModelSuggestion("אומודה", "Omoda", "אומודה 5", "Omoda 5", "אומודה 5"),
+
+        // Peugeot
+        ModelSuggestion("פיג'ו", "Peugeot", "208", "208", "פיג'ו 208"),
+        ModelSuggestion("פיג'ו", "Peugeot", "2008", "2008", "פיג'ו 2008"),
+        ModelSuggestion("פיג'ו", "Peugeot", "3008", "3008", "פיג'ו 3008"),
+        ModelSuggestion("פיג'ו", "Peugeot", "5008", "5008", "פיג'ו 5008"),
+        ModelSuggestion("פיג'ו", "Peugeot", "308", "308", "פיג'ו 308"),
+        ModelSuggestion("פיג'ו", "Peugeot", "408", "408", "פיג'ו 408"),
+        ModelSuggestion("פיג'ו", "Peugeot", "508", "508", "פיג'ו 508"),
+        ModelSuggestion("פיג'ו", "Peugeot", "ריפטר", "Rifter", "פיג'ו ריפטר"),
+        ModelSuggestion("פיג'ו", "Peugeot", "פרטנר", "Partner", "פיג'ו פרטנר"),
+        ModelSuggestion("פיג'ו", "Peugeot", "בוקסר", "Boxer", "פיג'ו בוקסר"),
+
+        // Renault
+        ModelSuggestion("רנו", "Renault", "קליאו", "Clio", "רנו קליאו"),
+        ModelSuggestion("רנו", "Renault", "קפצ'ור", "Captur", "רנו קפצ'ור"),
+        ModelSuggestion("רנו", "Renault", "מגאן גרנד קופה", "Megane Grand Coupe", "רנו מגאן"),
+        ModelSuggestion("רנו", "Renault", "מגאן E-Tech", "Megane E-Tech", "רנו מגאן חשמלית"),
+        ModelSuggestion("רנו", "Renault", "ארקנה", "Arkana", "רנו ארקנה"),
+        ModelSuggestion("רנו", "Renault", "אוסטרל", "Austral", "רנו אוסטרל"),
+        ModelSuggestion("רנו", "Renault", "קנגו", "Kangoo", "רנו קנגו"),
+        ModelSuggestion("רנו", "Renault", "מאסטר", "Master", "רנו מאסטר"),
+        ModelSuggestion("רנו", "Renault", "טראפיק", "Trafic", "רנו טראפיק"),
+        ModelSuggestion("רנו", "Renault", "קוליאוס", "Koleos", "רנו קוליאוס"),
+
+        // Citroen
+        ModelSuggestion("סיטרואן", "Citroen", "C3", "C3", "סיטרואן C3"),
+        ModelSuggestion("סיטרואן", "Citroen", "C3 איירקרוס", "C3 Aircross", "סיטרואן C3 איירקרוס"),
+        ModelSuggestion("סיטרואן", "Citroen", "C4", "C4", "סיטרואן C4"),
+        ModelSuggestion("סיטרואן", "Citroen", "C4X", "C4X", "סיטרואן C4X"),
+        ModelSuggestion("סיטרואן", "Citroen", "C5 איירקרוס", "C5 Aircross", "סיטרואן C5"),
+        ModelSuggestion("סיטרואן", "Citroen", "ברלינגו", "Berlingo", "סיטרואן ברלינגו"),
+        ModelSuggestion("סיטרואן", "Citroen", "ג'אמפי", "Jumpy", "סיטרואן ג'אמפי"),
+        ModelSuggestion("סיטרואן", "Citroen", "ג'אמפר", "Jumper", "סיטרואן ג'אמפר"),
+        ModelSuggestion("סיטרואן", "Citroen", "C1", "C1", "סיטרואן C1"),
+
+        // Chevrolet
+        ModelSuggestion("שברולט", "Chevrolet", "ספארק", "Spark", "שברולט ספארק"),
+        ModelSuggestion("שברולט", "Chevrolet", "טראוורס", "Traverse", "שברולט טראוורס"),
+        ModelSuggestion("שברולט", "Chevrolet", "אקווינוקס", "Equinox", "שברולט אקווינוקס"),
+        ModelSuggestion("שברולט", "Chevrolet", "בלייזר", "Blazer", "שברולט בלייזר"),
+        ModelSuggestion("שברולט", "Chevrolet", "טראקס", "Trax", "שברולט טראקס"),
+        ModelSuggestion("שברולט", "Chevrolet", "טריילבלייזר", "Trailblazer", "שברולט טריילבלייזר"),
+        ModelSuggestion("שברולט", "Chevrolet", "סילברדו", "Silverado", "שברולט סילברדו"),
+        ModelSuggestion("שברולט", "Chevrolet", "טאהו", "Tahoe", "שברולט טאהו"),
+        ModelSuggestion("שברולט", "Chevrolet", "סברבן", "Suburban", "שברולט סברבן"),
+        ModelSuggestion("שברולט", "Chevrolet", "קמארו", "Camaro", "שברולט קמארו"),
+        ModelSuggestion("שברולט", "Chevrolet", "קורבט", "Corvette", "שברולט קורבט"),
+        ModelSuggestion("שברולט", "Chevrolet", "מאליבו", "Malibu", "שברולט מאליבו"),
+        ModelSuggestion("שברולט", "Chevrolet", "קרוז", "Cruze", "שברולט קרוז"),
+        ModelSuggestion("שברולט", "Chevrolet", "סוניק", "Sonic", "שברולט סוניק"),
+        ModelSuggestion("שברולט", "Chevrolet", "אורלנדו", "Orlando", "שברולט אורלנדו"),
+        ModelSuggestion("שברולט", "Chevrolet", "קפטיבה", "Captiva", "שברולט קפטיבה"),
+        ModelSuggestion("שברולט", "Chevrolet", "בולט", "Bolt", "שברולט בולט"),
+
+        // Subaru
+        ModelSuggestion("סובארו", "Subaru", "פורסטר", "Forester", "סובארו פורסטר"),
+        ModelSuggestion("סובארו", "Subaru", "קרוסטרק (XV)", "Crosstrek XV", "סובארו קרוסטרק"),
+        ModelSuggestion("סובארו", "Subaru", "אאוטבק", "Outback", "סובארו אאוטבק"),
+        ModelSuggestion("סובארו", "Subaru", "אימפרזה", "Impreza", "סובארו אימפרזה"),
+        ModelSuggestion("סובארו", "Subaru", "B4 (לגאסי)", "B4 Legacy", "סובארו B4"),
+        ModelSuggestion("סובארו", "Subaru", "BRZ", "BRZ", "סובארו BRZ"),
+        ModelSuggestion("סובארו", "Subaru", "אבולטיס", "Evoltis", "סובארו אבולטיס"),
+        ModelSuggestion("סובארו", "Subaru", "סולטרה", "Solterra", "סובארו סולטרה"),
+
+        // Suzuki
+        ModelSuggestion("סוזוקי", "Suzuki", "איגניס", "Ignis", "סוזוקי איגניס"),
+        ModelSuggestion("סוזוקי", "Suzuki", "סוויפט", "Swift", "סוזוקי סוויפט"),
+        ModelSuggestion("סוזוקי", "Suzuki", "ויטארה", "Vitara", "סוזוקי ויטארה"),
+        ModelSuggestion("סוזוקי", "Suzuki", "S-Cross קרוסאובר", "S-Cross", "סוזוקי קרוסאובר"),
+        ModelSuggestion("סוזוקי", "Suzuki", "ג'ימני", "Jimny", "סוזוקי ג'ימני"),
+        ModelSuggestion("סוזוקי", "Suzuki", "בלנו", "Baleno", "סוזוקי בלנו"),
+        ModelSuggestion("סוזוקי", "Suzuki", "אלטו", "Alto", "סוזוקי אלטו"),
+        ModelSuggestion("סוזוקי", "Suzuki", "סלריו", "Celerio", "סוזוקי סלריו"),
+        ModelSuggestion("סוזוקי", "Suzuki", "ספלאש", "Splash", "סוזוקי ספלאש"),
+        ModelSuggestion("סוזוקי", "Suzuki", "SX4", "SX4", "סוזוקי SX4"),
+
+        // Nissan
+        ModelSuggestion("ניסאן", "Nissan", "קשקאי", "Qashqai", "ניסאן קשקאי"),
+        ModelSuggestion("ניסאן", "Nissan", "ג'וק", "Juke", "ניסאן ג'וק"),
+        ModelSuggestion("ניסאן", "Nissan", "אקס-טרייל", "X-Trail", "ניסאן אקס טרייל"),
+        ModelSuggestion("ניסאן", "Nissan", "מיקרה", "Micra", "ניסאן מיקרה"),
+        ModelSuggestion("ניסאן", "Nissan", "סנטרה", "Sentra", "ניסאן סנטרה"),
+        ModelSuggestion("ניסאן", "Nissan", "אריה", "Ariya", "ניסאן אריה"),
+        ModelSuggestion("ניסאן", "Nissan", "ליף", "Leaf", "ניסאן ליף"),
+        ModelSuggestion("ניסאן", "Nissan", "נווארה", "Navara", "ניסאן נווארה"),
+        ModelSuggestion("ניסאן", "Nissan", "אלטימה", "Altima", "ניסאן אלטימה"),
+        ModelSuggestion("ניסאן", "Nissan", "מקסימה", "Maxima", "ניסאן מקסימה"),
+        ModelSuggestion("ניסאן", "Nissan", "NV200", "NV200", "ניסאן NV200"),
+
+        // Mitsubishi
+        ModelSuggestion("מיצובישי", "Mitsubishi", "אאוטלנדר", "Outlander", "מיצובישי אאוטלנדר"),
+        ModelSuggestion("מיצובישי", "Mitsubishi", "ASX", "ASX", "מיצובישי ASX"),
+        ModelSuggestion("מיצובישי", "Mitsubishi", "ספייס סטאר", "Space Star", "מיצובישי ספייס סטאר"),
+        ModelSuggestion("מיצובישי", "Mitsubishi", "אקליפס קרוס", "Eclipse Cross", "מיצובישי אקליפס קרוס"),
+        ModelSuggestion("מיצובישי", "Mitsubishi", "אטרז'", "Attrage", "מיצובישי אטרז'"),
+        ModelSuggestion("מיצובישי", "Mitsubishi", "פאג'רו", "Pajero", "מיצובישי פאג'רו"),
+        ModelSuggestion("מיצובישי", "Mitsubishi", "טרייטון (L200)", "Triton L200", "מיצובישי טרייטון"),
+        ModelSuggestion("מיצובישי", "Mitsubishi", "לנסר", "Lancer", "מיצובישי לנסר"),
+
+        // Honda
+        ModelSuggestion("הונדה", "Honda", "סיוויק", "Civic", "הונדה סיוויק"),
+        ModelSuggestion("הונדה", "Honda", "CR-V", "CR-V", "הונדה CR-V"),
+        ModelSuggestion("הונדה", "Honda", "HR-V", "HR-V", "הונדה HR-V"),
+        ModelSuggestion("הונדה", "Honda", "ג'אז", "Jazz", "הונדה ג'אז"),
+        ModelSuggestion("הונדה", "Honda", "אקורד", "Accord", "הונדה אקורד"),
+        ModelSuggestion("הונדה", "Honda", "ZR-V", "ZR-V", "הונדה ZR-V"),
+        ModelSuggestion("הונדה", "Honda", "e:Ny1", "e:Ny1", "הונדה eNy1"),
+
+        // Mercedes
+        ModelSuggestion("מרצדס", "Mercedes-Benz", "A-Class", "A-Class", "מרצדס A-Class"),
+        ModelSuggestion("מרצדס", "Mercedes-Benz", "C-Class", "C-Class", "מרצדס C-Class"),
+        ModelSuggestion("מרצדס", "Mercedes-Benz", "E-Class", "E-Class", "מרצדס E-Class"),
+        ModelSuggestion("מרצדס", "Mercedes-Benz", "S-Class", "S-Class", "מרצדס S-Class"),
+        ModelSuggestion("מרצדס", "Mercedes-Benz", "CLA", "CLA", "מרצדס CLA"),
+        ModelSuggestion("מרצדס", "Mercedes-Benz", "GLA", "GLA", "מרצדס GLA"),
+        ModelSuggestion("מרצדס", "Mercedes-Benz", "GLB", "GLB", "מרצדס GLB"),
+        ModelSuggestion("מרצדס", "Mercedes-Benz", "GLC", "GLC", "מרצדס GLC"),
+        ModelSuggestion("מרצדס", "Mercedes-Benz", "GLE", "GLE", "מרצדס GLE"),
+        ModelSuggestion("מרצדס", "Mercedes-Benz", "GLS", "GLS", "מרצדס GLS"),
+        ModelSuggestion("מרצדס", "Mercedes-Benz", "G-Class", "G-Class", "מרצדס G-Class"),
+        ModelSuggestion("מרצדס", "Mercedes-Benz", "EQA", "EQA", "מרצדס EQA"),
+        ModelSuggestion("מרצדס", "Mercedes-Benz", "EQB", "EQB", "מרצדס EQB"),
+        ModelSuggestion("מרצדס", "Mercedes-Benz", "EQE", "EQE", "מרצדס EQE"),
+        ModelSuggestion("מרצדס", "Mercedes-Benz", "EQS", "EQS", "מרצדס EQS"),
+        ModelSuggestion("מרצדס", "Mercedes-Benz", "ספרינטר", "Sprinter", "מרצדס ספרינטר"),
+        ModelSuggestion("מרצדס", "Mercedes-Benz", "ויטו", "Vito", "מרצדס ויטו"),
+        ModelSuggestion("מרצדס", "Mercedes-Benz", "V-Class", "V-Class", "מרצדס V-Class"),
+
+        // BMW
+        ModelSuggestion("ב.מ.וו", "BMW", "סדרה 1", "1 Series", "ב.מ.וו סדרה 1"),
+        ModelSuggestion("ב.מ.וו", "BMW", "סדרה 2", "2 Series", "ב.מ.וו סדרה 2"),
+        ModelSuggestion("ב.מ.וו", "BMW", "סדרה 3", "3 Series", "ב.מ.וו סדרה 3"),
+        ModelSuggestion("ב.מ.וו", "BMW", "סדרה 4", "4 Series", "ב.מ.וו סדרה 4"),
+        ModelSuggestion("ב.מ.וו", "BMW", "סדרה 5", "5 Series", "ב.מ.וו סדרה 5"),
+        ModelSuggestion("ב.מ.וו", "BMW", "סדרה 7", "7 Series", "ב.מ.וו סדרה 7"),
+        ModelSuggestion("ב.מ.וו", "BMW", "X1", "X1", "ב.מ.וו X1"),
+        ModelSuggestion("ב.מ.וו", "BMW", "X2", "X2", "ב.מ.וו X2"),
+        ModelSuggestion("ב.מ.וו", "BMW", "X3", "X3", "ב.מ.וו X3"),
+        ModelSuggestion("ב.מ.וו", "BMW", "X4", "X4", "ב.מ.וו X4"),
+        ModelSuggestion("ב.מ.וו", "BMW", "X5", "X5", "ב.מ.וו X5"),
+        ModelSuggestion("ב.מ.וו", "BMW", "X6", "X6", "ב.מ.וו X6"),
+        ModelSuggestion("ב.מ.וו", "BMW", "X7", "X7", "ב.מ.וו X7"),
+        ModelSuggestion("ב.מ.וו", "BMW", "i4", "i4", "ב.מ.וו i4"),
+        ModelSuggestion("ב.מ.וו", "BMW", "iX1", "iX1", "ב.מ.וו iX1"),
+        ModelSuggestion("ב.מ.וו", "BMW", "iX3", "iX3", "ב.מ.וו iX3"),
+        ModelSuggestion("ב.מ.וו", "BMW", "iX", "iX", "ב.מ.וו iX"),
+        ModelSuggestion("ב.מ.וו", "BMW", "M3", "M3", "ב.מ.וו M3"),
+        ModelSuggestion("ב.מ.וו", "BMW", "M4", "M4", "ב.מ.וו M4"),
+        ModelSuggestion("ב.מ.וו", "BMW", "M5", "M5", "ב.מ.וו M5"),
+
+        // Audi
+        ModelSuggestion("אאודי", "Audi", "A1", "A1", "אאודי A1"),
+        ModelSuggestion("אאודי", "Audi", "A3", "A3", "אאודי A3"),
+        ModelSuggestion("אאודי", "Audi", "A4", "A4", "אאודי A4"),
+        ModelSuggestion("אאודי", "Audi", "A5", "A5", "אאודי A5"),
+        ModelSuggestion("אאודי", "Audi", "A6", "A6", "אאודי A6"),
+        ModelSuggestion("אאודי", "Audi", "A7", "A7", "אאודי A7"),
+        ModelSuggestion("אאודי", "Audi", "A8", "A8", "אאודי A8"),
+        ModelSuggestion("אאודי", "Audi", "Q2", "Q2", "אאודי Q2"),
+        ModelSuggestion("אאודי", "Audi", "Q3", "Q3", "אאודי Q3"),
+        ModelSuggestion("אאודי", "Audi", "Q4 e-tron", "Q4 e-tron", "אאודי Q4 e-tron"),
+        ModelSuggestion("אאודי", "Audi", "Q5", "Q5", "אאודי Q5"),
+        ModelSuggestion("אאודי", "Audi", "Q7", "Q7", "אאודי Q7"),
+        ModelSuggestion("אאודי", "Audi", "Q8", "Q8", "אאודי Q8"),
+        ModelSuggestion("אאודי", "Audi", "e-tron GT", "e-tron GT", "אאודי e-tron GT"),
+        ModelSuggestion("אאודי", "Audi", "TT", "TT", "אאודי TT"),
+
+        // Volvo
+        ModelSuggestion("וולוו", "Volvo", "XC40", "XC40", "וולוו XC40"),
+        ModelSuggestion("וולוו", "Volvo", "XC60", "XC60", "וולוו XC60"),
+        ModelSuggestion("וולוו", "Volvo", "XC90", "XC90", "וולוו XC90"),
+        ModelSuggestion("וולוו", "Volvo", "EX30", "EX30", "וולוו EX30"),
+        ModelSuggestion("וולוו", "Volvo", "EX90", "EX90", "וולוו EX90"),
+        ModelSuggestion("וולוו", "Volvo", "S60", "S60", "וולוו S60"),
+        ModelSuggestion("וולוו", "Volvo", "S90", "S90", "וולוו S90"),
+        ModelSuggestion("וולוו", "Volvo", "V40", "V40", "וולוו V40"),
+
+        // Polestar & Lynk & Co
+        ModelSuggestion("פולסטאר", "Polestar", "פולסטאר 2", "Polestar 2", "פולסטאר 2"),
+        ModelSuggestion("פולסטאר", "Polestar", "פולסטאר 3", "Polestar 3", "פולסטאר 3"),
+        ModelSuggestion("פולסטאר", "Polestar", "פולסטאר 4", "Polestar 4", "פולסטאר 4"),
+        ModelSuggestion("לינק אנד קו", "Lynk & Co", "01", "01", "לינק אנד קו 01"),
+        ModelSuggestion("לינק אנד קו", "Lynk & Co", "02", "02", "לינק אנד קו 02"),
+
+        // XPeng & ORA & WEY & Leapmotor & Voyah & Hongqi & Seres & Smart
+        ModelSuggestion("אקספנג", "XPeng", "G6", "G6", "אקספנג G6"),
+        ModelSuggestion("אקספנג", "XPeng", "G9", "G9", "אקספנג G9"),
+        ModelSuggestion("אקספנג", "XPeng", "P7", "P7", "אקספנג P7"),
+        ModelSuggestion("אורה", "ORA", "03 (פאנקי קאט)", "03 Funky Cat", "אורה 03"),
+        ModelSuggestion("אורה", "ORA", "07", "07", "אורה 07"),
+        ModelSuggestion("וויי", "WEY", "קופי 01", "Coffee 01", "וויי קופי 01"),
+        ModelSuggestion("וויי", "WEY", "קופי 02", "Coffee 02", "וויי קופי 02"),
+        ModelSuggestion("ליפמוטור", "Leapmotor", "T03", "T03", "ליפמוטור T03"),
+        ModelSuggestion("ליפמוטור", "Leapmotor", "C10", "C10", "ליפמוטור C10"),
+        ModelSuggestion("סמארט", "Smart", "#1", "#1", "סמארט 1"),
+        ModelSuggestion("סמארט", "Smart", "#3", "#3", "סמארט 3"),
+        ModelSuggestion("סרס", "Seres", "סרס 3", "Seres 3", "סרס 3"),
+        ModelSuggestion("סרס", "Seres", "סרס 5", "Seres 5", "סרס 5"),
+        ModelSuggestion("סרס", "Seres", "סרס 7", "Seres 7", "סרס 7"),
+        ModelSuggestion("וויה", "Voyah", "פרי", "Free", "וויה פרי"),
+        ModelSuggestion("הונגצ'י", "Hongqi", "E-HS9", "E-HS9", "הונגצ'י E-HS9"),
+        ModelSuggestion("אייווייס", "Aiways", "U5", "U5", "אייווייס U5"),
+        ModelSuggestion("אייווייס", "Aiways", "U6", "U6", "אייווייס U6"),
+        ModelSuggestion("סקייוול", "Skywell", "ET5", "ET5", "סקייוול ET5"),
+        ModelSuggestion("פורת'ינג", "Forthing", "פריידיי", "Friday T5 EVO", "פורת'ינג פריידיי"),
+
+        // Dacia
+        ModelSuggestion("דאצ'יה", "Dacia", "דאסטר", "Duster", "דאצ'יה דאסטר"),
+        ModelSuggestion("דאצ'יה", "Dacia", "סנדרו סטפווי", "Sandero Stepway", "דאצ'יה סנדרו"),
+        ModelSuggestion("דאצ'יה", "Dacia", "ג'וגר", "Jogger", "דאצ'יה ג'וגר"),
+        ModelSuggestion("דאצ'יה", "Dacia", "ספרינג", "Spring", "דאצ'יה ספרינג"),
+        ModelSuggestion("דאצ'יה", "Dacia", "לודג'י", "Lodgy", "דאצ'יה לודג'י"),
+        ModelSuggestion("דאצ'יה", "Dacia", "דוקר", "Dokker", "דאצ'יה דוקר"),
+
+        // Jeep
+        ModelSuggestion("ג'יפ", "Jeep", "רנגלר", "Wrangler", "ג'יפ רנגלר"),
+        ModelSuggestion("ג'יפ", "Jeep", "גרנד צ'ירוקי", "Grand Cherokee", "ג'יפ גרנד צ'ירוקי"),
+        ModelSuggestion("ג'יפ", "Jeep", "קומפאס", "Compass", "ג'יפ קומפאס"),
+        ModelSuggestion("ג'יפ", "Jeep", "רנגייד", "Renegade", "ג'יפ רנגייד"),
+        ModelSuggestion("ג'יפ", "Jeep", "אוונג'ר", "Avenger", "ג'יפ אוונג'ר"),
+        ModelSuggestion("ג'יפ", "Jeep", "גלדיאטור", "Gladiator", "ג'יפ גלדיאטור"),
+
+        // Ford
+        ModelSuggestion("פורד", "Ford", "פוקוס", "Focus", "פורד פוקוס"),
+        ModelSuggestion("פורד", "Ford", "פומה", "Puma", "פורד פומה"),
+        ModelSuggestion("פורד", "Ford", "קוגה", "Kuga", "פורד קוגה"),
+        ModelSuggestion("פורד", "Ford", "מוסטנג", "Mustang", "פורד מוסטנג"),
+        ModelSuggestion("פורד", "Ford", "מוסטנג מאך-E", "Mustang Mach-E", "פורד מוסטנג מאך E"),
+        ModelSuggestion("פורד", "Ford", "אקספלורר", "Explorer", "פורד אקספלורר"),
+        ModelSuggestion("פורד", "Ford", "ברונקו", "Bronco", "פורד ברונקו"),
+        ModelSuggestion("פורד", "Ford", "ברונקו ספורט", "Bronco Sport", "פורד ברונקו ספורט"),
+        ModelSuggestion("פורד", "Ford", "פיאסטה", "Fiesta", "פורד פיאסטה"),
+        ModelSuggestion("פורד", "Ford", "מונדאו", "Mondeo", "פורד מונדאו"),
+        ModelSuggestion("פורד", "Ford", "אדג'", "Edge", "פורד אדג'"),
+        ModelSuggestion("פורד", "Ford", "טרנזיט", "Transit", "פורד טרנזיט"),
+        ModelSuggestion("פורד", "Ford", "טרנזיט קאסטום", "Transit Custom", "פורד טרנזיט"),
+        ModelSuggestion("פורד", "Ford", "F-150", "F-150", "פורד F-150"),
+        ModelSuggestion("פורד", "Ford", "F-250", "F-250", "פורד F-250"),
+        ModelSuggestion("פורד", "Ford", "F-350", "F-350", "פורד F-350"),
+        ModelSuggestion("פורד", "Ford", "ריינג'ר", "Ranger", "פורד ריינג'ר"),
+
+        // Porsche
+        ModelSuggestion("פורשה", "Porsche", "911", "911", "פורשה 911"),
+        ModelSuggestion("פורשה", "Porsche", "קאיין", "Cayenne", "פורשה קאיין"),
+        ModelSuggestion("פורשה", "Porsche", "מקאן", "Macan", "פורשה מקאן"),
+        ModelSuggestion("פורשה", "Porsche", "פאנאמרה", "Panamera", "פורשה פאנאמרה"),
+        ModelSuggestion("פורשה", "Porsche", "טייקאן", "Taycan", "פורשה טייקאן"),
+        ModelSuggestion("פורשה", "Porsche", "בוקסטר 718", "718 Boxster", "פורשה בוקסטר"),
+        ModelSuggestion("פורשה", "Porsche", "קיימן 718", "718 Cayman", "פורשה קיימן")
+    )
+
+    fun search(query: String): List<ModelSuggestion> {
+        val clean = query.trim().lowercase()
+        if (clean.isBlank()) return emptyList()
+
+        val tokens = clean.split("\\s+".toRegex()).filter { it.isNotBlank() }
+
+        return allModels.map { suggestion ->
+            var score = 0
+            val mHeb = suggestion.modelHebrew.lowercase()
+            val mEng = suggestion.modelEnglish.lowercase()
+            val bHeb = suggestion.brandHebrew.lowercase()
+            val bEng = suggestion.brandEnglish.lowercase()
+            val fullHeb = suggestion.searchQuery.lowercase()
+
+            // Exact match
+            if (mHeb == clean || mEng == clean || fullHeb == clean) {
+                score += 1000
+            }
+
+            // Starts with
+            if (mHeb.startsWith(clean) || mEng.startsWith(clean) || fullHeb.startsWith(clean)) {
+                score += 500
+            }
+
+            // Contains
+            if (mHeb.contains(clean) || mEng.contains(clean) || bHeb.contains(clean) || bEng.contains(clean) || fullHeb.contains(clean)) {
+                score += 250
+            }
+
+            // Token match
+            val allMatched = tokens.all { t ->
+                mHeb.contains(t) || mEng.contains(t) || bHeb.contains(t) || bEng.contains(t)
+            }
+            if (allMatched && tokens.size > 1) {
+                score += 300
+            }
+
+            suggestion to score
+        }
+        .filter { it.second > 0 }
+        .sortedByDescending { it.second }
+        .map { it.first }
+    }
+}

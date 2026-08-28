@@ -12,7 +12,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -88,6 +94,7 @@ fun StatisticsScreen(
     val displayTotal = totalCount ?: 4165989
 
     val modelQuery by viewModel.modelSearchQuery.collectAsState()
+    val modelSuggestions by viewModel.modelSuggestions.collectAsState()
     val isSearchingModel by viewModel.isSearchingModel.collectAsState()
     val selectedModelDetail by viewModel.selectedModelDetail.collectAsState()
     val modelSearchError by viewModel.modelSearchError.collectAsState()
@@ -316,6 +323,121 @@ fun StatisticsScreen(
                             viewModel.searchModelStatistics()
                         })
                     )
+
+                    // Live Autocomplete / Model Suggestions Dropdown
+                    AnimatedVisibility(
+                        visible = modelQuery.isNotBlank() && modelSuggestions.isNotEmpty() && !isSearchingModel && selectedModelDetail == null,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 6.dp, bottom = 4.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.surface,
+                            tonalElevation = 6.dp,
+                            shadowElevation = 6.dp,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "הצעות לדגמים תואמים:",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        text = "${modelSuggestions.size} תוצאות",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(horizontal = 10.dp),
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                )
+
+                                modelSuggestions.take(6).forEachIndexed { index, suggestion ->
+                                    Surface(
+                                        onClick = {
+                                            focusManager.clearFocus()
+                                            viewModel.selectModelSuggestion(suggestion)
+                                        },
+                                        color = Color.Transparent,
+                                        modifier = Modifier.fillMaxWidth().handCursor()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            AutoBrandLogo(
+                                                brandName = suggestion.brandHebrew,
+                                                size = 30.dp
+                                            )
+                                            Spacer(Modifier.width(10.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = "${suggestion.brandHebrew} ${suggestion.modelHebrew}",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Text(
+                                                    text = "${suggestion.brandEnglish} ${suggestion.modelEnglish}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                            Surface(
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(
+                                                        text = "בחר",
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                    Icon(
+                                                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(12.dp).padding(start = 2.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    if (index < modelSuggestions.take(6).size - 1) {
+                                        HorizontalDivider(
+                                            modifier = Modifier.padding(horizontal = 12.dp),
+                                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     Spacer(Modifier.height(10.dp))
 

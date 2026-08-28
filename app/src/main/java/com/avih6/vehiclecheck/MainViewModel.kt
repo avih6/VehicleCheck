@@ -572,6 +572,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _isSearchingModel = MutableStateFlow(false)
     val isSearchingModel: StateFlow<Boolean> = _isSearchingModel.asStateFlow()
 
+    val modelSuggestions: StateFlow<List<ModelSuggestion>> = _modelSearchQuery
+        .map { query ->
+            val q = query.trim()
+            if (q.isBlank()) {
+                emptyList()
+            } else {
+                VehicleModelCatalog.search(q).take(10)
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
     private val _selectedModelDetail = MutableStateFlow<ModelStatisticsDetail?>(null)
     val selectedModelDetail: StateFlow<ModelStatisticsDetail?> = _selectedModelDetail.asStateFlow()
 
@@ -580,6 +591,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onModelSearchQueryChange(newQuery: String) {
         _modelSearchQuery.value = newQuery
+    }
+
+    fun selectModelSuggestion(suggestion: ModelSuggestion) {
+        _modelSearchQuery.value = suggestion.searchQuery
+        searchModelStatistics(suggestion.searchQuery)
     }
 
     private fun generateSearchVariations(rawQuery: String): List<String> {
