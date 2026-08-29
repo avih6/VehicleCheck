@@ -91,7 +91,7 @@ class HistoryRepository(private val dao: VehicleDao) {
     ) {
         val cleanPlate = plate.filter { it.isDigit() }
         val isOffRoad = testStatus is TestStatus.OffRoad || !record?.cancellationDate.isNullOrBlank()
-        val offRoadDate = (testStatus as? TestStatus.OffRoad)?.cancellationDate ?: record?.cancellationDate
+        val offRoadDate = (testStatus as? TestStatus.OffRoad)?.offRoadDate ?: record?.cancellationDate
         val isTestValid = (testStatus is TestStatus.Valid || testStatus is TestStatus.ExpiringSoon) && !isOffRoad
         val daysUntilTest = when (testStatus) {
             is TestStatus.Valid -> testStatus.daysLeft
