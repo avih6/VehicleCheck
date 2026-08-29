@@ -1359,10 +1359,11 @@ private fun TechSpecTabContent(
                     SpecRow("כוחות סוס:", "$it כ\"ס", isHighlighted = true)
                 }
 
-                val cc = techSpec?.engineDisplacement ?: vehicle.engineDisplacement
-                cc?.let {
-                    SpecRow("נפח מנוע:", "%,d סמ\"ק".format(it))
-                } ?: SpecRow("נפח מנוע:", "אין מידע")
+                if (cc != null) {
+                    SpecRow("נפח מנוע:", "%,d סמ\"ק".format(cc))
+                } else {
+                    SpecRow("נפח מנוע:", "אין מידע")
+                }
 
                 val engineModel = vehicle.engineModel
                 engineModel?.let {
@@ -1378,7 +1379,11 @@ private fun TechSpecTabContent(
                 gearText?.let { SpecRow("תיבת הילוכים:", it) }
 
                 val drive = techSpec?.driveType ?: vehicle.driveType ?: if (vehicle.model?.contains("4X4", ignoreCase = true) == true) "4X4" else null
-                drive?.let { SpecRow("הנעה:", it) } ?: SpecRow("הנעה:", "אין מידע")
+                if (drive != null) {
+                    SpecRow("הנעה:", drive)
+                } else {
+                    SpecRow("הנעה:", "אין מידע")
+                }
 
                 vehicle.fuelType?.let {
                     if (it.isNotBlank()) FuelSpecRow("סוג דלק:", it)
@@ -1422,9 +1427,23 @@ private fun TechSpecTabContent(
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
 
-                    totalWeight?.let { SpecRow("משקל כולל מורשה:", "%,d ק\"ג".format(it)) } ?: SpecRow("משקל כולל מורשה:", "אין מידע")
-                    curbWeight?.let { SpecRow("משקל עצמי:", "%,d ק\"ג".format(it)) } ?: SpecRow("משקל עצמי:", "אין מידע")
-                    cargoWeight?.let { SpecRow("משקל מטען מורשה:", "%,d ק\"ג".format(it)) } ?: SpecRow("משקל מטען מורשה:", "אין מידע")
+                    if (totalWeight != null) {
+                        SpecRow("משקל כולל מורשה:", "%,d ק\"ג".format(totalWeight))
+                    } else {
+                        SpecRow("משקל כולל מורשה:", "אין מידע")
+                    }
+
+                    if (curbWeight != null) {
+                        SpecRow("משקל עצמי:", "%,d ק\"ג".format(curbWeight))
+                    } else {
+                        SpecRow("משקל עצמי:", "אין מידע")
+                    }
+
+                    if (cargoWeight != null) {
+                        SpecRow("משקל מטען מורשה:", "%,d ק\"ג".format(cargoWeight))
+                    } else {
+                        SpecRow("משקל מטען מורשה:", "אין מידע")
+                    }
 
                     val seatsNext = vehicle.seatsNextToDriver ?: vehicle.seatsNextToDriverHeavy
                     if (seats != null || doors != null || seatsNext != null) {

@@ -131,6 +131,7 @@ data class VehicleRecord(
     @SerialName("grira_nm") val towingCapacityHeavy: String? = null,
     @SerialName("mispar_manoa") val engineNumber: String? = null,
     @SerialName("bitul_dt") val cancellationDate: String? = null
+) {
     val effectiveModel: String? get() = if (!model.isNullOrBlank()) model else if (!modelCode.isNullOrBlank()) modelCode else null
     val effectiveVin: String? get() = if (!vin.isNullOrBlank()) vin else if (!vinAlt.isNullOrBlank()) vinAlt else vinHeavy
     val effectiveStandardType: String? get() = if (!standardType.isNullOrBlank()) standardType else standardTypeHeavy
