@@ -1565,6 +1565,8 @@ private fun SafetyTabContent(
                     }
                 }
             }
+        }
+
         // Active Safety Systems & Rating: if older vintage car with no techSpec, show unified informative message
         if (techSpec == null && (vehicle.year ?: 0) in 1900..2012) {
             Card(
