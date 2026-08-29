@@ -924,6 +924,14 @@ private fun GeneralTabContent(
                     }
                 }
 
+                // Year of manufacture (שנת ייצור)
+                vehicle.year?.let {
+                    SpecRow(
+                        label = "שנת ייצור:",
+                        value = "$it"
+                    )
+                }
+
                 // On-road date (מועד עלייה לכביש)
                 SpecRow(
                     label = "מועד עלייה לכביש:",
@@ -967,9 +975,8 @@ private fun GeneralTabContent(
                     }
                     Spacer(Modifier.height(8.dp))
                     if (isOffRoad) {
-                        val yearInfo = vehicle.year?.let { "לפי שנת הייצור הרשומה במאגר ($it), " } ?: ""
                         Text(
-                            text = "${yearInfo}רכב זה עומד בקריטריון הגיל לרכב אספנות (מעל 30 שנה), אך מאחר שרישומו בוטל והוא נגרע מהמצבה (טוטאל לוס / פירוק / גריטה), לא חלים עליו הסדרי תנועה וביטוח של רכב אספנות פעיל.",
+                            text = "רכב זה עומד בקריטריון הגיל לרכב אספנות (מעל 30 שנה), אך מאחר שרישומו בוטל והוא נגרע מהמצבה (טוטאל לוס / פירוק / גריטה), לא חלים עליו הסדרי תנועה וביטוח של רכב אספנות פעיל.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             lineHeight = 18.sp
