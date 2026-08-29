@@ -364,50 +364,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         val makeCd = vehicle.makeCode
                         val modelCd = vehicle.modelCd
                         val year = vehicle.year ?: 2022
-                        val modelName = vehicle.model
+                        val modelName = vehicle.effectiveModel
 
                         var totalActive = 0
                         var activeYearCount = 0
                         var prevYearCount = 0
                         var nextYearCount = 0
 
-                        // 1. Query by exact makeCode + modelCd
-                        if (makeCd != null && modelCd != null && modelCd > 0) {
-                            try {
-                                val activeResp = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}")
-                                totalActive = activeResp.result?.total ?: 0
+                        val isHeavyOrCommercial = isEngineering ||
+                                (vehicle.effectiveVehicleCategory?.contains("משא") == true ||
+                                 vehicle.effectiveVehicleCategory?.contains("אוטובוס") == true ||
+                                 vehicle.effectiveStandardType?.startsWith("N") == true ||
+                                 vehicle.effectiveStandardType?.startsWith("M3") == true ||
+                                 vehicle.effectiveStandardType?.startsWith("M2") == true)
 
-                                if (totalActive > 0) {
-                                    activeYearCount = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd,\"shnat_yitzur\":$year}").result?.total ?: 0
-                                    prevYearCount = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd,\"shnat_yitzur\":${year - 1}}").result?.total ?: 0
-                                    nextYearCount = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd,\"shnat_yitzur\":${year + 1}}").result?.total ?: 0
-                                }
-                            } catch (e: Exception) {}
-                        }
-
-                        // 2. Fallback: Query by makeCode + kinuy_mishari
-                        if (totalActive <= 1 && makeCd != null && !modelName.isNullOrBlank()) {
-                            try {
-                                val kinuyResp = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"${modelName.trim()}\"}")
-                                val kinuyTotal = kinuyResp.result?.total ?: 0
-                                if (kinuyTotal > 0) {
-                                    totalActive = kinuyTotal
-                                    activeYearCount = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"${modelName.trim()}\",\"shnat_yitzur\":$year}").result?.total ?: 0
-                                }
-                            } catch (e: Exception) {}
-                        }
-
-                        // 3. Heavy Vehicle / Commercial Fleet fallback (resource cd3acc5c) - Only for heavy vehicles!
-                        val isHeavyOrCommercial = isEngineering || (vehicle.vehicleCategory?.contains("משא") == true || vehicle.vehicleCategory?.contains("אוטובוס") == true)
-                        if (isHeavyOrCommercial && totalActive <= 1 && makeCd != null) {
+                        if (isHeavyOrCommercial && makeCd != null) {
                             try {
                                 val heavyFilter = if (!modelName.isNullOrBlank()) "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"${modelName.trim()}\"}" else "{\"tozeret_cd\":$makeCd}"
                                 val heavyResp = NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", heavyFilter)
                                 val heavyTotal = heavyResp.result?.total ?: 0
                                 if (heavyTotal > 0) {
                                     totalActive = heavyTotal
-                                    val heavyYearResp = NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$year}")
+                                    val heavyYearResp = NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", if (!modelName.isNullOrBlank()) "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"${modelName.trim()}\",\"shnat_yitzur\":$year}" else "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$year}")
                                     activeYearCount = heavyYearResp.result?.total ?: 0
+                                    val heavyPrevYearResp = NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", if (!modelName.isNullOrBlank()) "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"${modelName.trim()}\",\"shnat_yitzur\":${year - 1}}" else "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":${year - 1}}")
+                                    prevYearCount = heavyPrevYearResp.result?.total ?: 0
+                                    val heavyNextYearResp = NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", if (!modelName.isNullOrBlank()) "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"${modelName.trim()}\",\"shnat_yitzur\":${year + 1}}" else "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":${year + 1}}")
+                                    nextYearCount = heavyNextYearResp.result?.total ?: 0
                                 } else {
                                     val allMakeHeavy = NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", "{\"tozeret_cd\":$makeCd}").result?.total ?: 0
                                     if (allMakeHeavy > 0) {
@@ -415,6 +398,34 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                     }
                                 }
                             } catch (e: Exception) {}
+                        } else {
+                            // 1. Query by exact makeCode + modelCd
+                            if (makeCd != null && modelCd != null && modelCd > 0) {
+                                try {
+                                    val activeResp = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}")
+                                    totalActive = activeResp.result?.total ?: 0
+
+                                    if (totalActive > 0) {
+                                        activeYearCount = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd,\"shnat_yitzur\":$year}").result?.total ?: 0
+                                        prevYearCount = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd,\"shnat_yitzur\":${year - 1}}").result?.total ?: 0
+                                        nextYearCount = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd,\"shnat_yitzur\":${year + 1}}").result?.total ?: 0
+                                    }
+                                } catch (e: Exception) {}
+                            }
+
+                            // 2. Fallback: Query by makeCode + kinuy_mishari
+                            if (totalActive <= 1 && makeCd != null && !modelName.isNullOrBlank()) {
+                                try {
+                                    val kinuyResp = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"${modelName.trim()}\"}")
+                                    val kinuyTotal = kinuyResp.result?.total ?: 0
+                                    if (kinuyTotal > 0) {
+                                        totalActive = kinuyTotal
+                                        activeYearCount = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"${modelName.trim()}\",\"shnat_yitzur\":$year}").result?.total ?: 0
+                                        prevYearCount = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"${modelName.trim()}\",\"shnat_yitzur\":${year - 1}}").result?.total ?: 0
+                                        nextYearCount = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"${modelName.trim()}\",\"shnat_yitzur\":${year + 1}}").result?.total ?: 0
+                                    }
+                                } catch (e: Exception) {}
+                            }
                         }
 
                         // Inactive count from deregistered datasets

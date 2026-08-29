@@ -131,13 +131,13 @@ data class VehicleRecord(
     @SerialName("grira_nm") val towingCapacityHeavy: String? = null,
     @SerialName("mispar_manoa") val engineNumber: String? = null,
     @SerialName("bitul_dt") val cancellationDate: String? = null
-) {
+    val effectiveModel: String? get() = if (!model.isNullOrBlank()) model else if (!modelCode.isNullOrBlank()) modelCode else null
     val effectiveVin: String? get() = if (!vin.isNullOrBlank()) vin else if (!vinAlt.isNullOrBlank()) vinAlt else vinHeavy
     val effectiveStandardType: String? get() = if (!standardType.isNullOrBlank()) standardType else standardTypeHeavy
     val effectiveVehicleCategory: String? get() = if (!vehicleCategory.isNullOrBlank()) vehicleCategory else vehicleCategoryHeavy
     val effectiveSeats: Int? get() = seats ?: seatsHeavy
     val effectiveSeatsNextToDriver: Int? get() = seatsNextToDriver ?: seatsNextToDriverHeavy
-    val effectiveCargoWeight: Int? get() = cargoWeight ?: cargoWeightHeavy
+    val effectiveCargoWeight: Int? get() = cargoWeight ?: cargoWeightHeavy ?: if (totalWeight != null && curbWeight != null && totalWeight > curbWeight) totalWeight - curbWeight else null
 }
 
 @Serializable

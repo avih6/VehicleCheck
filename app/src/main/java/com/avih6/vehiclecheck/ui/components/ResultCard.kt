@@ -302,7 +302,7 @@ fun ResultCard(
         // 1. Vehicle 360 Showcase Image
         VehicleImageShowcase(
             hebrewMake = vehicle.make,
-            modelName = vehicle.model,
+            modelName = vehicle.effectiveModel,
             year = vehicle.year,
             color = vehicle.color,
             trimLevel = vehicle.trimLevel,
@@ -364,18 +364,11 @@ fun ResultCard(
                         }
                     }
 
-                    // Actions
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        HoverTooltipIconButton(
-                            onClick = onToggleFavorite,
-                            tooltipText = if (isFavorite) "הסר ממועדפים" else "הוסף למועדפים"
-                        ) {
-                            Icon(
-                                imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                                contentDescription = "Favorite",
-                                tint = if (isFavorite) Color(0xFFFFB300) else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                    // Quick Action Buttons (Share, Favorite)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         HoverTooltipIconButton(
                             onClick = {
                                 val shareText = buildComprehensiveShareText(
@@ -396,6 +389,16 @@ fun ResultCard(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                        HoverTooltipIconButton(
+                            onClick = onToggleFavorite,
+                            tooltipText = if (isFavorite) "הסר ממועדפים" else "הוסף למועדפים"
+                        ) {
+                            Icon(
+                                imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                                contentDescription = "Favorite",
+                                tint = if (isFavorite) Color(0xFFFFB300) else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
 
@@ -404,7 +407,7 @@ fun ResultCard(
                 // Brand Emblem Badge (Centered & High Contrast White Badge)
                 AutoBrandLogo(
                     hebrewMake = vehicle.make,
-                    modelName = vehicle.model,
+                    modelName = vehicle.effectiveModel,
                     isEngineeringEquipment = isEngineeringEquipment,
                     size = 96.dp
                 )
@@ -421,7 +424,7 @@ fun ResultCard(
                     color = MaterialTheme.colorScheme.onSurface
                 )
 
-                vehicle.model?.let { mod ->
+                vehicle.effectiveModel?.let { mod ->
                     val isCountryPlaceholder = listOf("גרמנ", "גרמניה", "יפן", "צרפת", "איטליה", "איטלי", "ארה\"ב", "ארהב", "שוודיה", "קוריאה", "סין", "הודו", "טורקיה", "תורכיה").any { mod.contains(it) }
                     if (mod.isNotBlank() && !mod.equals(formattedMake, ignoreCase = true) && !isCountryPlaceholder) {
                         Spacer(Modifier.height(2.dp))
@@ -524,14 +527,15 @@ fun ResultCard(
             val ownerStr = when {
                 isEngineeringEquipment -> "ציוד עבודה"
                 !vehicle.ownership.isNullOrBlank() -> vehicle.ownership
-                else -> "פרטי"
+                else -> "אין מידע"
             }
             val isCompany = isEngineeringEquipment || ownerStr.contains("חברה") || ownerStr.contains("ליסינג") || ownerStr.contains("השכרה") || ownerStr.contains("עבודה")
+            val hasOwnership = !vehicle.ownership.isNullOrBlank() || isEngineeringEquipment
             StatusPill(
                 title = "בעלות",
                 value = ownerStr,
-                isPositive = !isCompany || isEngineeringEquipment,
-                icon = if (isEngineeringEquipment) Icons.Default.Construction else if (isCompany) Icons.Default.Business else Icons.Default.Person,
+                isPositive = if (hasOwnership) (!isCompany || isEngineeringEquipment) else false,
+                icon = if (isEngineeringEquipment) Icons.Default.Construction else if (!hasOwnership) Icons.Default.HelpOutline else if (isCompany) Icons.Default.Business else Icons.Default.Person,
                 modifier = Modifier.weight(1f)
             )
 
@@ -1047,7 +1051,7 @@ private fun GeneralTabContent(
                 SpecRow("קבוצת רישוי ומשקל:", legalClass, isHighlighted = true)
                 SpecRow("דרגת רישיון נדרשת:", legalLicenseNote)
 
-                val ownershipStr = vehicle.ownership ?: "פרטי"
+                val ownershipStr = vehicle.ownership ?: "אין מידע"
                 SpecRow("סוג בעלות רשומה:", ownershipStr)
 
                 // Annual licensing fee
@@ -1102,11 +1106,11 @@ private fun GeneralTabContent(
                         FuelSpecRow("סוג דלק:", it)
                     }
                 }
-                vehicle.color?.let {
-                    if (it.isNotBlank()) {
-                        Spacer(Modifier.height(8.dp))
-                        ColorSpecRow("צבע:", it)
-                    }
+                Spacer(Modifier.height(8.dp))
+                if (!vehicle.color.isNullOrBlank()) {
+                    ColorSpecRow("צבע:", vehicle.color)
+                } else {
+                    SpecRow("צבע:", "אין מידע")
                 }
                 extraHistory?.originality?.let {
                     if (it.isNotBlank()) {
@@ -1358,7 +1362,7 @@ private fun TechSpecTabContent(
                 val cc = techSpec?.engineDisplacement ?: vehicle.engineDisplacement
                 cc?.let {
                     SpecRow("נפח מנוע:", "%,d סמ\"ק".format(it))
-                }
+                } ?: SpecRow("נפח מנוע:", "אין מידע")
 
                 val engineModel = vehicle.engineModel
                 engineModel?.let {
@@ -1374,7 +1378,7 @@ private fun TechSpecTabContent(
                 gearText?.let { SpecRow("תיבת הילוכים:", it) }
 
                 val drive = techSpec?.driveType ?: vehicle.driveType ?: if (vehicle.model?.contains("4X4", ignoreCase = true) == true) "4X4" else null
-                drive?.let { SpecRow("הנעה:", it) }
+                drive?.let { SpecRow("הנעה:", it) } ?: SpecRow("הנעה:", "אין מידע")
 
                 vehicle.fuelType?.let {
                     if (it.isNotBlank()) FuelSpecRow("סוג דלק:", it)
@@ -1392,8 +1396,8 @@ private fun TechSpecTabContent(
         // Dimensions, Weights & Capacity (Only show if at least one spec is available)
         val totalWeight = techSpec?.totalWeight ?: vehicle.totalWeight
         val curbWeight = vehicle.curbWeight
-        val cargoWeight = vehicle.cargoWeight
-        val seats = techSpec?.seats ?: vehicle.seats
+        val cargoWeight = vehicle.effectiveCargoWeight
+        val seats = techSpec?.seats ?: vehicle.seats ?: vehicle.seatsHeavy
         val doors = techSpec?.doors
         val towWithBrakes = techSpec?.towingCapacityWithBrakes ?: vehicle.towingCapacity
         val towWithoutBrakes = techSpec?.towingCapacityWithoutBrakes
@@ -1402,7 +1406,7 @@ private fun TechSpecTabContent(
 
         val hasDimensionsData = totalWeight != null || curbWeight != null || cargoWeight != null ||
                 seats != null || doors != null || towWithBrakes != null || towWithoutBrakes != null ||
-                airbags != null || electricWindows != null
+                airbags != null || electricWindows != null || !vehicle.towingCapacityHeavy.isNullOrBlank()
 
         if (hasDimensionsData) {
             Card(
@@ -1418,12 +1422,12 @@ private fun TechSpecTabContent(
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
 
-                    totalWeight?.let { SpecRow("משקל כולל מורשה:", "%,d ק\"ג".format(it)) }
-                    curbWeight?.let { SpecRow("משקל עצמי:", "%,d ק\"ג".format(it)) }
-                    cargoWeight?.let { SpecRow("משקל מטען מורשה:", "%,d ק\"ג".format(it)) }
+                    totalWeight?.let { SpecRow("משקל כולל מורשה:", "%,d ק\"ג".format(it)) } ?: SpecRow("משקל כולל מורשה:", "אין מידע")
+                    curbWeight?.let { SpecRow("משקל עצמי:", "%,d ק\"ג".format(it)) } ?: SpecRow("משקל עצמי:", "אין מידע")
+                    cargoWeight?.let { SpecRow("משקל מטען מורשה:", "%,d ק\"ג".format(it)) } ?: SpecRow("משקל מטען מורשה:", "אין מידע")
 
-                    val seatsNext = vehicle.seatsNextToDriver
-                    if (seats != null || doors != null) {
+                    val seatsNext = vehicle.seatsNextToDriver ?: vehicle.seatsNextToDriverHeavy
+                    if (seats != null || doors != null || seatsNext != null) {
                         val seatsStr = if (seatsNext != null) "$seats מושבים ($seatsNext ליד הנהג)" else if (seats != null) "$seats מושבים" else ""
                         val doorsStr = if (doors != null) " • $doors דלתות" else ""
                         SpecRow("מושבים ודלתות:", "$seatsStr$doorsStr".trimStart(' ', '•', ' '))
@@ -1431,6 +1435,9 @@ private fun TechSpecTabContent(
 
                     towWithBrakes?.let { SpecRow("כושר גרירה עם בלמים:", "%,d ק\"ג".format(it)) }
                     towWithoutBrakes?.let { SpecRow("כושר גרירה בלי בלמים:", "%,d ק\"ג".format(it)) }
+                    vehicle.towingCapacityHeavy?.let {
+                        if (it.isNotBlank()) SpecRow("כושר גרירה מורשה:", it)
+                    }
 
                     airbags?.let { SpecRow("כריות אוויר:", "$it כריות אוויר") }
                     electricWindows?.let { SpecRow("חלונות חשמל:", "$it") }
