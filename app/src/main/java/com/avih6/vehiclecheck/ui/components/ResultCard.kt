@@ -2416,21 +2416,23 @@ fun OwnershipHistorySection(
         val list = mutableListOf<OwnershipHistoryItem>()
         
         val currentOwnership = if (!vehicle.ownership.isNullOrBlank()) vehicle.ownership else "פרטי"
-        val currentDate = vehicle.onRoadDate ?: vehicle.lastTestDate ?: extraHistory?.firstRegistrationDate
-        val currentTimeAgo = currentDate?.let { VehicleUtils.formatTimeAgo(it) } ?: "עדכני"
-        
-        list.add(
-            OwnershipHistoryItem(
-                ownership = currentOwnership,
-                date = currentDate?.let { VehicleUtils.formatDate(it) } ?: "נוכחי",
-                duration = currentTimeAgo
-            )
-        )
-
-        val orig = extraHistory?.originality
+        val orig = extraHistory?.originality?.trim()
         val firstRegDate = extraHistory?.firstRegistrationDate
-        if (!orig.isNullOrBlank() && (orig != currentOwnership || firstRegDate != null)) {
-            val origTimeAgo = firstRegDate?.let { VehicleUtils.formatTimeAgo(it) } ?: "רישום מקורי"
+
+        // Only populate history if there is a distinct original ownership (e.g. Leasing/Rental/Company) different from current
+        if (!orig.isNullOrBlank() && !orig.equals(currentOwnership, ignoreCase = true) && orig != "0") {
+            val currentDate = vehicle.onRoadDate ?: vehicle.lastTestDate ?: firstRegDate
+            val currentTimeAgo = currentDate?.let { VehicleUtils.formatTimeAgo(it) } ?: "עדכני"
+            
+            list.add(
+                OwnershipHistoryItem(
+                    ownership = currentOwnership,
+                    date = currentDate?.let { VehicleUtils.formatDate(it) } ?: "נוכחי",
+                    duration = currentTimeAgo
+                )
+            )
+
+            val origTimeAgo = firstRegDate?.let { VehicleUtils.formatTimeAgo(it) } ?: vehicle.onRoadDate?.let { VehicleUtils.formatTimeAgo(it) } ?: "רישום מקורי"
             list.add(
                 OwnershipHistoryItem(
                     ownership = "$orig (מקוריות)",
@@ -2441,6 +2443,9 @@ fun OwnershipHistorySection(
         }
         list
     }
+
+    // Do not show the button or section if there is no distinct ownership history
+    if (items.size <= 1) return
 
     Column(
         modifier = modifier.fillMaxWidth().padding(top = 4.dp, bottom = 2.dp),
