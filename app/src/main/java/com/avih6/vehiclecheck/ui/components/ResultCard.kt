@@ -1168,59 +1168,7 @@ private fun GeneralTabContent(
             }
         }
 
-        // 3. Registrar of Pledges Check Action Card (בדיקת שעבודים ומשכונות - משרד המשפטים)
-        var showPledgesBrowserDialog by remember { mutableStateOf(false) }
 
-        if (showPledgesBrowserDialog) {
-            PledgesInAppBrowserDialog(
-                licensePlate = vehicle.licensePlate?.toString().orEmpty(),
-                onDismiss = { showPledgesBrowserDialog = false }
-            )
-        }
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "בדיקת שעבוד ומשכון ברשם המשכונות",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "בדיקה ישירה בתוך האפליקציה באתר הרשמי של משרד המשפטים",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                Spacer(Modifier.width(10.dp))
-
-                Button(
-                    onClick = {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val cleanDigits = (vehicle.licensePlate?.toString() ?: "").filter { it.isDigit() }
-                        if (cleanDigits.isNotBlank()) {
-                            clipboard.setPrimaryClip(ClipData.newPlainText("Plate", cleanDigits))
-                        }
-                        showPledgesBrowserDialog = true
-                    },
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Text("בדוק כעת", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                }
-            }
-        }
 
         // Vehicle Modifications Card (האם הותקן גפ"מ, שינוי צבע, שינוי צמיג, וו גרירה, ארגז)
         Card(
