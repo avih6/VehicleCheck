@@ -47,7 +47,7 @@ fun AnimatedModelDistributionChart(
         val list = stats.breakdownByYear.toMutableList()
         if (list.isEmpty() || list.size == 1) {
             // Build a representative 5-year distribution around vehicle year
-            val baseActive = if (stats.totalActive > 0) stats.totalActive else 1
+            val baseActive = stats.totalActive
             val baseInactive = stats.totalInactive
             val years = listOf(currentYear - 2, currentYear - 1, currentYear, currentYear + 1, currentYear + 2)
             years.map { y ->
@@ -56,10 +56,12 @@ fun AnimatedModelDistributionChart(
                     currentYear - 1, currentYear + 1 -> 0.65f
                     else -> 0.35f
                 }
+                val act = if (baseActive > 0) (baseActive * factor).toInt().coerceAtLeast(if (y == currentYear) 1 else 0) else 0
+                val inact = if (baseInactive > 0) (baseInactive * factor).toInt().coerceAtLeast(if (y == currentYear && baseActive == 0) 1 else 0) else 0
                 ModelYearCount(
                     year = y,
-                    activeCount = (baseActive * factor).toInt().coerceAtLeast(if (y == currentYear) 1 else 0),
-                    inactiveCount = (baseInactive * factor).toInt()
+                    activeCount = act,
+                    inactiveCount = inact
                 )
             }
         } else {
@@ -148,10 +150,10 @@ fun AnimatedModelDistributionChart(
             ) {
                 yearCounts.forEach { item ->
                     val isCurrent = item.year == currentYear
-                    val totalNorm = (item.totalCount.toFloat() / maxVal).coerceIn(0.12f, 1f)
+                    val totalNorm = (item.totalCount.toFloat() / maxVal).coerceIn(0.15f, 1f)
                     val barHeightFraction = totalNorm * animProgress.value
 
-                    val activeRatio = if (item.totalCount > 0) item.activeCount.toFloat() / item.totalCount else 1f
+                    val activeRatio = if (item.totalCount > 0) item.activeCount.toFloat() / item.totalCount else 0f
 
                     Column(
                         modifier = Modifier
@@ -160,49 +162,41 @@ fun AnimatedModelDistributionChart(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Bottom
                     ) {
-                        // Count Label on top of bar
+                        // Count Label on top of bar (shows active count)
                         Text(
                             text = "%,d".format((item.activeCount * animProgress.value).toInt()),
                             fontSize = 10.sp,
                             fontWeight = if (isCurrent) FontWeight.Black else FontWeight.Bold,
-                            color = if (isCurrent) Color(0xFF0091EA) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (item.activeCount > 0) (if (isCurrent) Color(0xFF00E5FF) else Color(0xFF0091EA)) else MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1
                         )
 
                         Spacer(Modifier.height(4.dp))
 
                         // Stacked Bar (Active Blue + Inactive Red)
+                        val isAllInactive = item.activeCount == 0 && item.inactiveCount > 0
+                        val isAllActive = item.activeCount > 0 && item.inactiveCount == 0
+                        val barColor = when {
+                            isAllInactive -> if (isCurrent) Color(0xFFE53935) else Color(0xFFC62828).copy(alpha = 0.85f)
+                            isAllActive -> if (isCurrent) Color(0xFF00E5FF) else Color(0xFF0091EA)
+                            else -> Color(0xFF0091EA)
+                        }
+
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height((110 * barHeightFraction).dp)
                                 .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-                                .background(
-                                    if (isCurrent) {
-                                        Brush.verticalGradient(
-                                            listOf(
-                                                Color(0xFF00E5FF),
-                                                Color(0xFF0091EA)
-                                            )
-                                        )
-                                    } else {
-                                        Brush.verticalGradient(
-                                            listOf(
-                                                Color(0xFF0091EA).copy(alpha = 0.85f),
-                                                Color(0xFF1565C0).copy(alpha = 0.65f)
-                                            )
-                                        )
-                                    }
-                                ),
+                                .background(barColor),
                             contentAlignment = Alignment.BottomCenter
                         ) {
-                            // Inactive sub-bar if present
-                            if (item.inactiveCount > 0 && activeRatio < 1f) {
+                            // If mixed (both active and inactive), render the lower inactive red portion
+                            if (!isAllInactive && !isAllActive && item.inactiveCount > 0) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .fillMaxHeight((1f - activeRatio).coerceIn(0f, 0.7f))
-                                        .background(Color(0xFFEF5350).copy(alpha = 0.75f))
+                                        .fillMaxHeight(1f - activeRatio)
+                                        .background(Color(0xFFE53935).copy(alpha = 0.85f))
                                 )
                             }
                         }
@@ -211,18 +205,21 @@ fun AnimatedModelDistributionChart(
 
                         // Year Label
                         Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = if (isCurrent) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                            shape = RoundedCornerShape(6.dp),
+                            color = if (isCurrent) MaterialTheme.colorScheme.primary else Color.Transparent,
                             border = if (isCurrent) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null
                         ) {
                             Text(
                                 text = "${item.year}",
                                 fontSize = 11.sp,
                                 fontWeight = if (isCurrent) FontWeight.Black else FontWeight.Normal,
-                                color = if (isCurrent) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp)
+                                color = if (isCurrent) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
+                    }
+                }
+            }
 
                         if (isCurrent) {
                             Text(

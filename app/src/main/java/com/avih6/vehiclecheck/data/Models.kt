@@ -203,9 +203,17 @@ data class DeregisteredVehicleRecord(
     @SerialName("moed_aliya_lakvish") val onRoadDate: String? = null,
     @SerialName("bitul_dt") val cancellationDate: String? = null,
     @SerialName("misgeret") val vin: String? = null,
+    @SerialName("shilda") val vinAlt: String? = null,
+    @SerialName("mispar_shilda") val vinAlt2: String? = null,
     @SerialName("degem_manoa") val engineModel: String? = null,
     @SerialName("mispar_manoa") val engineNumber: String? = null,
+    @SerialName("nefach_manoa") val engineDisplacementRaw: String? = null,
     @SerialName("mishkal_kolel") val totalWeightRaw: String? = null,
+    @SerialName("mishkal_azmi") val curbWeightRaw: String? = null,
+    @SerialName("hanaa_nm") val driveType: String? = null,
+    @SerialName("hanaa_cd") val driveTypeCd: String? = null,
+    @SerialName("tozeret_eretz_nm") val countryOfOrigin: String? = null,
+    @SerialName("tkina_EU") val standardType: String? = null,
     @SerialName("ramat_gimur") val trimLevel: String? = null,
     @SerialName("shnat_yitzur") val yearRaw: String? = null,
     @SerialName("baalut") val ownership: String? = null,
@@ -227,6 +235,13 @@ data class DeregisteredVehicleRecord(
         val directive = registrationDirectiveRaw?.filter { it.isDigit() }?.toLongOrNull()
         val effectiveLastTest = lastTestDate ?: lastTestDateAlt
         val effectiveExpiry = testExpiryDate ?: cancellationDate
+        val rawVin = vin ?: vinAlt ?: vinAlt2
+        val effectiveDrive = if (!driveType.isNullOrBlank()) driveType else if (driveTypeCd == "1") "4X2" else if (driveTypeCd == "2") "4X4" else null
+        val effectiveCc = engineDisplacementRaw?.filter { it.isDigit() }?.toIntOrNull()?.let { if (it > 0) it else null }
+        val tw = totalWeightRaw?.filter { it.isDigit() }?.toIntOrNull()
+        val effectiveTotalWeight = if (tw != null && tw > 0) tw else null
+        val cw = curbWeightRaw?.filter { it.isDigit() }?.toIntOrNull()
+        val effectiveCurbWeight = if (cw != null && cw > 0) cw else null
 
         return VehicleRecord(
             id = id,
@@ -248,13 +263,18 @@ data class DeregisteredVehicleRecord(
             fuelType = fuelType,
             engineModel = engineModel,
             engineNumber = engineNumber,
-            totalWeight = totalWeightRaw?.filter { it.isDigit() }?.toIntOrNull(),
+            engineDisplacement = effectiveCc,
+            totalWeight = effectiveTotalWeight,
+            curbWeight = effectiveCurbWeight,
+            driveType = effectiveDrive,
+            countryOfOrigin = countryOfOrigin,
+            standardType = standardType,
             cancellationDate = cancellationDate,
             frontTire = frontTire,
             rearTire = rearTire,
             safetyRating = null,
             emissionGroup = null,
-            vin = vin,
+            vin = rawVin,
             registrationDirective = directive
         )
     }

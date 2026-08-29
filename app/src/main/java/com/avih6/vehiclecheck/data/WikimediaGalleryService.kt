@@ -201,6 +201,10 @@ object WikimediaGalleryService {
             // Space, astronomy, aviation, naval, military hardware
             "satellite", "observatory", "spacecraft", "space probe", "telescope", "orbiting", "oao-", "oao", "astronomy", "celestial",
             "nasa", "rocket", "missile", "fighter jet", "aircraft", "airplane", "aerospace", "submarine", "warship", "space",
+            // Text advertisements, scanned pages, newspaper clippings, brochures, documents
+            "advertisement", "advert", "ad", "newspaper", "clipping", "poster", "brochure", "flyer", "leaflet",
+            "pamphlet", "receipt", "invoice", "press release", "article", "page", "text", "document", "scanned",
+            "letterhead", "magazine", "catalog", "catalogue", "price list", "tariff", "vintage ad", "amsterdam",
             // People, portraits, entertainment, politics
             "portrait", "singer", "actor", "actress", "politician", "minister", "prime minister", "president",
             "knesset", "rabbi", "general", "officer", "soldier", "army", "military base",

@@ -830,6 +830,11 @@ private fun GeneralTabContent(
                 if (isOffRoad) {
                     val formattedOffRoad = offRoadDate?.let { VehicleUtils.formatDate(it) } ?: vehicle.testExpiryDate?.let { VehicleUtils.formatDate(it) }
                     val offRoadAgo = VehicleUtils.formatTimeAgo(offRoadDate ?: vehicle.testExpiryDate)
+                    val displayOffRoad = if (formattedOffRoad.isNullOrBlank() || formattedOffRoad.contains("רכב היסטור")) {
+                        "רכב ישן שנגרע מהמצבה"
+                    } else {
+                        formattedOffRoad
+                    }
 
                     if (vehicle.testExpiryDate != null && vehicle.testExpiryDate != offRoadDate) {
                         val expiryFormatted = vehicle.testExpiryDate.let { VehicleUtils.formatDate(it) }
@@ -854,16 +859,19 @@ private fun GeneralTabContent(
                                 Text(
                                     text = "מועד ביטול רישום (הורדה מהכביש):",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1.1f)
                                 )
                                 Text(
-                                    text = formattedOffRoad ?: "רישום בוטל",
+                                    text = displayOffRoad,
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFFF5252)
+                                    color = Color(0xFFFF5252),
+                                    modifier = Modifier.weight(0.9f),
+                                    textAlign = TextAlign.End
                                 )
                             }
-                            if (offRoadAgo != null) {
+                            if (offRoadAgo != null && !formattedOffRoad.isNullOrBlank() && !formattedOffRoad.contains("רכב היסטור")) {
                                 Spacer(Modifier.height(2.dp))
                                 Text(
                                     text = "חלוף זמן: $offRoadAgo",
@@ -959,8 +967,9 @@ private fun GeneralTabContent(
                     }
                     Spacer(Modifier.height(8.dp))
                     if (isOffRoad) {
+                        val yearInfo = vehicle.year?.let { "לפי שנת הייצור הרשומה במאגר ($it), " } ?: ""
                         Text(
-                            text = "רכב זה עומד בקריטריון הגיל לרכב אספנות (מעל 30 שנה), אך מאחר שרישומו בוטל והוא נגרע מהמצבה (טוטאל לוס / פירוק / הורדה מהכביש), לא חלים עליו הסדרי תנועה וביטוח של רכב אספנות פעיל.",
+                            text = "${yearInfo}רכב זה עומד בקריטריון הגיל לרכב אספנות (מעל 30 שנה), אך מאחר שרישומו בוטל והוא נגרע מהמצבה (טוטאל לוס / פירוק / גריטה), לא חלים עליו הסדרי תנועה וביטוח של רכב אספנות פעיל.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             lineHeight = 18.sp
@@ -1556,28 +1565,7 @@ private fun SafetyTabContent(
                     }
                 }
             }
-        } else {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
-            ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Icon(Icons.Outlined.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(
-                        text = "ללא דירוג בטיחות רשום במאגר (רכב מיושן / רכב מיוחד)",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-
-        // Active Safety Systems: if older vintage car with no techSpec, show informative message
+        // Active Safety Systems & Rating: if older vintage car with no techSpec, show unified informative message
         if (techSpec == null && (vehicle.year ?: 0) in 1900..2012) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -1589,9 +1577,9 @@ private fun SafetyTabContent(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Outlined.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Outlined.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Text(
-                            text = "מערכות בטיחות אקטיביות (ADAS)",
+                            text = "בטיחות לרכב מיושן / אספנות",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -1599,13 +1587,35 @@ private fun SafetyTabContent(
                     }
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "רכב זה יוצר בשנת ${vehicle.year ?: ""} לפני כניסת תקנות מערכות הבטיחות האקטיביות המתקדמות (רדאר, מצלמות ובלימה אוטונומית) לתוקף בישראל.",
+                        text = "רכב זה יוצר בשנת ${vehicle.year ?: ""} – לפני החלת דירוגי הבטיחות הרשמיים ותקנות מערכות הבטיחות האקטיביות (רדאר, מצלמות ובלימה אוטונומית) לתוקף בישראל.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 20.sp
                     )
                 }
             }
         } else {
+            if (!hasSafetyRating) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(Icons.Outlined.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            text = "ללא דירוג בטיחות רשום במאגר (רכב מיושן / רכב מיוחד)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
             // Full Active Safety Systems Checklist
             Card(
                 modifier = Modifier.fillMaxWidth(),
