@@ -751,8 +751,66 @@ object VehicleUtils {
 
         val list = mutableListOf<String>()
 
-        // 1. Direct high-res vectors and verified fallbacks for specialized/new brands
+        // 1. Direct high-res vectors and verified fallbacks for major and specialized brands
         when (slug) {
+            "skoda" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/%C5%A0koda_logo_%282023%29.svg/500px-%C5%A0koda_logo_%282023%29.svg.png")
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/%C5%A0koda_Auto_logo_%282016%29.svg/500px-%C5%A0koda_Auto_logo_%282016%29.svg.png")
+            }
+            "subaru" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Subaru_logo_%282019%29.svg/500px-Subaru_logo_%282019%29.svg.png")
+            }
+            "toyota" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/e/ee/Toyota_logo_%282020%29.svg/500px-Toyota_logo_%282020%29.svg.png")
+            }
+            "hyundai" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Hyundai_Motor_Company_logo.svg/500px-Hyundai_Motor_Company_logo.svg.png")
+            }
+            "kia" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Kia_logo.svg/500px-Kia_logo.svg.png")
+            }
+            "volkswagen" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Volkswagen_logo_2019.svg/500px-Volkswagen_logo_2019.svg.png")
+            }
+            "seat" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/SEAT_Logo_2017.svg/500px-SEAT_Logo_2017.svg.png")
+            }
+            "peugeot" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Logo_Peugeot.svg/500px-Logo_Peugeot.svg.png")
+            }
+            "renault" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Renault_2021_Logo.svg/500px-Renault_2021_Logo.svg.png")
+            }
+            "bmw" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/BMW.svg/500px-BMW.svg.png")
+            }
+            "mercedes-benz", "mercedes" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Mercedes-Logo.svg/500px-Mercedes-Logo.svg.png")
+            }
+            "audi" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Audi-Logo_2016.svg/500px-Audi-Logo_2016.svg.png")
+            }
+            "mazda" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Mazda_Logo.svg/500px-Mazda_Logo.svg.png")
+            }
+            "nissan" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Nissan_2020_logo.svg/500px-Nissan_2020_logo.svg.png")
+            }
+            "honda" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Honda.svg/500px-Honda.svg.png")
+            }
+            "suzuki" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Suzuki_logo_2.svg/500px-Suzuki_logo_2.svg.png")
+            }
+            "mitsubishi" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Mitsubishi_logo.svg/500px-Mitsubishi_logo.svg.png")
+            }
+            "fiat" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Fiat_Automobiles_logo.svg/500px-Fiat_Automobiles_logo.svg.png")
+            }
+            "citroen" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Citro%C3%ABn_2022.svg/500px-Citro%C3%ABn_2022.svg.png")
+            }
             "jaecoo" -> {
                 list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Jaecoo_logo.svg/500px-Jaecoo_logo.svg.png")
                 list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/c/cf/Chery_logo.svg/500px-Chery_logo.svg.png")

@@ -2417,27 +2417,27 @@ fun OwnershipHistorySection(
         
         val currentOwnership = if (!vehicle.ownership.isNullOrBlank()) vehicle.ownership else "פרטי"
         val orig = extraHistory?.originality?.trim()
-        val firstRegDate = extraHistory?.firstRegistrationDate
+        val firstRegDate = extraHistory?.firstRegistrationDate ?: vehicle.onRoadDate
 
         // Only populate history if there is a distinct original ownership (e.g. Leasing/Rental/Company) different from current
         if (!orig.isNullOrBlank() && !orig.equals(currentOwnership, ignoreCase = true) && orig != "0") {
-            val currentDate = vehicle.onRoadDate ?: vehicle.lastTestDate ?: firstRegDate
-            val currentTimeAgo = currentDate?.let { VehicleUtils.formatTimeAgo(it) } ?: "עדכני"
+            val origFormattedDate = firstRegDate?.let { VehicleUtils.formatDate(it) } ?: "מועד עלייה לכביש"
             
+            // Row 1: Original Registration (רישום מקורי בעלייה לכביש)
             list.add(
                 OwnershipHistoryItem(
-                    ownership = currentOwnership,
-                    date = currentDate?.let { VehicleUtils.formatDate(it) } ?: "נוכחי",
-                    duration = currentTimeAgo
+                    stage = "רישום מקורי (מקוריות)",
+                    ownership = if (orig == "החכר") "החכר (ליסינג)" else orig,
+                    dateAndStatus = "$origFormattedDate (עלייה לכביש)"
                 )
             )
 
-            val origTimeAgo = firstRegDate?.let { VehicleUtils.formatTimeAgo(it) } ?: vehicle.onRoadDate?.let { VehicleUtils.formatTimeAgo(it) } ?: "רישום מקורי"
+            // Row 2: Current Ownership (בעלות נוכחית)
             list.add(
                 OwnershipHistoryItem(
-                    ownership = "$orig (מקוריות)",
-                    date = firstRegDate?.let { VehicleUtils.formatDate(it) } ?: vehicle.onRoadDate?.let { VehicleUtils.formatDate(it) } ?: "רישום ראשון",
-                    duration = origTimeAgo
+                    stage = "בעלות נוכחית",
+                    ownership = currentOwnership,
+                    dateAndStatus = "מעודכן ברישיון (יד 2+)"
                 )
             )
         }
@@ -2468,7 +2468,7 @@ fun OwnershipHistorySection(
             )
             Spacer(Modifier.width(6.dp))
             Text(
-                text = if (expanded) "הסתר היסטוריית בעלות" else "הצג היסטוריית בעלות",
+                text = if (expanded) "הסתר היסטוריית בעלות ומקוריות" else "הצג היסטוריית בעלות ומקוריות",
                 fontSize = 11.5.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -2495,27 +2495,27 @@ fun OwnershipHistorySection(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "בעלות",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.5.sp,
-                            modifier = Modifier.weight(1f),
-                            textAlign = TextAlign.Center
-                        )
-                        Text(
-                            text = "מתאריך",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.5.sp,
-                            modifier = Modifier.weight(1f),
-                            textAlign = TextAlign.Center
-                        )
-                        Text(
-                            text = "זמן בעלות",
+                            text = "שלב רישום",
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.5.sp,
                             modifier = Modifier.weight(1.2f),
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = "סוג בעלות",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.5.sp,
+                            modifier = Modifier.weight(1.1f),
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = "מועד רישום וסטטוס",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.5.sp,
+                            modifier = Modifier.weight(1.4f),
                             textAlign = TextAlign.Center
                         )
                     }
@@ -2531,24 +2531,25 @@ fun OwnershipHistorySection(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
+                                text = item.stage,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.5.sp,
+                                modifier = Modifier.weight(1.2f),
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
                                 text = item.ownership,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 11.5.sp,
-                                modifier = Modifier.weight(1f),
+                                color = if (index == 0) Color(0xFFFF9800) else Color(0xFF4CAF50),
+                                modifier = Modifier.weight(1.1f),
                                 textAlign = TextAlign.Center
                             )
                             Text(
-                                text = item.date,
+                                text = item.dateAndStatus,
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.weight(1f),
-                                textAlign = TextAlign.Center
-                            )
-                            Text(
-                                text = item.duration,
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.weight(1.2f),
+                                modifier = Modifier.weight(1.4f),
                                 textAlign = TextAlign.Center
                             )
                         }
@@ -2563,9 +2564,9 @@ fun OwnershipHistorySection(
 }
 
 data class OwnershipHistoryItem(
+    val stage: String,
     val ownership: String,
-    val date: String,
-    val duration: String
+    val dateAndStatus: String
 )
 
 @Composable
@@ -2588,7 +2589,7 @@ fun AutoBrandLogo(
         modifier = modifier.size(size)
     ) {
         Box(
-            modifier = Modifier.fillMaxSize().padding(size * 0.1f),
+            modifier = Modifier.fillMaxSize().padding(4.dp),
             contentAlignment = Alignment.Center
         ) {
             val isTrailer = slug == "trailer" || (hebrewMake != null && (hebrewMake.contains("סירני") || hebrewMake.contains("גרור") || hebrewMake.contains("נתמך")))
@@ -2613,24 +2614,24 @@ fun AutoBrandLogo(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(urls[logoUrlIndex])
                         .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = "סמל יצרן $hebrewMake",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit,
-                    onSuccess = {
-                        isLoaded = true
-                    },
-                    onError = {
-                        if (logoUrlIndex < urls.count() - 1) {
-                            logoUrlIndex++
-                        } else {
-                            logoUrlIndex = urls.count()
-                        }
+                    .crossfade(true)
+                    .build(),
+                contentDescription = "סמל יצרן $hebrewMake",
+                modifier = Modifier.fillMaxSize(0.92f),
+                contentScale = ContentScale.Fit,
+                onSuccess = {
+                    isLoaded = true
+                },
+                onError = {
+                    if (logoUrlIndex < urls.count() - 1) {
+                        logoUrlIndex++
+                    } else {
+                        logoUrlIndex = urls.count()
                     }
-                )
-            }
+                }
+            )
         }
     }
+}
 }
 
