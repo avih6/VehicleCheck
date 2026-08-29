@@ -514,7 +514,7 @@ fun ResultCard(
             // Disabled Permit
             StatusPill(
                 title = "תג נכה",
-                value = if (hasDisabledPermit) "פעיל ✅" else "ללא",
+                value = if (hasDisabledPermit) "פעיל" else "ללא",
                 isPositive = hasDisabledPermit,
                 icon = Icons.Default.Accessible,
                 modifier = Modifier.weight(1f)
@@ -1298,7 +1298,7 @@ private fun GeneralTabContent(
                 Column {
                     val dateFormatted = VehicleUtils.formatPermitDate(permitIssueDate)
                     Text(
-                        text = if (hasDisabledPermit) "נמצא תו נכה פעיל במאגר ✅" else "אין תו נכה רשום במאגר",
+                        text = if (hasDisabledPermit) "נמצא תו נכה פעיל במאגר" else "אין תו נכה רשום במאגר",
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (hasDisabledPermit) Color(0xFF00629E) else MaterialTheme.colorScheme.onSurface
@@ -2044,7 +2044,7 @@ private fun buildComprehensiveShareText(
         🛡️ ציון בטיחות: ${vehicle.safetyRating ?: "-"}/8
         🍃 קבוצת זיהום: ${vehicle.emissionGroup ?: "-"}/15
         🔢 מספר שלדה: ${vehicle.vin ?: "-"}
-        ♿ תו נכה: ${if (hasDisabledPermit) "פעיל ✅$permitDateStr" else "לא קיים ❌"}
+        ♿ תו נכה: ${if (hasDisabledPermit) "פעיל$permitDateStr" else "ללא"}
         
         נבדק באפליקציית בדיקת רכב מתוך מאגר משרד התחבורה.
     """.trimIndent()

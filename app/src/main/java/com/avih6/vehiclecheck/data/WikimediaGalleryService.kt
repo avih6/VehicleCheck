@@ -187,8 +187,17 @@ object WikimediaGalleryService {
             // Diagrams, graphics, non-photo assets
             "logo", "icon", "flag", "diagram", "map", "badge", "emblem", "symbol",
             "drawing", "sketch", "blueprint", "patent", "graph", "chart", "table", "stats", "infographic",
-            // Car parts / interior only
-            "interior", "dashboard", "seats", "steering wheel",
+            // Vehicle parts, engine bay, interior buttons, component closeups
+            "engine", "motor", "fb20", "v6", "v8", "inline-4", "tsi", "tdi", "turbocharger", "supercharger",
+            "switch", "button", "vdc off", "esp off", "traction control", "gauge", "gauges", "speedometer",
+            "tachometer", "odometer", "dashboard", "interior", "steering wheel", "seats", "seat", "pedal", "pedals",
+            "gearbox", "transmission", "gear shifter", "shifter", "knob", "center console", "console", "exhaust",
+            "muffler", "tailpipe", "headlight", "taillight", "fog light", "indicator", "lamp", "mirror",
+            "side mirror", "door handle", "fuel door", "fuel cap", "gas cap", "rim", "wheel rim", "tire", "tyre",
+            "alloy wheel", "suspension", "brake", "caliper", "rotor", "radiator", "battery", "intake", "manifold",
+            "airbox", "air filter", "oil filter", "fuse box", "fuse", "relay", "wiring", "harness", "chassis",
+            "underbody", "undercarriage", "trunk", "boot", "glovebox", "sunroof", "wiper", "wipers", "vin plate",
+            "identification plate", "plate number", "door panel", "detail", "close-up", "closeup", "crop",
             // Space, astronomy, aviation, naval, military hardware
             "satellite", "observatory", "spacecraft", "space probe", "telescope", "orbiting", "oao-", "oao", "astronomy", "celestial",
             "nasa", "rocket", "missile", "fighter jet", "aircraft", "airplane", "aerospace", "submarine", "warship", "space",
@@ -597,6 +606,14 @@ object WikimediaGalleryService {
 
         if (!colorEn.isNullOrBlank() && textToSearch.contains(colorEn.lowercase())) {
             score += 300
+        }
+
+        // Bonus for full car exterior terms and landscape photos
+        if (listOf("front", "rear", "side", "profile", "exterior", "automobile", "crossover", "suv", "sedan", "hatchback", "wagon").any { textToSearch.contains(it) }) {
+            score += 300
+        }
+        if (image.width > 0 && image.height > 0 && image.width > image.height) {
+            score += 150
         }
 
         return score
