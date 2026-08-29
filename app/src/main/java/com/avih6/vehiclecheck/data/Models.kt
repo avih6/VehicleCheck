@@ -669,13 +669,6 @@ object VehicleUtils {
         return if (isPast) "לפני $formattedDiff" else "בעוד $formattedDiff"
     }
 
-    fun getEstimatedLastTestDate(testExpiryDateStr: String?, lastTestDateStr: String?): String? {
-        if (!lastTestDateStr.isNullOrBlank()) return lastTestDateStr
-        val expiry = parseLocalDate(testExpiryDateStr) ?: return null
-        val estimatedLast = expiry.minusYears(1)
-        return estimatedLast.format(DateTimeFormatter.ISO_LOCAL_DATE)
-    }
-
     fun calculateAnnualLicensingFee(feeGroup: Int, year: Int?): Int {
         val currentYear = LocalDate.now().year
         val vehicleAge = if (year != null && year > 1900) (currentYear - year).coerceAtLeast(0) else 0

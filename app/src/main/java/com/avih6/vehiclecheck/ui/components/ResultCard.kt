@@ -820,9 +820,7 @@ private fun GeneralTabContent(
                 Spacer(Modifier.height(12.dp))
 
                 // Last test date (טסט אחרון)
-                val lastTestFormatted = vehicle.lastTestDate?.let { VehicleUtils.formatDate(it) } 
-                    ?: VehicleUtils.getEstimatedLastTestDate(vehicle.testExpiryDate, null)?.let { VehicleUtils.formatDate(it) }
-                    ?: "אין מידע"
+                val lastTestFormatted = vehicle.lastTestDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע"
                 SpecRow(
                     label = "טסט אחרון (מבחן רישוי אחרון):",
                     value = lastTestFormatted
