@@ -917,11 +917,6 @@ private fun GeneralTabContent(
                         }
                     }
                 }
-                                lineHeight = 16.sp
-                            )
-                        }
-                    }
-                }
 
                 // On-road date (מועד עלייה לכביש)
                 SpecRow(
