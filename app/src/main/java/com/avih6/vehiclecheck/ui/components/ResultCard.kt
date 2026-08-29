@@ -1359,6 +1359,7 @@ private fun TechSpecTabContent(
                     SpecRow("כוחות סוס:", "$it כ\"ס", isHighlighted = true)
                 }
 
+                val cc = techSpec?.engineDisplacement ?: vehicle.engineDisplacement
                 if (cc != null) {
                     SpecRow("נפח מנוע:", "%,d סמ\"ק".format(cc))
                 } else {
