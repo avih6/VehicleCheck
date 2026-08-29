@@ -21,6 +21,7 @@ data class VehicleHistoryEntity(
     val trimLevel: String? = null,
     val isOffRoad: Boolean = false,
     val offRoadDate: String? = null,
+    val isEngineeringEquipment: Boolean = false,
     val isFavorite: Boolean = false,
     val timestamp: Long = System.currentTimeMillis()
 )
@@ -42,6 +43,9 @@ interface VehicleDao {
     @Query("DELETE FROM vehicle_history WHERE licensePlate = :plate AND make = :make")
     suspend fun deleteByPlateAndMake(plate: String, make: String)
 
+    @Query("DELETE FROM vehicle_history WHERE licensePlate = :plate AND isEngineeringEquipment = :isEngineering")
+    suspend fun deleteByPlateAndType(plate: String, isEngineering: Boolean)
+
     @Query("DELETE FROM vehicle_history WHERE licensePlate = :plate")
     suspend fun deleteByPlate(plate: String)
 
@@ -58,7 +62,7 @@ interface VehicleDao {
     suspend fun setFavoriteByPlate(plate: String, isFavorite: Boolean)
 }
 
-@Database(entities = [VehicleHistoryEntity::class], version = 3, exportSchema = false)
+@Database(entities = [VehicleHistoryEntity::class], version = 4, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun vehicleDao(): VehicleDao
 
@@ -87,7 +91,8 @@ class HistoryRepository(private val dao: VehicleDao) {
     suspend fun saveSearch(
         plate: String,
         record: VehicleRecord?,
-        testStatus: TestStatus
+        testStatus: TestStatus,
+        isEngineeringEquipment: Boolean = false
     ) {
         val cleanPlate = plate.filter { it.isDigit() }
         val isOffRoad = testStatus is TestStatus.OffRoad || !record?.cancellationDate.isNullOrBlank()
@@ -116,14 +121,10 @@ class HistoryRepository(private val dao: VehicleDao) {
             trimLevel = record?.trimLevel,
             isOffRoad = isOffRoad,
             offRoadDate = offRoadDate,
+            isEngineeringEquipment = isEngineeringEquipment,
             timestamp = System.currentTimeMillis()
         )
-        val make = record?.make.orEmpty()
-        if (make.isNotBlank()) {
-            dao.deleteByPlateAndMake(cleanPlate, make)
-        } else {
-            dao.deleteByPlate(cleanPlate)
-        }
+        dao.deleteByPlateAndType(cleanPlate, isEngineeringEquipment)
         dao.insert(entry)
     }
 

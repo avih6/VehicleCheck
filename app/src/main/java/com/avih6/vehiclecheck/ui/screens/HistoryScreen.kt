@@ -30,7 +30,7 @@ import com.avih6.vehiclecheck.ui.components.tvFocusable
 @Composable
 fun HistoryScreen(
     viewModel: MainViewModel,
-    onSelectVehicle: (String) -> Unit,
+    onSelectVehicle: (String, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val history by viewModel.searchHistory.collectAsState()
@@ -133,7 +133,7 @@ fun HistoryScreen(
                 items(displayedList, key = { it.id }) { item ->
                     HistoryItemCard(
                         item = item,
-                        onClick = { onSelectVehicle(item.licensePlate) },
+                        onClick = { onSelectVehicle(item.licensePlate, item.isEngineeringEquipment) },
                         onToggleFavorite = { viewModel.toggleFavorite(item.id, item.isFavorite) },
                         onDelete = { viewModel.deleteHistoryEntry(item.id) }
                     )
@@ -214,7 +214,33 @@ private fun HistoryItemCard(
                         }
                     }
 
-                    if (!isNotFound) {
+                    if (item.isEngineeringEquipment) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFFFF9800).copy(alpha = 0.15f),
+                            border = BorderStroke(0.5.dp, Color(0xFFFF9800).copy(alpha = 0.5f)),
+                            modifier = Modifier.padding(start = 6.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Construction,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFF9800),
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(Modifier.width(3.dp))
+                                Text(
+                                    text = "צמ\"ה",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFFF9800)
+                                )
+                            }
+                        }
+                    } else if (!isNotFound) {
                         val classification = VehicleUtils.resolveQuickClassification(
                             make = item.make,
                             model = item.model,

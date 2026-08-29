@@ -335,8 +335,8 @@ fun MainAppShell(viewModel: MainViewModel) {
                     )
                     1 -> HistoryScreen(
                         viewModel = viewModel,
-                        onSelectVehicle = { plate ->
-                            viewModel.searchPlateDirect(plate)
+                        onSelectVehicle = { plate, isEngineering ->
+                            viewModel.searchPlateDirect(plate, isEngineering)
                             selectedTab = 0
                         },
                         modifier = Modifier.fillMaxSize()

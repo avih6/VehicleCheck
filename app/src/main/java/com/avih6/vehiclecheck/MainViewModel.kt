@@ -107,15 +107,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         performSearch(plate)
     }
 
-    fun searchPlateDirect(plate: String) {
+    fun searchPlateDirect(plate: String, preferEngineeringEquipment: Boolean = false) {
         val clean = plate.filter { it.isDigit() }.take(8)
         _query.value = clean
         if (clean.length in 5..8) {
-            performSearch(clean)
+            performSearch(clean, preferEngineeringEquipment)
         }
     }
 
-    private fun performSearch(plateStr: String) {
+    private fun performSearch(plateStr: String, preferEngineeringEquipment: Boolean = false) {
         viewModelScope.launch(Dispatchers.IO) {
             _searchState.value = SearchState.Loading
 
@@ -266,8 +266,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 var isEngineering = false
                 var activeEq: EngineeringEquipmentRecord? = null
                 var altEq: EngineeringEquipmentRecord? = null
+                var altVeh: VehicleRecord? = null
 
-                if (finalVehicle == null) {
+                if (preferEngineeringEquipment && equipmentRecord != null) {
+                    altVeh = finalVehicle
+                    finalVehicle = equipmentRecord.toVehicleRecord()
+                    isOffRoad = false
+                    isEngineering = true
+                    activeEq = equipmentRecord
+                    altEq = null
+                } else if (finalVehicle == null) {
                     if (equipmentRecord != null) {
                         finalVehicle = equipmentRecord.toVehicleRecord()
                         isOffRoad = false
@@ -475,7 +483,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 repository.saveSearch(
                     plate = plateStr,
                     record = vehicle,
-                    testStatus = testStatus
+                    testStatus = testStatus,
+                    isEngineeringEquipment = isEngineering
                 )
 
                 _searchState.value = SearchState.Success(
@@ -495,7 +504,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     isEngineeringEquipment = isEngineering,
                     equipmentDetails = activeEq,
                     alternateEquipment = altEq,
-                    alternateVehicle = null
+                    alternateVehicle = altVeh
                 )
 
             } catch (e: Exception) {
@@ -525,7 +534,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 alternateVehicle = null
             )
             viewModelScope.launch(Dispatchers.IO) {
-                repository.saveSearch(altVeh.licensePlate.toString(), altVeh, testStatus)
+                repository.saveSearch(altVeh.licensePlate.toString(), altVeh, testStatus, isEngineeringEquipment = false)
             }
         } else {
             val altEq = curr.alternateEquipment ?: return
@@ -541,7 +550,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 alternateVehicle = altVeh
             )
             viewModelScope.launch(Dispatchers.IO) {
-                repository.saveSearch(eqVehicle.licensePlate.toString(), eqVehicle, testStatus)
+                repository.saveSearch(eqVehicle.licensePlate.toString(), eqVehicle, testStatus, isEngineeringEquipment = true)
             }
         }
     }
