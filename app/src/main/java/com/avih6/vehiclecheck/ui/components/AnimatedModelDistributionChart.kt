@@ -217,9 +217,6 @@ fun AnimatedModelDistributionChart(
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
-                    }
-                }
-            }
 
                         if (isCurrent) {
                             Text(

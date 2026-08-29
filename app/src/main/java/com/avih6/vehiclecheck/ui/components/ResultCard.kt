@@ -2645,4 +2645,5 @@ fun AutoBrandLogo(
         }
     }
 }
+}
 
