@@ -166,6 +166,8 @@ private fun HistoryItemCard(
             val isNotFound = item.make == "לא אותר במאגר"
             val statusColor = if (isNotFound) {
                 Color(0xFFFF9800)
+            } else if (item.isOffRoad) {
+                TestExpiredRed
             } else if (item.isTestValid) {
                 if (item.testExpiryDate == null) {
                     TestValidGreen
@@ -254,6 +256,17 @@ private fun HistoryItemCard(
                 // Test Status summary / Retry status
                 val testText = when {
                     isNotFound -> "לא אותר במאגר • לחץ לבדיקה חוזרת 🔄"
+                    item.isOffRoad -> {
+                        val offRoadDateFmt = item.offRoadDate?.let { VehicleUtils.formatDate(it) } ?: item.testExpiryDate?.let { VehicleUtils.formatDate(it) }
+                        val timeAgo = VehicleUtils.formatTimeAgo(item.offRoadDate ?: item.testExpiryDate)
+                        if (offRoadDateFmt != null && timeAgo != null) {
+                            "רכב לא פעיל • ירד מהכביש ב-$offRoadDateFmt ($timeAgo)"
+                        } else if (offRoadDateFmt != null) {
+                            "רכב לא פעיל • ירד מהכביש ב-$offRoadDateFmt"
+                        } else {
+                            "רכב לא פעיל (ירד מהכביש / רישום מבוטל)"
+                        }
+                    }
                     item.isTestValid && item.testExpiryDate.isNullOrBlank() -> "רכב פעיל ברישיון • ללא נתוני תוקף טסט במאגר"
                     item.isTestValid -> {
                         val diff = VehicleUtils.calculateDateDifferenceHebrew(item.testExpiryDate)

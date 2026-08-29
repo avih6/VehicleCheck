@@ -828,55 +828,19 @@ private fun GeneralTabContent(
                     value = lastTestFormatted
                 )
 
-                // Next test / Expiry date (טסט הבא)
-                val expiryFormatted = vehicle.testExpiryDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע"
-                SpecRow(
-                    label = "טסט הבא (תוקף רישיון רכב):",
-                    value = expiryFormatted,
-                    isHighlighted = vehicle.testExpiryDate != null
-                )
-
-                // Status duration diff badge (זמן שנותר / איחור / ירידה מהכביש)
-                if (isOffRoad) {
-                    val offRoadDiff = VehicleUtils.formatTimeAgo(offRoadDate ?: vehicle.testExpiryDate)
-                    Surface(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFC62828).copy(alpha = 0.12f)
-                    ) {
-                        Text(
-                            text = if (offRoadDiff != null) "הרכב ירד מהכביש ורישומו בוטל ($offRoadDiff)" else "הרכב ירד מהכביש ורישומו בוטל",
-                            color = Color(0xFFFF5252),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                        )
-                    }
-                } else {
-                    val testDiff = VehicleUtils.calculateDateDifferenceHebrew(vehicle.testExpiryDate)
-                    if (testDiff != null) {
-                        val isValid = testStatus is TestStatus.Valid || testStatus is TestStatus.ExpiringSoon
-                        Surface(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (isValid) Color(0xFF2E7D32).copy(alpha = 0.12f) else Color(0xFFC62828).copy(alpha = 0.12f)
-                        ) {
-                            Text(
-                                text = testDiff,
-                                color = if (isValid) Color(0xFF4CAF50) else Color(0xFFFF5252),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                            )
-                        }
-                    }
-                }
-
-                // Off-road cancellation date & legal status
+                // Next test / Expiry date or Off-Road status
                 if (isOffRoad) {
                     val formattedOffRoad = offRoadDate?.let { VehicleUtils.formatDate(it) } ?: vehicle.testExpiryDate?.let { VehicleUtils.formatDate(it) }
                     val offRoadAgo = VehicleUtils.formatTimeAgo(offRoadDate ?: vehicle.testExpiryDate)
-                    
+
+                    if (vehicle.testExpiryDate != null && vehicle.testExpiryDate != offRoadDate) {
+                        val expiryFormatted = vehicle.testExpiryDate.let { VehicleUtils.formatDate(it) }
+                        SpecRow(
+                            label = "תוקף רישיון אחרון (לפני ביטול):",
+                            value = expiryFormatted
+                        )
+                    }
+
                     Surface(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
                         shape = RoundedCornerShape(12.dp),
@@ -890,7 +854,7 @@ private fun GeneralTabContent(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "מועד ביטול רישום (הורדה):",
+                                    text = "מועד ביטול רישום (הורדה מהכביש):",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -923,6 +887,36 @@ private fun GeneralTabContent(
                                 text = "על פי תקנות התעבורה (טוטאל לוס / פירוק / גריטה), הרכב נגרע לצמיתות ממצבת כלי הרכב ונאסר לחלוטין לתנועה בכביש.",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 11.sp,
+                                lineHeight = 15.sp
+                            )
+                        }
+                    }
+                } else {
+                    val expiryFormatted = vehicle.testExpiryDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע"
+                    SpecRow(
+                        label = "טסט הבא (תוקף רישיון רכב):",
+                        value = expiryFormatted,
+                        isHighlighted = vehicle.testExpiryDate != null
+                    )
+
+                    val testDiff = VehicleUtils.calculateDateDifferenceHebrew(vehicle.testExpiryDate)
+                    if (testDiff != null) {
+                        val isValid = testStatus is TestStatus.Valid || testStatus is TestStatus.ExpiringSoon
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isValid) Color(0xFF2E7D32).copy(alpha = 0.12f) else Color(0xFFC62828).copy(alpha = 0.12f)
+                        ) {
+                            Text(
+                                text = testDiff,
+                                color = if (isValid) Color(0xFF4CAF50) else Color(0xFFFF5252),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
                                 lineHeight = 16.sp
                             )
                         }
@@ -1282,11 +1276,7 @@ private fun GeneralTabContent(
                 val frontTireVal = if (!vehicle.frontTire.isNullOrBlank()) vehicle.frontTire else "אין מידע"
                 SpecRow("צמיג קדמי מאושר:", frontTireVal)
 
-                val rearTireVal = when {
-                    !vehicle.rearTire.isNullOrBlank() -> vehicle.rearTire
-                    !vehicle.frontTire.isNullOrBlank() -> "${vehicle.frontTire} (זהה לקדמי)"
-                    else -> "אין מידע"
-                }
+                val rearTireVal = if (!vehicle.rearTire.isNullOrBlank()) vehicle.rearTire else "אין מידע ברישום"
                 SpecRow("צמיג אחורי מאושר:", rearTireVal)
 
                 if (techSpec?.tpms == 1) {
@@ -1418,6 +1408,11 @@ private fun TechSpecTabContent(
                     if (it.isNotBlank()) SpecRow("דגם מנוע:", it)
                 }
 
+                val engineNumber = vehicle.engineNumber
+                engineNumber?.let {
+                    if (it.isNotBlank()) SpecRow("מספר מנוע:", it)
+                }
+
                 val gearText = if (techSpec?.isAutomatic == 1) "אוטומטי" else if (techSpec?.isAutomatic == 0) "ידני" else null
                 gearText?.let { SpecRow("תיבת הילוכים:", it) }
 
@@ -1437,44 +1432,52 @@ private fun TechSpecTabContent(
             }
         }
 
-        // Dimensions, Weights & Capacity
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "מידות, משקלים וקיבולת",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
+        // Dimensions, Weights & Capacity (Only show if at least one spec is available)
+        val totalWeight = techSpec?.totalWeight ?: vehicle.totalWeight
+        val curbWeight = vehicle.curbWeight
+        val cargoWeight = vehicle.cargoWeight
+        val seats = techSpec?.seats ?: vehicle.seats
+        val doors = techSpec?.doors
+        val towWithBrakes = techSpec?.towingCapacityWithBrakes ?: vehicle.towingCapacity
+        val towWithoutBrakes = techSpec?.towingCapacityWithoutBrakes
+        val airbags = techSpec?.airbags
+        val electricWindows = techSpec?.electricWindows
 
-                val totalWeight = techSpec?.totalWeight ?: vehicle.totalWeight
-                totalWeight?.let { SpecRow("משקל כולל מורשה:", "%,d ק\"ג".format(it)) }
+        val hasDimensionsData = totalWeight != null || curbWeight != null || cargoWeight != null ||
+                seats != null || doors != null || towWithBrakes != null || towWithoutBrakes != null ||
+                airbags != null || electricWindows != null
 
-                val curbWeight = vehicle.curbWeight
-                curbWeight?.let { SpecRow("משקל עצמי:", "%,d ק\"ג".format(it)) }
+        if (hasDimensionsData) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "מידות, משקלים וקיבולת",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
 
-                val cargoWeight = vehicle.cargoWeight
-                cargoWeight?.let { SpecRow("משקל מטען מורשה:", "%,d ק\"ג".format(it)) }
+                    totalWeight?.let { SpecRow("משקל כולל מורשה:", "%,d ק\"ג".format(it)) }
+                    curbWeight?.let { SpecRow("משקל עצמי:", "%,d ק\"ג".format(it)) }
+                    cargoWeight?.let { SpecRow("משקל מטען מורשה:", "%,d ק\"ג".format(it)) }
 
-                val seats = techSpec?.seats ?: vehicle.seats
-                val seatsNext = vehicle.seatsNextToDriver
-                val doors = techSpec?.doors
-                if (seats != null || doors != null) {
-                    val seatsStr = if (seatsNext != null) "$seats מושבים ($seatsNext ליד הנהג)" else "$seats מושבים"
-                    val doorsStr = if (doors != null) " • $doors דלתות" else ""
-                    SpecRow("מושבים ודלתות:", "$seatsStr$doorsStr")
+                    val seatsNext = vehicle.seatsNextToDriver
+                    if (seats != null || doors != null) {
+                        val seatsStr = if (seatsNext != null) "$seats מושבים ($seatsNext ליד הנהג)" else if (seats != null) "$seats מושבים" else ""
+                        val doorsStr = if (doors != null) " • $doors דלתות" else ""
+                        SpecRow("מושבים ודלתות:", "$seatsStr$doorsStr".trimStart(' ', '•', ' '))
+                    }
+
+                    towWithBrakes?.let { SpecRow("כושר גרירה עם בלמים:", "%,d ק\"ג".format(it)) }
+                    towWithoutBrakes?.let { SpecRow("כושר גרירה בלי בלמים:", "%,d ק\"ג".format(it)) }
+
+                    airbags?.let { SpecRow("כריות אוויר:", "$it כריות אוויר") }
+                    electricWindows?.let { SpecRow("חלונות חשמל:", "$it") }
                 }
-
-                val tow = techSpec?.towingCapacityWithBrakes ?: vehicle.towingCapacity
-                tow?.let { SpecRow("כושר גרירה עם בלמים:", "%,d ק\"ג".format(it)) }
-                techSpec?.towingCapacityWithoutBrakes?.let { SpecRow("כושר גרירה בלי בלמים:", "%,d ק\"ג".format(it)) }
-
-                techSpec?.airbags?.let { SpecRow("כריות אוויר:", "$it כריות אוויר") }
-                techSpec?.electricWindows?.let { SpecRow("חלונות חשמל:", "$it") }
             }
         }
 
@@ -1510,26 +1513,28 @@ private fun TechSpecTabContent(
             }
         }
 
-        // Comfort & Equipment Checklist
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "אבזור נוחות ומרכב",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
+        // Comfort & Equipment Checklist (Only show if techSpec has recorded equipment data)
+        if (techSpec != null) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "אבזור נוחות ומרכב",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
 
-                SafetySystemRow("מזגן מקורי", isPresent = (techSpec?.airConditioning ?: 1) == 1)
-                SafetySystemRow("מערכת בלמי ABS", isPresent = (techSpec?.abs ?: 1) == 1)
-                SafetySystemRow("בקרת יציבות אלקטרונית (ESP)", isPresent = (techSpec?.stabilityControl ?: 1) == 1)
-                SafetySystemRow("הגה כוח", isPresent = (techSpec?.powerSteering ?: 1) == 1)
-                SafetySystemRow("חישוקי מגנזיום / סגסוגת קלה", isPresent = techSpec?.alloyWheels == 1)
-                SafetySystemRow("חלון בגג (סאן-רוף)", isPresent = techSpec?.sunroof == 1)
+                    SafetySystemRow("מזגן מקורי", isPresent = techSpec.airConditioning == 1)
+                    SafetySystemRow("מערכת בלמי ABS", isPresent = techSpec.abs == 1)
+                    SafetySystemRow("בקרת יציבות אלקטרונית (ESP)", isPresent = techSpec.stabilityControl == 1)
+                    SafetySystemRow("הגה כוח", isPresent = techSpec.powerSteering == 1)
+                    SafetySystemRow("חישוקי מגנזיום / סגסוגת קלה", isPresent = techSpec.alloyWheels == 1)
+                    SafetySystemRow("חלון בגג (סאן-רוף)", isPresent = techSpec.sunroof == 1)
+                }
             }
         }
     }
@@ -1631,40 +1636,70 @@ private fun SafetyTabContent(
             }
         }
 
-        // Full Active Safety Systems Checklist
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "מערכות בטיחות אקטיביות",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
+        // Active Safety Systems: if older vintage car with no techSpec, show informative message
+        if (techSpec == null && (vehicle.year ?: 0) in 1900..2012) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Outlined.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Text(
+                            text = "מערכות בטיחות אקטיביות (ADAS)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "רכב זה יוצר בשנת ${vehicle.year ?: ""} לפני כניסת תקנות מערכות הבטיחות האקטיביות המתקדמות (רדאר, מצלמות ובלימה אוטונומית) לתוקף בישראל.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        } else {
+            // Full Active Safety Systems Checklist
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "מערכות בטיחות אקטיביות",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
 
-                SafetySystemRow("בקרת סטייה מנתיב", isPresent = techSpec?.laneDepartureWarning == 1)
-                SafetySystemRow("מערכת אקטיבית למניעת סטייה מנתיב", isPresent = techSpec?.activeLaneDeparture == 1)
-                SafetySystemRow("בקרת שיוט אדפטיבית", isPresent = techSpec?.adaptiveCruise == 1)
-                SafetySystemRow("מערכת עזר לבלמים", isPresent = techSpec?.brakeAssist == 1)
-                SafetySystemRow("בלימה אוטומטית בנסיעה לאחור", isPresent = techSpec?.reverseAutoBraking == 1)
-                SafetySystemRow("בלימת חירום לפני הולכי רגל ואופניים", isPresent = techSpec?.pedestrianBicycleEmergencyBrake == 1)
-                SafetySystemRow("תאורה אוטומטית בנסיעה קדימה", isPresent = techSpec?.autoHeadlights == 1)
-                SafetySystemRow("שליטה אוטומטית באורות גבוהים", isPresent = techSpec?.autoHighBeam == 1)
-                SafetySystemRow("בקרת מהירות חכמה", isPresent = techSpec?.intelligentSpeedAssist == 1)
-                SafetySystemRow("ניטור מרחק מלפנים", isPresent = techSpec?.forwardCollisionWarning == 1)
-                SafetySystemRow("חיישני לחץ אוויר בצמיגים (TPMS)", isPresent = techSpec?.tpms == 1)
-                SafetySystemRow("חיישני חגורות בטיחות", isPresent = techSpec?.seatbeltSensors == 1)
-                SafetySystemRow("מצלמת רוורס", isPresent = techSpec?.reverseCamera == 1)
-                SafetySystemRow("הכנה למנעולי אלכוהול", isPresent = techSpec?.alcoholLockReady == 1)
-                SafetySystemRow("זיהוי מצב התקרבות מסוכנת", isPresent = techSpec?.dangerousApproachDetection == 1)
-                SafetySystemRow("זיהוי הולכי רגל", isPresent = techSpec?.pedestrianDetection == 1)
-                SafetySystemRow("זיהוי תמרורי תנועה", isPresent = techSpec?.trafficSignDetection == 1)
-                SafetySystemRow("זיהוי בשטח נסתר (שטח מת)", isPresent = techSpec?.blindSpotDetection == 1)
-                SafetySystemRow("מערכת אקטיבית למניעת התנגשות צד", isPresent = techSpec?.sideCollisionPrevention == 1)
-                SafetySystemRow("זיהוי רכב דו גלגלי", isPresent = techSpec?.twoWheelerDetection == 1)
+                    SafetySystemRow("בקרת סטייה מנתיב", isPresent = techSpec?.laneDepartureWarning == 1)
+                    SafetySystemRow("מערכת אקטיבית למניעת סטייה מנתיב", isPresent = techSpec?.activeLaneDeparture == 1)
+                    SafetySystemRow("בקרת שיוט אדפטיבית", isPresent = techSpec?.adaptiveCruise == 1)
+                    SafetySystemRow("מערכת עזר לבלמים", isPresent = techSpec?.brakeAssist == 1)
+                    SafetySystemRow("בלימה אוטומטית בנסיעה לאחור", isPresent = techSpec?.reverseAutoBraking == 1)
+                    SafetySystemRow("בלימת חירום לפני הולכי רגל ואופניים", isPresent = techSpec?.pedestrianBicycleEmergencyBrake == 1)
+                    SafetySystemRow("תאורה אוטומטית בנסיעה קדימה", isPresent = techSpec?.autoHeadlights == 1)
+                    SafetySystemRow("שליטה אוטומטית באורות גבוהים", isPresent = techSpec?.autoHighBeam == 1)
+                    SafetySystemRow("בקרת מהירות חכמה", isPresent = techSpec?.intelligentSpeedAssist == 1)
+                    SafetySystemRow("ניטור מרחק מלפנים", isPresent = techSpec?.forwardCollisionWarning == 1)
+                    SafetySystemRow("חיישני לחץ אוויר בצמיגים (TPMS)", isPresent = techSpec?.tpms == 1)
+                    SafetySystemRow("חיישני חגורות בטיחות", isPresent = techSpec?.seatbeltSensors == 1)
+                    SafetySystemRow("מצלמת רוורס", isPresent = techSpec?.reverseCamera == 1)
+                    SafetySystemRow("הכנה למנעולי אלכוהול", isPresent = techSpec?.alcoholLockReady == 1)
+                    SafetySystemRow("זיהוי מצב התקרבות מסוכנת", isPresent = techSpec?.dangerousApproachDetection == 1)
+                    SafetySystemRow("זיהוי הולכי רגל", isPresent = techSpec?.pedestrianDetection == 1)
+                    SafetySystemRow("זיהוי תמרורי תנועה", isPresent = techSpec?.trafficSignDetection == 1)
+                    SafetySystemRow("זיהוי בשטח נסתר (שטח מת)", isPresent = techSpec?.blindSpotDetection == 1)
+                    SafetySystemRow("מערכת אקטיבית למניעת התנגשות צד", isPresent = techSpec?.sideCollisionPrevention == 1)
+                    SafetySystemRow("זיהוי רכב דו גלגלי", isPresent = techSpec?.twoWheelerDetection == 1)
+                }
             }
         }
     }

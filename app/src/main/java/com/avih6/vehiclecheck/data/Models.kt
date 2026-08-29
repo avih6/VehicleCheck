@@ -128,7 +128,9 @@ data class VehicleRecord(
     @Serializable(with = FlexibleIntSerializer::class) @SerialName("mispar_mekomot") val seatsHeavy: Int? = null,
     @Serializable(with = FlexibleIntSerializer::class) @SerialName("mispar_mekomot_leyd_nahag") val seatsNextToDriverHeavy: Int? = null,
     @Serializable(with = FlexibleIntSerializer::class) @SerialName("mishkal_mitan_harama") val cargoWeightHeavy: Int? = null,
-    @SerialName("grira_nm") val towingCapacityHeavy: String? = null
+    @SerialName("grira_nm") val towingCapacityHeavy: String? = null,
+    @SerialName("mispar_manoa") val engineNumber: String? = null,
+    @SerialName("bitul_dt") val cancellationDate: String? = null
 ) {
     val effectiveVin: String? get() = if (!vin.isNullOrBlank()) vin else if (!vinAlt.isNullOrBlank()) vinAlt else vinHeavy
     val effectiveStandardType: String? get() = if (!standardType.isNullOrBlank()) standardType else standardTypeHeavy
@@ -245,6 +247,9 @@ data class DeregisteredVehicleRecord(
             colorCode = null,
             fuelType = fuelType,
             engineModel = engineModel,
+            engineNumber = engineNumber,
+            totalWeight = totalWeightRaw?.filter { it.isDigit() }?.toIntOrNull(),
+            cancellationDate = cancellationDate,
             frontTire = frontTire,
             rearTire = rearTire,
             safetyRating = null,

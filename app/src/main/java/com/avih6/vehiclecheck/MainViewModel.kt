@@ -389,8 +389,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             } catch (e: Exception) {}
                         }
 
-                        // 3. Heavy Vehicle / Commercial Fleet fallback (resource cd3acc5c)
-                        if (totalActive <= 1 && makeCd != null) {
+                        // 3. Heavy Vehicle / Commercial Fleet fallback (resource cd3acc5c) - Only for heavy vehicles!
+                        val isHeavyOrCommercial = isEngineering || (vehicle.vehicleCategory?.contains("משא") == true || vehicle.vehicleCategory?.contains("אוטובוס") == true)
+                        if (isHeavyOrCommercial && totalActive <= 1 && makeCd != null) {
                             try {
                                 val heavyFilter = if (!modelName.isNullOrBlank()) "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"${modelName.trim()}\"}" else "{\"tozeret_cd\":$makeCd}"
                                 val heavyResp = NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", heavyFilter)
@@ -408,17 +409,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             } catch (e: Exception) {}
                         }
 
-                        // Inactive count from deregistered datasets (2017+ and 2010+)
+                        // Inactive count from deregistered datasets
                         var inactCount2017 = 0
                         var inactCount2010 = 0
-                        if (makeCd != null && modelCd != null && modelCd > 0) {
+                        var inactCount2000 = 0
+                        if (makeCd != null) {
                             try {
-                                inactCount2017 = NetworkClient.apiService.getDeregisteredCount("851ecab1-0622-4dbe-a6c7-f950cf82abf9", "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}").result?.total ?: 0
-                                inactCount2010 = NetworkClient.apiService.getDeregisteredCount("4e6b9724-4c1e-43f0-909a-154d4cc4e046", "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}").result?.total ?: 0
+                                val inactFilter = if (modelCd != null && modelCd > 0) {
+                                    "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}"
+                                } else if (!modelName.isNullOrBlank()) {
+                                    "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"${modelName.trim()}\"}"
+                                } else null
+
+                                if (inactFilter != null) {
+                                    inactCount2017 = NetworkClient.apiService.getDeregisteredCount("851ecab1-0622-4dbe-a6c7-f950cf82abf9", inactFilter).result?.total ?: 0
+                                    inactCount2010 = NetworkClient.apiService.getDeregisteredCount("4e6b9724-4c1e-43f0-909a-154d4cc4e046", inactFilter).result?.total ?: 0
+                                    inactCount2000 = NetworkClient.apiService.getDeregisteredCount("ec8cbc34-72e1-4b69-9c48-22821ba0bd6c", inactFilter).result?.total ?: 0
+                                }
                             } catch (e: Exception) {}
                         }
 
-                        val totalInactive = (inactCount2017 + inactCount2010).coerceAtLeast(if (isOffRoad) 1 else 0)
+                        val totalInactive = (inactCount2017 + inactCount2010 + inactCount2000).coerceAtLeast(if (isOffRoad) 1 else 0)
                         val realTotalActive = if (totalActive > 0) totalActive else if (isOffRoad) 0 else 1
 
                         val breakdown = mutableListOf<ModelYearCount>()

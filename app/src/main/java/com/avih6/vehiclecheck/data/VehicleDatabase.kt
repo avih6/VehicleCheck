@@ -19,6 +19,8 @@ data class VehicleHistoryEntity(
     val modelType: String? = null,
     val ownership: String? = null,
     val trimLevel: String? = null,
+    val isOffRoad: Boolean = false,
+    val offRoadDate: String? = null,
     val isFavorite: Boolean = false,
     val timestamp: Long = System.currentTimeMillis()
 )
@@ -56,7 +58,7 @@ interface VehicleDao {
     suspend fun setFavoriteByPlate(plate: String, isFavorite: Boolean)
 }
 
-@Database(entities = [VehicleHistoryEntity::class], version = 2, exportSchema = false)
+@Database(entities = [VehicleHistoryEntity::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun vehicleDao(): VehicleDao
 
@@ -88,7 +90,9 @@ class HistoryRepository(private val dao: VehicleDao) {
         testStatus: TestStatus
     ) {
         val cleanPlate = plate.filter { it.isDigit() }
-        val isTestValid = testStatus is TestStatus.Valid || testStatus is TestStatus.ExpiringSoon
+        val isOffRoad = testStatus is TestStatus.OffRoad || !record?.cancellationDate.isNullOrBlank()
+        val offRoadDate = (testStatus as? TestStatus.OffRoad)?.cancellationDate ?: record?.cancellationDate
+        val isTestValid = (testStatus is TestStatus.Valid || testStatus is TestStatus.ExpiringSoon) && !isOffRoad
         val daysUntilTest = when (testStatus) {
             is TestStatus.Valid -> testStatus.daysLeft
             is TestStatus.ExpiringSoon -> testStatus.daysLeft
@@ -96,7 +100,7 @@ class HistoryRepository(private val dao: VehicleDao) {
             else -> 0L
         }
 
-        val isReallyValid = isTestValid || (record != null && record.testExpiryDate == null && testStatus !is TestStatus.Expired && testStatus !is TestStatus.OffRoad)
+        val isReallyValid = isTestValid || (record != null && record.testExpiryDate == null && testStatus !is TestStatus.Expired && !isOffRoad)
         val entry = VehicleHistoryEntity(
             licensePlate = cleanPlate,
             make = record?.make,
@@ -110,6 +114,8 @@ class HistoryRepository(private val dao: VehicleDao) {
             modelType = record?.effectiveVehicleCategory ?: record?.modelType,
             ownership = record?.ownership,
             trimLevel = record?.trimLevel,
+            isOffRoad = isOffRoad,
+            offRoadDate = offRoadDate,
             timestamp = System.currentTimeMillis()
         )
         val make = record?.make.orEmpty()
