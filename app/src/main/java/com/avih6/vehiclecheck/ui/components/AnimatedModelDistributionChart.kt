@@ -139,93 +139,108 @@ fun AnimatedModelDistributionChart(
 
             Spacer(Modifier.height(18.dp))
 
-            // Animated Bar Chart
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp)
-                    .padding(horizontal = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
+            // Animated Bar Chart - Always Left-to-Right for chronological year order
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr
             ) {
-                yearCounts.forEach { item ->
-                    val isCurrent = item.year == currentYear
-                    val totalNorm = (item.totalCount.toFloat() / maxVal).coerceIn(0.15f, 1f)
-                    val barHeightFraction = totalNorm * animProgress.value
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp)
+                        .padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    yearCounts.forEach { item ->
+                        val isCurrent = item.year == currentYear
+                        val totalNorm = (item.totalCount.toFloat() / maxVal).coerceIn(0.12f, 1f)
+                        val barHeightFraction = (totalNorm * animProgress.value).coerceIn(0.05f, 1f)
 
-                    val activeRatio = if (item.totalCount > 0) item.activeCount.toFloat() / item.totalCount else 0f
+                        val activeRatio = if (item.totalCount > 0) item.activeCount.toFloat() / item.totalCount else 0f
 
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 3.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Bottom
-                    ) {
-                        // Count Label on top of bar (shows active count)
-                        Text(
-                            text = "%,d".format((item.activeCount * animProgress.value).toInt()),
-                            fontSize = 10.sp,
-                            fontWeight = if (isCurrent) FontWeight.Black else FontWeight.Bold,
-                            color = if (item.activeCount > 0) (if (isCurrent) Color(0xFF00E5FF) else Color(0xFF0091EA)) else MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1
-                        )
-
-                        Spacer(Modifier.height(4.dp))
-
-                        // Stacked Bar (Active Blue + Inactive Red)
-                        val isAllInactive = item.activeCount == 0 && item.inactiveCount > 0
-                        val isAllActive = item.activeCount > 0 && item.inactiveCount == 0
-                        val barColor = when {
-                            isAllInactive -> if (isCurrent) Color(0xFFE53935) else Color(0xFFC62828).copy(alpha = 0.85f)
-                            isAllActive -> if (isCurrent) Color(0xFF00E5FF) else Color(0xFF0091EA)
-                            else -> Color(0xFF0091EA)
-                        }
-
-                        Box(
+                        Column(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height((110 * barHeightFraction).dp)
-                                .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
-                                .background(barColor),
-                            contentAlignment = Alignment.BottomCenter
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .padding(horizontal = 3.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            // If mixed (both active and inactive), render the lower inactive red portion
-                            if (!isAllInactive && !isAllActive && item.inactiveCount > 0) {
+                            // 1. Count Label on top of bar (shows active count)
+                            Text(
+                                text = "%,d".format((item.activeCount * animProgress.value).toInt()),
+                                fontSize = 10.sp,
+                                fontWeight = if (isCurrent) FontWeight.Black else FontWeight.Bold,
+                                color = if (item.activeCount > 0) (if (isCurrent) Color(0xFF00E5FF) else Color(0xFF0091EA)) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                modifier = Modifier.height(16.dp)
+                            )
+
+                            Spacer(Modifier.height(4.dp))
+
+                            // 2. Stacked Bar (Active Blue + Inactive Red) - Flexible within weight(1f)
+                            val isAllInactive = item.activeCount == 0 && item.inactiveCount > 0
+                            val isAllActive = item.activeCount > 0 && item.inactiveCount == 0
+                            val barColor = when {
+                                isAllInactive -> if (isCurrent) Color(0xFFE53935) else Color(0xFFC62828).copy(alpha = 0.85f)
+                                isAllActive -> if (isCurrent) Color(0xFF00E5FF) else Color(0xFF0091EA)
+                                else -> Color(0xFF0091EA)
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth(),
+                                contentAlignment = Alignment.BottomCenter
+                            ) {
                                 Box(
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .fillMaxHeight(1f - activeRatio)
-                                        .background(Color(0xFFE53935).copy(alpha = 0.85f))
+                                        .fillMaxWidth(0.75f)
+                                        .fillMaxHeight(barHeightFraction)
+                                        .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                                        .background(barColor),
+                                    contentAlignment = Alignment.BottomCenter
+                                ) {
+                                    // If mixed (both active and inactive), render the lower inactive red portion
+                                    if (!isAllInactive && !isAllActive && item.inactiveCount > 0) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .fillMaxHeight(1f - activeRatio)
+                                                .background(Color(0xFFE53935).copy(alpha = 0.85f))
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.height(6.dp))
+
+                            // 3. Year Label (Guaranteed fixed height, never squished!)
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (isCurrent) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                border = if (isCurrent) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null
+                            ) {
+                                Text(
+                                    text = "${item.year}",
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isCurrent) FontWeight.Black else FontWeight.Normal,
+                                    color = if (isCurrent) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                             }
-                        }
 
-                        Spacer(Modifier.height(6.dp))
-
-                        // Year Label
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = if (isCurrent) MaterialTheme.colorScheme.primary else Color.Transparent,
-                            border = if (isCurrent) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null
-                        ) {
-                            Text(
-                                text = "${item.year}",
-                                fontSize = 11.sp,
-                                fontWeight = if (isCurrent) FontWeight.Black else FontWeight.Normal,
-                                color = if (isCurrent) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-
-                        if (isCurrent) {
-                            Text(
-                                text = "הרכב שלך",
-                                fontSize = 8.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                maxLines = 1
-                            )
+                            // 4. "הרכב שלך" indicator or aligned spacer
+                            if (isCurrent) {
+                                Text(
+                                    text = "הרכב שלך",
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 1
+                                )
+                            } else {
+                                Spacer(Modifier.height(12.dp))
+                            }
                         }
                     }
                 }

@@ -391,14 +391,24 @@ fun StatisticsScreen(
                                             )
                                             Spacer(Modifier.width(10.dp))
                                             Column(modifier = Modifier.weight(1f)) {
+                                                val titleText = if (suggestion.modelHebrew.contains(suggestion.brandHebrew, ignoreCase = true)) {
+                                                    suggestion.modelHebrew
+                                                } else {
+                                                    "${suggestion.brandHebrew} ${suggestion.modelHebrew}"
+                                                }
+                                                val subtitleText = if (suggestion.modelEnglish.contains(suggestion.brandEnglish, ignoreCase = true)) {
+                                                    suggestion.modelEnglish
+                                                } else {
+                                                    "${suggestion.brandEnglish} ${suggestion.modelEnglish}"
+                                                }
                                                 Text(
-                                                    text = "${suggestion.brandHebrew} ${suggestion.modelHebrew}",
+                                                    text = titleText,
                                                     style = MaterialTheme.typography.bodyMedium,
                                                     fontWeight = FontWeight.Bold,
                                                     color = MaterialTheme.colorScheme.onSurface
                                                 )
                                                 Text(
-                                                    text = "${suggestion.brandEnglish} ${suggestion.modelEnglish}",
+                                                    text = subtitleText,
                                                     style = MaterialTheme.typography.bodySmall,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
@@ -1098,8 +1108,16 @@ fun NationalFleetTrendGraph(
                                 for (i in 0 until points.size - 1) {
                                     val p0 = points[i]
                                     val p1 = points[i + 1]
-                                    val controlPoint1 = Offset(p0.x + (p1.x - p0.x) / 2, p0.y)
-                                    val controlPoint2 = Offset(p0.x + (p1.x - p0.x) / 2, p1.y)
+                                    val pPrev = if (i > 0) points[i - 1] else p0
+                                    val pNext = if (i < points.size - 2) points[i + 2] else p1
+                                    val controlPoint1 = Offset(
+                                        x = p0.x + (p1.x - pPrev.x) / 5f,
+                                        y = (p0.y + (p1.y - pPrev.y) / 5f).coerceIn(topPadding, height - bottomPadding)
+                                    )
+                                    val controlPoint2 = Offset(
+                                        x = p1.x - (pNext.x - p0.x) / 5f,
+                                        y = (p1.y - (pNext.y - p0.y) / 5f).coerceIn(topPadding, height - bottomPadding)
+                                    )
                                     strokePath.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, p1.x, p1.y)
                                     fillPath.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, p1.x, p1.y)
                                 }
@@ -1545,8 +1563,16 @@ fun ModelDetailStatisticsCard(
                                     for (i in 0 until points.size - 1) {
                                         val p0 = points[i]
                                         val p1 = points[i + 1]
-                                        val controlPoint1 = Offset(p0.x + (p1.x - p0.x) / 2, p0.y)
-                                        val controlPoint2 = Offset(p0.x + (p1.x - p0.x) / 2, p1.y)
+                                        val pPrev = if (i > 0) points[i - 1] else p0
+                                        val pNext = if (i < points.size - 2) points[i + 2] else p1
+                                        val controlPoint1 = Offset(
+                                            x = p0.x + (p1.x - pPrev.x) / 5f,
+                                            y = (p0.y + (p1.y - pPrev.y) / 5f).coerceIn(topPadding, height - bottomPadding)
+                                        )
+                                        val controlPoint2 = Offset(
+                                            x = p1.x - (pNext.x - p0.x) / 5f,
+                                            y = (p1.y - (pNext.y - p0.y) / 5f).coerceIn(topPadding, height - bottomPadding)
+                                        )
                                         strokePath.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, p1.x, p1.y)
                                         fillPath.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, p1.x, p1.y)
                                     }

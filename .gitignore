@@ -1,4 +1,4 @@
-﻿*.iml
+*.iml
 .gradle
 /local.properties
 local.properties
@@ -10,3 +10,4 @@ build/
 captures/
 .externalNativeBuild
 .cxx
+/app/release/

@@ -359,6 +359,7 @@ fun SearchScreen(
                     }
                 }
             }
+            Spacer(Modifier.height(32.dp))
         }
     }
 }

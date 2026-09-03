@@ -1732,18 +1732,21 @@ object VehicleModelCatalog {
         // Geely & Zeekr
         ModelSuggestion("ג'ילי", "Geely", "גיאומטרי C", "Geometry C", "ג'ילי גיאומטרי C"),
         ModelSuggestion("ג'ילי", "Geely", "EX5", "EX5", "ג'ילי EX5"),
-        ModelSuggestion("זיקר", "Zeekr", "זיקר 001", "001", "זיקר 001"),
-        ModelSuggestion("זיקר", "Zeekr", "זיקר X", "X", "זיקר X"),
-        ModelSuggestion("זיקר", "Zeekr", "זיקר 007", "007", "זיקר 007"),
-        ModelSuggestion("זיקר", "Zeekr", "זיקר 009", "009", "זיקר 009"),
+        ModelSuggestion("ג'ילי", "Geely", "מונג'ארו", "Monjaro", "ג'ילי מונג'ארו"),
+        ModelSuggestion("זיקר", "Zeekr", "001", "001", "זיקר 001"),
+        ModelSuggestion("זיקר", "Zeekr", "X", "X", "זיקר X"),
+        ModelSuggestion("זיקר", "Zeekr", "7X", "7X", "זיקר 7X"),
+        ModelSuggestion("זיקר", "Zeekr", "007", "007", "זיקר 007"),
+        ModelSuggestion("זיקר", "Zeekr", "009", "009", "זיקר 009"),
 
         // MG
-        ModelSuggestion("MG", "MG", "MG 4", "MG 4", "MG 4"),
-        ModelSuggestion("MG", "MG", "MG ZS", "MG ZS", "MG ZS"),
-        ModelSuggestion("MG", "MG", "MG ZS EV", "MG ZS EV", "MG ZS EV"),
-        ModelSuggestion("MG", "MG", "MG 5", "MG 5", "MG 5"),
-        ModelSuggestion("MG", "MG", "MG EHS", "MG EHS", "MG EHS"),
-        ModelSuggestion("MG", "MG", "MG HS", "MG HS", "MG HS"),
+        ModelSuggestion("MG", "MG", "3", "3", "MG 3"),
+        ModelSuggestion("MG", "MG", "4", "4", "MG 4"),
+        ModelSuggestion("MG", "MG", "5", "5", "MG 5"),
+        ModelSuggestion("MG", "MG", "ZS", "ZS", "MG ZS"),
+        ModelSuggestion("MG", "MG", "ZS EV", "ZS EV", "MG ZS EV"),
+        ModelSuggestion("MG", "MG", "HS", "HS", "MG HS"),
+        ModelSuggestion("MG", "MG", "EHS", "EHS", "MG EHS"),
         ModelSuggestion("MG", "MG", "מארוול R", "Marvel R", "MG מארוול R"),
         ModelSuggestion("MG", "MG", "סייברסטר", "Cyberster", "MG סייברסטר"),
 
@@ -1751,9 +1754,32 @@ object VehicleModelCatalog {
         ModelSuggestion("צ'רי", "Chery", "טיגו 8 פרו", "Tiggo 8 Pro", "צ'רי טיגו 8 פרו"),
         ModelSuggestion("צ'רי", "Chery", "טיגו 7 פרו", "Tiggo 7 Pro", "צ'רי טיגו 7 פרו"),
         ModelSuggestion("צ'רי", "Chery", "FX", "FX", "צ'רי FX"),
-        ModelSuggestion("ג'אקו", "Jaecoo", "ג'אקו 7", "Jaecoo 7", "ג'אקו 7"),
-        ModelSuggestion("ג'אקו", "Jaecoo", "ג'אקו 8", "Jaecoo 8", "ג'אקו 8"),
-        ModelSuggestion("אומודה", "Omoda", "אומודה 5", "Omoda 5", "אומודה 5"),
+        ModelSuggestion("ג'אקו", "Jaecoo", "5", "5", "ג'אקו 5"),
+        ModelSuggestion("ג'אקו", "Jaecoo", "5 בנזין", "5 Gasoline", "ג'אקו 5"),
+        ModelSuggestion("ג'אקו", "Jaecoo", "5 הייבריד", "5 HEV", "ג'אקו 5"),
+        ModelSuggestion("ג'אקו", "Jaecoo", "5 חשמלי", "5 BEV", "ג'אקו 5"),
+        ModelSuggestion("ג'אקו", "Jaecoo", "7", "7", "ג'אקו 7"),
+        ModelSuggestion("ג'אקו", "Jaecoo", "7 פלאג-אין", "7 PHEV", "ג'אקו 7"),
+        ModelSuggestion("ג'אקו", "Jaecoo", "8", "8", "ג'אקו 8"),
+        ModelSuggestion("ג'אקו", "Jaecoo", "8 פלאג-אין", "8 PHEV", "ג'אקו 8"),
+        ModelSuggestion("אומודה", "Omoda", "5", "5", "אומודה 5"),
+        ModelSuggestion("אומודה", "Omoda", "7", "7", "אומודה 7"),
+        ModelSuggestion("אומודה", "Omoda", "9", "9", "אומודה 9"),
+
+        // Xpeng
+        ModelSuggestion("אקספנג", "Xpeng", "G6", "G6", "אקספנג G6"),
+        ModelSuggestion("אקספנג", "Xpeng", "G9", "G9", "אקספנג G9"),
+        ModelSuggestion("אקספנג", "Xpeng", "P7", "P7", "אקספנג P7"),
+
+        // Leapmotor
+        ModelSuggestion("ליפמוטור", "Leapmotor", "T03", "T03", "ליפמוטור T03"),
+        ModelSuggestion("ליפמוטור", "Leapmotor", "C10", "C10", "ליפמוטור C10"),
+        ModelSuggestion("ליפמוטור", "Leapmotor", "B10", "B10", "ליפמוטור B10"),
+
+        // Smart
+        ModelSuggestion("סמארט", "Smart", "#1", "#1", "סמארט 1"),
+        ModelSuggestion("סמארט", "Smart", "#3", "#3", "סמארט 3"),
+        ModelSuggestion("סמארט", "Smart", "#5", "#5", "סמארט 5"),
 
         // Peugeot
         ModelSuggestion("פיג'ו", "Peugeot", "208", "208", "פיג'ו 208"),
@@ -2010,7 +2036,18 @@ object VehicleModelCatalog {
         val clean = query.trim().lowercase()
         if (clean.isBlank()) return emptyList()
 
+        fun norm(s: String) = s.lowercase()
+            .replace("'", "")
+            .replace("\"", "")
+            .replace("״", "")
+            .replace("׳", "")
+            .replace("`", "")
+            .replace("-", " ")
+            .trim()
+
+        val normClean = norm(clean)
         val tokens = clean.split("\\s+".toRegex()).filter { it.isNotBlank() }
+        val normTokens = normClean.split("\\s+".toRegex()).filter { it.isNotBlank() }
 
         return allModels.map { suggestion ->
             var score = 0
@@ -2020,26 +2057,37 @@ object VehicleModelCatalog {
             val bEng = suggestion.brandEnglish.lowercase()
             val fullHeb = suggestion.searchQuery.lowercase()
 
+            val nmHeb = norm(mHeb)
+            val nmEng = norm(mEng)
+            val nbHeb = norm(bHeb)
+            val nbEng = norm(bEng)
+            val nfullHeb = norm(fullHeb)
+
             // Exact match
-            if (mHeb == clean || mEng == clean || fullHeb == clean) {
+            if (mHeb == clean || mEng == clean || fullHeb == clean ||
+                nmHeb == normClean || nmEng == normClean || nfullHeb == normClean) {
                 score += 1000
             }
 
             // Starts with
-            if (mHeb.startsWith(clean) || mEng.startsWith(clean) || fullHeb.startsWith(clean)) {
+            if (mHeb.startsWith(clean) || mEng.startsWith(clean) || bHeb.startsWith(clean) || bEng.startsWith(clean) || fullHeb.startsWith(clean) ||
+                nmHeb.startsWith(normClean) || nmEng.startsWith(normClean) || nbHeb.startsWith(normClean) || nbEng.startsWith(normClean) || nfullHeb.startsWith(normClean)) {
                 score += 500
             }
 
             // Contains
-            if (mHeb.contains(clean) || mEng.contains(clean) || bHeb.contains(clean) || bEng.contains(clean) || fullHeb.contains(clean)) {
+            if (mHeb.contains(clean) || mEng.contains(clean) || bHeb.contains(clean) || bEng.contains(clean) || fullHeb.contains(clean) ||
+                nmHeb.contains(normClean) || nmEng.contains(normClean) || nbHeb.contains(normClean) || nbEng.contains(normClean) || nfullHeb.contains(normClean)) {
                 score += 250
             }
 
             // Token match
             val allMatched = tokens.all { t ->
                 mHeb.contains(t) || mEng.contains(t) || bHeb.contains(t) || bEng.contains(t)
+            } || normTokens.all { t ->
+                nmHeb.contains(t) || nmEng.contains(t) || nbHeb.contains(t) || nbEng.contains(t)
             }
-            if (allMatched && tokens.size > 1) {
+            if (allMatched && (tokens.size > 1 || normTokens.size > 1)) {
                 score += 300
             }
 

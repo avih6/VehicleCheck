@@ -6,12 +6,19 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.RatingBar
 import android.widget.TextView
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -25,17 +32,31 @@ import com.google.android.gms.ads.nativead.NativeAdView
 
 @Composable
 fun AdBanner(modifier: Modifier = Modifier) {
+    var isAdLoaded by remember { mutableStateOf(false) }
     val adUnitId = if (com.avih6.vehiclecheck.BuildConfig.DEBUG) "ca-app-pub-3940256099942544/6300978111" else "ca-app-pub-2696004741445434/8977286943"
-    AndroidView(
-        modifier = modifier.fillMaxWidth(),
-        factory = { context ->
-            AdView(context).apply {
-                setAdSize(AdSize.BANNER)
-                this.adUnitId = adUnitId
-                loadAd(AdRequest.Builder().build())
+
+    Box(
+        modifier = if (isAdLoaded) modifier.fillMaxWidth().height(50.dp) else Modifier.size(0.dp)
+    ) {
+        AndroidView(
+            modifier = Modifier.fillMaxWidth(),
+            factory = { context ->
+                AdView(context).apply {
+                    setAdSize(AdSize.BANNER)
+                    this.adUnitId = adUnitId
+                    adListener = object : com.google.android.gms.ads.AdListener() {
+                        override fun onAdLoaded() {
+                            isAdLoaded = true
+                        }
+                        override fun onAdFailedToLoad(error: com.google.android.gms.ads.LoadAdError) {
+                            isAdLoaded = false
+                        }
+                    }
+                    loadAd(AdRequest.Builder().build())
+                }
             }
-        }
-    )
+        )
+    }
 }
 
 @Composable

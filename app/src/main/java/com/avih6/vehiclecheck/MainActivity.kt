@@ -242,7 +242,7 @@ fun MainAppShell(viewModel: MainViewModel) {
             },
             bottomBar = {
                 Column {
-                    AdBanner(modifier = Modifier.fillMaxWidth().height(50.dp))
+                    AdBanner(modifier = Modifier.fillMaxWidth())
 
                     NavigationBar(
                         containerColor = MaterialTheme.colorScheme.surface

@@ -1237,7 +1237,7 @@ private fun GeneralTabContent(
                 val frontTireVal = if (!vehicle.frontTire.isNullOrBlank()) vehicle.frontTire else "אין מידע"
                 SpecRow("צמיג קדמי מאושר:", frontTireVal)
 
-                val rearTireVal = if (!vehicle.rearTire.isNullOrBlank()) vehicle.rearTire else "אין מידע ברישום"
+                val rearTireVal = if (!vehicle.rearTire.isNullOrBlank()) vehicle.rearTire else "אין מידע"
                 SpecRow("צמיג אחורי מאושר:", rearTireVal)
 
                 if (techSpec?.tpms == 1) {

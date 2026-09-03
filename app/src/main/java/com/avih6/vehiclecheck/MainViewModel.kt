@@ -452,12 +452,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         val realTotalActive = if (totalActive > 0) totalActive else if (isOffRoad) 0 else 1
 
                         val breakdown = mutableListOf<ModelYearCount>()
-                        if (nextYearCount > 0) {
-                            breakdown.add(ModelYearCount(year + 1, nextYearCount, 0))
-                        }
-                        breakdown.add(ModelYearCount(year, if (activeYearCount > 0) activeYearCount else realTotalActive, totalInactive))
                         if (prevYearCount > 0) {
                             breakdown.add(ModelYearCount(year - 1, prevYearCount, 0))
+                        }
+                        breakdown.add(ModelYearCount(year, if (activeYearCount > 0) activeYearCount else realTotalActive, totalInactive))
+                        if (nextYearCount > 0) {
+                            breakdown.add(ModelYearCount(year + 1, nextYearCount, 0))
                         }
 
                         ModelStatistics(
@@ -1215,28 +1215,54 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         trimLevel = first.trimLevel
                     )
 
-                    // Find TRUE total active vehicle count by taking the maximum across all model query candidates
+                    // Find TRUE total active vehicle count using exact makeCode and model / kinuy_mishari
                     var activeCount = 0
-                    var bestQueryForYears = q
+                    var bestQueryForYears = "$makeHe $modelName"
 
-                    for (cand in candidateQueries) {
-                        try {
-                            val activeSearch = NetworkClient.apiService.searchVehicleByQuery(query = cand, limit = 1)
-                            val tot = activeSearch.result?.total ?: 0
-                            if (tot > activeCount) {
-                                activeCount = tot
-                                bestQueryForYears = cand
-                            }
-                        } catch (_: Exception) {}
+                    // 1. Try exact makeCd + kinuy_mishari or degem_nm
+                    if (makeCd != null) {
+                        if (!commercialName.isNullOrBlank()) {
+                            try {
+                                activeCount = NetworkClient.apiService.getSameModelActiveCount(
+                                    filters = "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"${commercialName.trim()}\"}"
+                                ).result?.total ?: 0
+                            } catch (_: Exception) {}
+                        }
+                        if (activeCount == 0 && !modelName.isBlank()) {
+                            try {
+                                activeCount = NetworkClient.apiService.getSameModelActiveCount(
+                                    filters = "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"${modelName.trim()}\"}"
+                                ).result?.total ?: 0
+                            } catch (_: Exception) {}
+                        }
+                        if (activeCount == 0 && modelCd != null && modelCd > 0) {
+                            try {
+                                activeCount = NetworkClient.apiService.getSameModelActiveCount(
+                                    filters = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}"
+                                ).result?.total ?: 0
+                            } catch (_: Exception) {}
+                        }
                     }
 
-                    if (activeCount == 0 && makeCd != null && modelCd != null && modelCd > 0) {
-                        try {
-                            activeCount = NetworkClient.apiService.getSameModelActiveCount(
-                                filters = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}"
-                            ).result?.total ?: 0
-                        } catch (_: Exception) {}
+                    // 2. Fallback: Search queries that contain BOTH make and model (never just a number like "7" or "3")
+                    if (activeCount == 0) {
+                        val validCompoundQueries = candidateQueries.filter { c ->
+                            c.length >= 3 && !c.all { ch -> ch.isDigit() } &&
+                            (c.contains(" ") || c.any { ch -> ch.isLetter() && c.length >= 4 })
+                        }
+                        for (cand in validCompoundQueries) {
+                            try {
+                                val activeSearch = NetworkClient.apiService.searchVehicleByQuery(query = cand, limit = 1)
+                                val tot = activeSearch.result?.total ?: 0
+                                if (tot > 0) {
+                                    activeCount = tot
+                                    bestQueryForYears = cand
+                                    break
+                                }
+                            } catch (_: Exception) {}
+                        }
                     }
+
                     if (activeCount == 0) activeCount = 150
 
                     // Inactive count calculation
@@ -1252,13 +1278,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
                     years.forEachIndexed { idx, yr ->
                         var yrActive = 0
-                        try {
-                            val yrResp = NetworkClient.apiService.searchVehicleByQuery(query = "$bestQueryForYears $yr", limit = 1)
-                            yrActive = yrResp.result?.total ?: 0
-                        } catch (_: Exception) {}
+                        if (makeCd != null && !commercialName.isNullOrBlank()) {
+                            try {
+                                val yrResp = NetworkClient.apiService.getSameModelActiveCount(
+                                    filters = "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"${commercialName.trim()}\",\"shnat_yitzur\":$yr}"
+                                )
+                                yrActive = yrResp.result?.total ?: 0
+                            } catch (_: Exception) {}
+                        }
+                        if (yrActive == 0 && bestQueryForYears.isNotBlank() && !bestQueryForYears.all { it.isDigit() }) {
+                            try {
+                                val yrResp = NetworkClient.apiService.searchVehicleByQuery(query = "$bestQueryForYears $yr", limit = 1)
+                                yrActive = yrResp.result?.total ?: 0
+                            } catch (_: Exception) {}
+                        }
 
                         if (yrActive == 0 && activeCount > 0) {
-                            val weights = listOf(0.18, 0.22, 0.25, 0.23, 0.12)
+                            val weights = listOf(0.12, 0.18, 0.25, 0.28, 0.17)
                             val weight = weights.getOrElse(idx) { 0.20 }
                             yrActive = (activeCount * weight).toInt().coerceAtLeast(1)
                         }
