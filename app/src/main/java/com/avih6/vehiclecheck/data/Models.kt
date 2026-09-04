@@ -43,6 +43,19 @@ object FlexibleIntSerializer : KSerializer<Int?> {
     }
 }
 
+object FlexibleStringSerializer : KSerializer<String?> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("FlexibleString", PrimitiveKind.STRING)
+    override fun serialize(encoder: Encoder, value: String?) {
+        if (value != null) encoder.encodeString(value) else encoder.encodeNull()
+    }
+    override fun deserialize(decoder: Decoder): String? {
+        val jsonDecoder = decoder as? JsonDecoder ?: return null
+        val element = jsonDecoder.decodeJsonElement()
+        if (element is JsonNull) return null
+        return element.jsonPrimitive.content.trim().ifBlank { null }
+    }
+}
+
 @Serializable
 data class GovApiResponse<T>(
     val success: Boolean,
@@ -194,43 +207,44 @@ data class PersonalImportRecord(
 @Serializable
 data class DeregisteredVehicleRecord(
     @SerialName("_id") val id: Long? = null,
-    @SerialName("mispar_rechev") val licensePlateRaw: String? = null,
-    @SerialName("tozeret_cd") val makeCodeRaw: String? = null,
-    @SerialName("tozeret_nm") val make: String? = null,
-    @SerialName("degem_cd") val modelCodeRaw: String? = null,
-    @SerialName("degem_nm") val modelCode: String? = null,
-    @SerialName("sug_rechev_nm") val vehicleType: String? = null,
-    @SerialName("sug_degem") val sugDegem: String? = null,
-    @SerialName("moed_aliya_lakvish") val onRoadDate: String? = null,
-    @SerialName("bitul_dt") val cancellationDate: String? = null,
-    @SerialName("misgeret") val vin: String? = null,
-    @SerialName("shilda") val vinAlt: String? = null,
-    @SerialName("mispar_shilda") val vinAlt2: String? = null,
-    @SerialName("degem_manoa") val engineModel: String? = null,
-    @SerialName("mispar_manoa") val engineNumber: String? = null,
-    @SerialName("nefach_manoa") val engineDisplacementRaw: String? = null,
-    @SerialName("mishkal_kolel") val totalWeightRaw: String? = null,
-    @SerialName("mishkal_azmi") val curbWeightRaw: String? = null,
-    @SerialName("hanaa_nm") val driveType: String? = null,
-    @SerialName("hanaa_cd") val driveTypeCd: String? = null,
-    @SerialName("tozeret_eretz_nm") val countryOfOrigin: String? = null,
-    @SerialName("tkina_EU") val standardType: String? = null,
-    @SerialName("ramat_gimur") val trimLevel: String? = null,
-    @SerialName("shnat_yitzur") val yearRaw: String? = null,
-    @SerialName("baalut") val ownership: String? = null,
-    @SerialName("tzeva_rechev") val color: String? = null,
-    @SerialName("zmig_kidmi") val frontTire: String? = null,
-    @SerialName("zmig_ahori") val rearTire: String? = null,
-    @SerialName("sug_delek_nm") val fuelType: String? = null,
-    @SerialName("horaat_rishum") val registrationDirectiveRaw: String? = null,
-    @SerialName("kinuy_mishari") val model: String? = null,
-    @SerialName("mivchan_acharon_dt") val lastTestDate: String? = null,
-    @SerialName("mivchan_aharon_dt") val lastTestDateAlt: String? = null,
-    @SerialName("tokef_dt") val testExpiryDate: String? = null
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("mispar_rechev") val licensePlateRaw: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("tozeret_cd") val makeCodeRaw: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("tozeret_nm") val make: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("degem_cd") val modelCodeRaw: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("degem_nm") val modelCode: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("sug_rechev_nm") val vehicleType: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("sug_degem") val sugDegem: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("moed_aliya_lakvish") val onRoadDate: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("bitul_dt") val cancellationDate: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("misgeret") val vin: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("shilda") val vinAlt: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("mispar_shilda") val vinAlt2: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("degem_manoa") val engineModel: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("mispar_manoa") val engineNumber: String? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("nefach_manoa") val engineDisplacementRaw: Int? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("mishkal_kolel") val totalWeightRaw: Int? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("mishkal_azmi") val curbWeightRaw: Int? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("mishkal_mitan_harama") val cargoWeightRaw: Int? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("hanaa_nm") val driveType: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("hanaa_cd") val driveTypeCd: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("tozeret_eretz_nm") val countryOfOrigin: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("tkina_EU") val standardType: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("ramat_gimur") val trimLevel: String? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("shnat_yitzur") val yearRaw: Int? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("baalut") val ownership: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("tzeva_rechev") val color: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("zmig_kidmi") val frontTire: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("zmig_ahori") val rearTire: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("sug_delek_nm") val fuelType: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("horaat_rishum") val registrationDirectiveRaw: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("kinuy_mishari") val model: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("mivchan_acharon_dt") val lastTestDate: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("mivchan_aharon_dt") val lastTestDateAlt: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("tokef_dt") val testExpiryDate: String? = null
 ) {
     fun toVehicleRecord(): VehicleRecord {
         val plate = licensePlateRaw?.filter { it.isDigit() }?.toLongOrNull()
-        val year = yearRaw?.filter { it.isDigit() }?.toIntOrNull()
+        val year = yearRaw
         val makeCd = makeCodeRaw?.filter { it.isDigit() }?.toLongOrNull()
         val modelCd = modelCodeRaw?.filter { it.isDigit() }?.toLongOrNull()
         val directive = registrationDirectiveRaw?.filter { it.isDigit() }?.toLongOrNull()
@@ -238,11 +252,10 @@ data class DeregisteredVehicleRecord(
         val effectiveExpiry = testExpiryDate ?: cancellationDate
         val rawVin = vin ?: vinAlt ?: vinAlt2
         val effectiveDrive = if (!driveType.isNullOrBlank()) driveType else if (driveTypeCd == "1") "4X2" else if (driveTypeCd == "2") "4X4" else null
-        val effectiveCc = engineDisplacementRaw?.filter { it.isDigit() }?.toIntOrNull()?.let { if (it > 0) it else null }
-        val tw = totalWeightRaw?.filter { it.isDigit() }?.toIntOrNull()
-        val effectiveTotalWeight = if (tw != null && tw > 0) tw else null
-        val cw = curbWeightRaw?.filter { it.isDigit() }?.toIntOrNull()
-        val effectiveCurbWeight = if (cw != null && cw > 0) cw else null
+        val effectiveCc = engineDisplacementRaw?.let { if (it > 0) it else null }
+        val effectiveTotalWeight = totalWeightRaw?.let { if (it > 0) it else null }
+        val effectiveCurbWeight = curbWeightRaw?.let { if (it > 0) it else null }
+        val effectiveCargoWeight = cargoWeightRaw?.let { if (it > 0) it else null }
 
         return VehicleRecord(
             id = id,
@@ -317,6 +330,23 @@ data class EngineeringEquipmentRecord(
         )
     }
 }
+
+@Serializable
+data class EngineeringPollutionRecord(
+    @SerialName("_id") val id: Long? = null,
+    @SerialName("mispar_tzama") val licensePlate: Long? = null,
+    @SerialName("dargat_zihum_avir") val pollutionLevel: String? = null,
+    @SerialName("hutkan_mesanen_helkikim") val particulateFilterInstalled: String? = null,
+    @SerialName("murshe_peelut") val activityAuthorized: String? = null,
+    @SerialName("power_engine_kilowalt") val powerKw: Double? = null
+)
+
+@Serializable
+data class SafetyDiscountRecord(
+    @SerialName("_id") val id: Long? = null,
+    @SerialName("mispar_rechev") val licensePlate: Long? = null,
+    @SerialName("updated_dt") val updatedDate: String? = null
+)
 
 @Serializable
 data class VehicleRecallRestrictionRecord(
@@ -441,24 +471,24 @@ data class VehicleImporterPriceRecord(
 
 @Serializable
 data class VehicleExtraHistoryRecord(
-    @SerialName("_id") val id: Long? = null,
-    @SerialName("mispar_rechev") val licensePlate: Long? = null,
-    @SerialName("mispar_manoa") val engineNumber: String? = null,
-    @SerialName("kilometer_test_aharon") val lastTestMileage: Long? = null,
-    @SerialName("shinui_mivne_ind") val structuralChange: Int? = null,
-    @SerialName("gapam_ind") val lpgInstalled: Int? = null,
-    @SerialName("shnui_zeva_ind") val colorChange: Int? = null,
-    @SerialName("shinui_zmig_ind") val tireChange: Int? = null,
-    @SerialName("rishum_rishon_dt") val firstRegistrationDate: String? = null,
-    @SerialName("mkoriut_nm") val originality: String? = null
+    @Serializable(with = FlexibleLongSerializer::class) @SerialName("_id") val id: Long? = null,
+    @Serializable(with = FlexibleLongSerializer::class) @SerialName("mispar_rechev") val licensePlate: Long? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("mispar_manoa") val engineNumber: String? = null,
+    @Serializable(with = FlexibleLongSerializer::class) @SerialName("kilometer_test_aharon") val lastTestMileage: Long? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("shinui_mivne_ind") val structuralChange: Int? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("gapam_ind") val lpgInstalled: Int? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("shnui_zeva_ind") val colorChange: Int? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("shinui_zmig_ind") val tireChange: Int? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("rishum_rishon_dt") val firstRegistrationDate: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("mkoriut_nm") val originality: String? = null
 )
 
 @Serializable
 data class DisabledPermitRecord(
-    @SerialName("_id") val id: Long? = null,
-    @SerialName("MISPAR RECHEV") val licensePlate: Long? = null,
-    @SerialName("TAARICH HAFAKAT TAG") val issueDate: Long? = null,
-    @SerialName("SUG TAV") val permitType: Long? = null
+    @Serializable(with = FlexibleLongSerializer::class) @SerialName("_id") val id: Long? = null,
+    @Serializable(with = FlexibleLongSerializer::class) @SerialName("MISPAR RECHEV") val licensePlate: Long? = null,
+    @Serializable(with = FlexibleLongSerializer::class) @SerialName("TAARICH HAFAKAT TAG") val issueDate: Long? = null,
+    @Serializable(with = FlexibleLongSerializer::class) @SerialName("SUG TAV") val permitType: Long? = null
 )
 
 data class ModelYearCount(
@@ -477,6 +507,26 @@ data class ModelStatistics(
 ) {
     val totalVehicles: Int get() = totalActive + totalInactive
     val activePercentage: Float get() = if (totalVehicles > 0) (totalActive.toFloat() / totalVehicles) * 100f else 100f
+}
+
+data class NationalFleetStats(
+    val activePrivate: Int = 4_176_920,
+    val activeHeavy: Int = 421_662,
+    val activeMotorcycles: Int = 191_434,
+    val inactive2017: Int = 1_207_744,
+    val inactive2010_2016: Int = 670_293,
+    val inactive2000_2009: Int = 499_791,
+    val inactiveVintagePre2000: Int = 1_438_964,
+    val engineeringEquipment: Int = 183_845
+) {
+    val totalActive: Int get() = activePrivate + activeHeavy + activeMotorcycles
+    val totalInactiveModern: Int get() = inactive2017 + inactive2010_2016 + inactive2000_2009
+    val totalInactive: Int get() = totalInactiveModern + inactiveVintagePre2000
+    val grandTotal: Int get() = totalActive + totalInactive + engineeringEquipment
+
+    val activePrivatePercent: Float get() = if (totalActive > 0) (activePrivate.toFloat() / totalActive) * 100f else 87.2f
+    val activeHeavyPercent: Float get() = if (totalActive > 0) (activeHeavy.toFloat() / totalActive) * 100f else 8.8f
+    val activeMotorcyclesPercent: Float get() = if (totalActive > 0) (activeMotorcycles.toFloat() / totalActive) * 100f else 4.0f
 }
 
 data class ModelStatisticsDetail(
@@ -524,7 +574,11 @@ sealed interface SearchState {
         val isEngineeringEquipment: Boolean = false,
         val equipmentDetails: EngineeringEquipmentRecord? = null,
         val alternateEquipment: EngineeringEquipmentRecord? = null,
-        val alternateVehicle: VehicleRecord? = null
+        val alternateVehicle: VehicleRecord? = null,
+        val alternateVehicleIsOffRoad: Boolean = false,
+        val alternateVehicleOffRoadDate: String? = null,
+        val equipmentPollution: EngineeringPollutionRecord? = null,
+        val safetyDiscount: SafetyDiscountRecord? = null
     ) : SearchState
     data class NotFound(val plate: String) : SearchState
     data class Error(val message: String) : SearchState
@@ -716,6 +770,7 @@ object VehicleUtils {
         if (country.isNullOrBlank()) return "אין מידע"
         val clean = country.trim()
         return when {
+            clean.contains("ישראל") || clean.equals("ISRAEL", ignoreCase = true) -> "ישראל 🇮🇱"
             clean.contains("ארהב") || clean.contains("ארצות הברית") || clean.equals("USA", ignoreCase = true) -> "ארה\"ב"
             clean.contains("בריטניה") || clean.contains("אנגליה") || clean.equals("UK", ignoreCase = true) -> "בריטניה"
             clean.contains("גרמניה") || clean.contains("גרמנ") -> "גרמניה"
@@ -772,7 +827,14 @@ object VehicleUtils {
 
         val list = mutableListOf<String>()
 
-        // 1. Direct high-res vectors and verified fallbacks for major and specialized brands
+        // 1. High-speed jsDelivr CDN (Instant CDN delivery, 100% reliable, no 403 or Wikimedia rate limits)
+        list.add("https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/$slug.png")
+        val cleanSlug = slug.replace("-", "")
+        if (cleanSlug != slug) {
+            list.add("https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/$cleanSlug.png")
+        }
+
+        // 2. Direct high-res vectors and verified fallbacks for major and specialized brands
         when (slug) {
             "skoda" -> {
                 list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/%C5%A0koda_logo_%282023%29.svg/500px-%C5%A0koda_logo_%282023%29.svg.png")
@@ -908,15 +970,9 @@ object VehicleUtils {
             }
         }
 
-        // 2. High-speed jsDelivr CDN & GitHub raw
-        list.add("https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/$slug.png")
+        // Additional fallbacks
         list.add("https://raw.githubusercontent.com/filippofilip95/car-logos-dataset/master/logos/optimized/$slug.png")
         list.add("https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/thumb/$slug.png")
-        
-        val cleanSlug = slug.replace("-", "")
-        if (cleanSlug != slug) {
-            list.add("https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/$cleanSlug.png")
-        }
 
         return list.distinct()
     }
@@ -941,6 +997,7 @@ object VehicleUtils {
     fun getBrandSlug(hebrewMake: String?, modelName: String? = null): String {
         val m = "${hebrewMake.orEmpty()} ${modelName.orEmpty()}".lowercase()
         val predefined = when {
+            m.contains("סוסיתא") || m.contains("סוסיטה") || m.contains("אוטוקרס") || m.contains("כרמל") || m.contains("רום כרמל") || m.contains("תעשיות רכב") || m.contains("תע\"ר") || m.contains("sussita") || m.contains("autocars") -> "sussita"
             m.contains("ג'קו") || m.contains("ג'אקו") || m.contains("גקו") || m.contains("גאקו") || m.contains("ג'ייקו") || m.contains("גייקו") || m.contains("jaecoo") -> "jaecoo"
             m.contains("אומודה") || m.contains("omoda") -> "omoda"
             m.contains("קופרה") || m.contains("cupra") -> "cupra"
@@ -1197,6 +1254,15 @@ object VehicleUtils {
         return "https://flagcdn.com/w80/$iso.png"
     }
 
+    fun getCountryFlagEmoji(countryName: String?): String? {
+        val iso = getCountryIsoCode(countryName) ?: return null
+        if (iso.length != 2) return null
+        val upper = iso.uppercase()
+        val firstChar = Character.codePointAt(upper, 0) - 0x41 + 0x1F1E6
+        val secondChar = Character.codePointAt(upper, 1) - 0x41 + 0x1F1E6
+        return String(Character.toChars(firstChar)) + String(Character.toChars(secondChar))
+    }
+
     fun convertSpokenHebrewToDigits(text: String): String {
         val cleanText = text.trim().lowercase()
         val wordToDigit = listOf(
@@ -1415,6 +1481,13 @@ object VehicleUtils {
         // Priority 2: Extract country token explicitly mentioned in make/model/trim
         val combinedText = "${vehicle.make.orEmpty()} ${vehicle.model.orEmpty()} ${vehicle.trimLevel.orEmpty()}".lowercase()
         val detectedFromText = when {
+            combinedText.contains("ישראל") || combinedText.contains("israel") ||
+            combinedText.contains("סוסיתא") || combinedText.contains("אוטוקרס") ||
+            combinedText.contains("כרמל") || combinedText.contains("רום כרמל") ||
+            combinedText.contains("תעשיות רכב") || combinedText.contains("תע\"ר") ||
+            combinedText.contains("תער") || combinedText.contains("סברה") ||
+            combinedText.contains("סופה") || combinedText.contains("אביר") ||
+            combinedText.contains("הארגז") || combinedText.contains("מרכבים") -> "ישראל 🇮🇱"
             combinedText.contains("גרמנ") || combinedText.contains("גרמניה") || combinedText.contains("germany") -> "גרמניה"
             combinedText.contains("יפן") || combinedText.contains("japan") -> "יפן"
             combinedText.contains("צרפת") || combinedText.contains("france") -> "צרפת"
@@ -1459,6 +1532,7 @@ object VehicleUtils {
             "ktm" -> "אוסטריה"
             "sym", "kymco" -> "טאיוואן"
             "daf" -> "הולנד"
+            "sussita" -> "ישראל 🇮🇱"
             "jcb" -> "בריטניה"
             "komatsu" -> "יפן"
             else -> null
@@ -1555,7 +1629,7 @@ object VehicleUtils {
             m.contains("crosstrek") || m.contains("קרוסטרק") || m.contains("xv") || m.contains("wrangler") || m.contains("רנגלר") ||
             m.contains("cherokee") || m.contains("צ'ירוקי") || m.contains("land cruiser") || m.contains("לנד קרוזר") || m.contains("land-cruiser") ||
             m.contains("pajero") || m.contains("פאג'רו") || m.contains("defender") || m.contains("דיפנדר") || m.contains("discovery") ||
-            m.contains("דיסקברי") || m.contains("patrol") || m.contains("פאטרול") || (m.contains("cross") && !m.contains("lacrosse")) -> "🚙 פנאי-שטח SUV"
+            m.contains("דיסקברי") || m.contains("patrol") || m.contains("פאטרול") || (m.contains("cross") && !m.contains("lacrosse")) -> "🚙 פנאי-שטח"
 
             // 9. Hatchbacks & Small City Cars (הצ'בק / סופרמיני)
             m.contains("הצ'בק") || m.contains("האצ'בק") || m.contains("mg4") || m.contains("golf") || m.contains("גולף") ||

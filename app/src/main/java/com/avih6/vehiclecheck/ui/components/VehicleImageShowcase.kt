@@ -76,6 +76,7 @@ fun VehicleImageShowcase(
             initialPage = initialIndex.coerceIn(0, (images.size - 1).coerceAtLeast(0)),
             pageCount = { images.size }
         )
+        var showOverlays by remember { mutableStateOf(true) }
 
         val currentFullscreenImage = images.getOrNull(fullscreenPagerState.currentPage)
 
@@ -94,7 +95,13 @@ fun VehicleImageShowcase(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.96f)),
+                    .background(Color.Black)
+                    .clickable(
+                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        showOverlays = !showOverlays
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 // HorizontalPager allowing smooth swipe between all images
@@ -115,9 +122,7 @@ fun VehicleImageShowcase(
                                     .crossfade(true)
                                     .build(),
                                 contentDescription = img.altText.ifBlank { "תמונת רכב $hebrewMake $modelName" },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .fillMaxHeight(0.74f),
+                                modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Fit
                             )
                         }
@@ -125,7 +130,12 @@ fun VehicleImageShowcase(
                 }
 
                 // Chevrons inside fullscreen for easy tapping or remote navigation
-                if (images.size > 1) {
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showOverlays && images.size > 1,
+                    enter = androidx.compose.animation.fadeIn(),
+                    exit = androidx.compose.animation.fadeOut(),
+                    modifier = Modifier.align(Alignment.CenterStart)
+                ) {
                     IconButton(
                         onClick = {
                             scope.launch {
@@ -134,14 +144,20 @@ fun VehicleImageShowcase(
                             }
                         },
                         modifier = Modifier
-                            .align(Alignment.CenterStart)
                             .padding(start = 12.dp)
-                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                            .size(44.dp)
+                            .background(Color.Black.copy(alpha = 0.55f), CircleShape)
+                            .size(48.dp)
                     ) {
                         Icon(Icons.Default.ChevronRight, contentDescription = "התמונה הקודמת", tint = Color.White, modifier = Modifier.size(28.dp))
                     }
+                }
 
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showOverlays && images.size > 1,
+                    enter = androidx.compose.animation.fadeIn(),
+                    exit = androidx.compose.animation.fadeOut(),
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                ) {
                     IconButton(
                         onClick = {
                             scope.launch {
@@ -150,144 +166,160 @@ fun VehicleImageShowcase(
                             }
                         },
                         modifier = Modifier
-                            .align(Alignment.CenterEnd)
                             .padding(end = 12.dp)
-                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                            .size(44.dp)
+                            .background(Color.Black.copy(alpha = 0.55f), CircleShape)
+                            .size(48.dp)
                     ) {
                         Icon(Icons.Default.ChevronLeft, contentDescription = "התמונה הבאה", tint = Color.White, modifier = Modifier.size(28.dp))
                     }
                 }
 
                 // Top Bar with Close, Counter, and Share
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.TopCenter)
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showOverlays,
+                    enter = androidx.compose.animation.fadeIn(),
+                    exit = androidx.compose.animation.fadeOut(),
+                    modifier = Modifier.align(Alignment.TopCenter)
                 ) {
-                    IconButton(
-                        onClick = {
-                            scope.launch {
-                                if (images.isNotEmpty()) {
-                                    cardPagerState.scrollToPage(fullscreenPagerState.currentPage)
-                                }
-                            }
-                            selectedFullscreenIndex = null
-                        }
-                    ) {
-                        Icon(Icons.Default.Close, contentDescription = "סגור מסך מלא", tint = Color.White)
-                    }
-
-                    if (images.size > 1) {
-                        Surface(
-                            color = Color.Black.copy(alpha = 0.6f),
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f))
-                        ) {
-                            Text(
-                                text = "${fullscreenPagerState.currentPage + 1} / ${images.size}",
-                                color = Color.White,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                androidx.compose.ui.graphics.Brush.verticalGradient(
+                                    listOf(Color.Black.copy(alpha = 0.7f), Color.Transparent)
+                                )
                             )
-                        }
-                    }
-
-                    if (currentFullscreenImage != null) {
-                        IconButton(onClick = {
-                            val sendIntent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                putExtra(Intent.EXTRA_TEXT, "תמונת רכב ($hebrewMake $modelName):\n${currentFullscreenImage.imageUrl}")
-                                type = "text/plain"
+                            .padding(horizontal = 16.dp, vertical = 20.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = {
+                                scope.launch {
+                                    if (images.isNotEmpty()) {
+                                        cardPagerState.scrollToPage(fullscreenPagerState.currentPage)
+                                    }
+                                }
+                                selectedFullscreenIndex = null
                             }
-                            context.startActivity(Intent.createChooser(sendIntent, "שתף תמונת רכב"))
-                        }) {
-                            Icon(Icons.Default.Share, contentDescription = "שתף תמונת רכב", tint = Color.White)
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = "סגור מסך מלא", tint = Color.White)
                         }
-                    } else {
-                        Spacer(Modifier.width(48.dp))
+
+                        if (images.size > 1) {
+                            Surface(
+                                color = Color.Black.copy(alpha = 0.6f),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f))
+                            ) {
+                                Text(
+                                    text = "${fullscreenPagerState.currentPage + 1} / ${images.size}",
+                                    color = Color.White,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+
+                        if (currentFullscreenImage != null) {
+                            IconButton(onClick = {
+                                val sendIntent = Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    putExtra(Intent.EXTRA_TEXT, "תמונת רכב ($hebrewMake $modelName):\n${currentFullscreenImage.imageUrl}")
+                                    type = "text/plain"
+                                }
+                                context.startActivity(Intent.createChooser(sendIntent, "שתף תמונת רכב"))
+                            }) {
+                                Icon(Icons.Default.Share, contentDescription = "שתף תמונת רכב", tint = Color.White)
+                            }
+                        } else {
+                            Spacer(Modifier.width(48.dp))
+                        }
                     }
                 }
 
                 // Bottom Rich Info Card (Title, License, Artist, Clickable Source Link)
                 if (currentFullscreenImage != null) {
-                    Surface(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        color = Color.Black.copy(alpha = 0.85f),
-                        shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f))
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = showOverlays,
+                        enter = androidx.compose.animation.fadeIn(),
+                        exit = androidx.compose.animation.fadeOut(),
+                        modifier = Modifier.align(Alignment.BottomCenter)
                     ) {
-                        Column(
-                            modifier = Modifier.padding(14.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            color = Color.Black.copy(alpha = 0.75f),
+                            shape = RoundedCornerShape(16.dp),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f))
                         ) {
-                            Text(
-                                text = currentFullscreenImage.title,
-                                color = Color.White,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center
-                            )
-
-                            Spacer(Modifier.height(4.dp))
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
+                            Column(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                if (currentFullscreenImage.artist.isNotBlank()) {
-                                    Text(
-                                        text = "יוצר: ${currentFullscreenImage.artist} • ",
-                                        color = Color.LightGray,
-                                        fontSize = 11.sp
-                                    )
-                                }
                                 Text(
-                                    text = "רישיון: ${currentFullscreenImage.license}",
-                                    color = Color(0xFF81D4FA),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Medium
+                                    text = currentFullscreenImage.title,
+                                    color = Color.White,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 2,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                 )
-                            }
 
-                            if (currentFullscreenImage.descriptionUrl.isNotBlank()) {
-                                Spacer(Modifier.height(8.dp))
-                                Button(
-                                    onClick = {
-                                        try {
-                                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(currentFullscreenImage.descriptionUrl))
-                                            context.startActivity(intent)
-                                        } catch (_: Exception) { }
-                                    },
-                                    shape = RoundedCornerShape(10.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                    ),
-                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                                Spacer(Modifier.height(4.dp))
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
                                 ) {
-                                    Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(6.dp))
+                                    if (currentFullscreenImage.artist.isNotBlank()) {
+                                        Text(
+                                            text = "יוצר: ${currentFullscreenImage.artist} • ",
+                                            color = Color.LightGray,
+                                            fontSize = 11.sp,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                        )
+                                    }
                                     Text(
-                                        text = "צפייה במקור וזכויות יוצרים בוויקימדיה",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold
+                                        text = "רישיון: ${currentFullscreenImage.license}",
+                                        color = Color(0xFF81D4FA),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium
                                     )
                                 }
-                            }
+
+                                if (currentFullscreenImage.descriptionUrl.isNotBlank()) {
+                                    Spacer(Modifier.height(6.dp))
+                                    FilledTonalButton(
+                                        onClick = {
+                                            try {
+                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(currentFullscreenImage.descriptionUrl))
+                                                context.startActivity(intent)
+                                            } catch (_: Exception) { }
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                                    ) {
+                                        Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(14.dp))
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(
+                                            text = "צפייה במקור וזכויות יוצרים בוויקימדיה",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
                         }
                     }
                 }
             }
         }
     }
+}
 
     androidx.compose.animation.AnimatedVisibility(
         visible = images.isNotEmpty(),

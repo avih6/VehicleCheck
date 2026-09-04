@@ -39,21 +39,27 @@ fun AdBanner(modifier: Modifier = Modifier) {
         modifier = if (isAdLoaded) modifier.fillMaxWidth().height(50.dp) else Modifier.size(0.dp)
     ) {
         AndroidView(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = if (isAdLoaded) Modifier.fillMaxWidth().height(50.dp) else Modifier.size(0.dp),
             factory = { context ->
                 AdView(context).apply {
                     setAdSize(AdSize.BANNER)
                     this.adUnitId = adUnitId
+                    visibility = View.GONE
                     adListener = object : com.google.android.gms.ads.AdListener() {
                         override fun onAdLoaded() {
+                            visibility = View.VISIBLE
                             isAdLoaded = true
                         }
                         override fun onAdFailedToLoad(error: com.google.android.gms.ads.LoadAdError) {
+                            visibility = View.GONE
                             isAdLoaded = false
                         }
                     }
                     loadAd(AdRequest.Builder().build())
                 }
+            },
+            update = { adView ->
+                adView.visibility = if (isAdLoaded) View.VISIBLE else View.GONE
             }
         )
     }

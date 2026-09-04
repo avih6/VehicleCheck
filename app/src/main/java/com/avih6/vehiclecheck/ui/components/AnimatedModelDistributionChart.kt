@@ -229,10 +229,10 @@ fun AnimatedModelDistributionChart(
                                 )
                             }
 
-                            // 4. "הרכב שלך" indicator or aligned spacer
+                            // 4. "הרכב הזה" indicator or aligned spacer
                             if (isCurrent) {
                                 Text(
-                                    text = "הרכב שלך",
+                                    text = "הרכב הזה",
                                     fontSize = 8.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary,

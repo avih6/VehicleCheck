@@ -51,6 +51,13 @@ interface GovApiService {
         @Query("limit") limit: Int = 1
     ): GovApiResponse<VehicleExtraHistoryRecord>
 
+    @GET("api/3/action/datastore_search")
+    suspend fun searchExtraHistoryByQuery(
+        @Query("resource_id") resourceId: String = "56063a99-8a3e-4ff4-912e-5966c0279bad",
+        @Query("q") query: String,
+        @Query("limit") limit: Int = 5
+    ): GovApiResponse<VehicleExtraHistoryRecord>
+
     // 5. Heavy Vehicles / Trucks / Buses
     @GET("api/3/action/datastore_search")
     suspend fun getHeavyVehicle(
@@ -73,6 +80,13 @@ interface GovApiService {
         @Query("resource_id") resourceId: String = "c8b9f9c8-4612-4068-934f-d4acd2e3c06e",
         @Query("filters") filters: String,
         @Query("limit") limit: Int = 1
+    ): GovApiResponse<DisabledPermitRecord>
+
+    @GET("api/3/action/datastore_search")
+    suspend fun searchDisabledPermitByQuery(
+        @Query("resource_id") resourceId: String = "c8b9f9c8-4612-4068-934f-d4acd2e3c06e",
+        @Query("q") query: String,
+        @Query("limit") limit: Int = 5
     ): GovApiResponse<DisabledPermitRecord>
 
     // 8. Importer Name & Price
@@ -139,6 +153,14 @@ interface GovApiService {
         @Query("limit") limit: Int = 1
     ): GovApiResponse<EngineeringEquipmentRecord>
 
+    // 12d-2. Heavy Engineering Equipment Pollution & Activity (דרגת זיהום אוויר ומורשה פעילות לצמ"ה)
+    @GET("api/3/action/datastore_search")
+    suspend fun getEngineeringEquipmentPollution(
+        @Query("resource_id") resourceId: String = "f2e130e8-bc94-4443-91bd-3ba3353b1494",
+        @Query("filters") filters: String,
+        @Query("limit") limit: Int = 1
+    ): GovApiResponse<EngineeringPollutionRecord>
+
     // 12e. Total Active Vehicles Count in Registry (סך כלי רכב רשומים)
     @GET("api/3/action/datastore_search")
     suspend fun getTotalActiveVehicles(
@@ -202,6 +224,14 @@ interface GovApiService {
         @Query("filters") filters: String,
         @Query("limit") limit: Int = 1
     ): GovApiResponse<VehicleRecord>
+
+    // 18. Safety Systems Discount (רכבים זכאים להנחה לאחר התקנת מערכות בטיחות)
+    @GET("api/3/action/datastore_search")
+    suspend fun getSafetyDiscount(
+        @Query("resource_id") resourceId: String = "83bfb278-7be1-4dab-ae2d-40125a923da1",
+        @Query("filters") filters: String,
+        @Query("limit") limit: Int = 1
+    ): GovApiResponse<SafetyDiscountRecord>
 }
 
 object NetworkClient {

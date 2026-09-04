@@ -195,31 +195,28 @@ private fun HistoryItemCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.weight(1f, fill = false),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = VehicleUtils.formatPlate(item.licensePlate),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        item.year?.let { y ->
-                            Text(
-                                text = " • $y",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                    val plateFormatted = remember(item.licensePlate) {
+                        VehicleUtils.formatPlate(item.licensePlate)
                     }
+                    val titleText = remember(item.licensePlate, item.year) {
+                        if (item.year != null) "$plateFormatted • ${item.year}" else plateFormatted
+                    }
+                    Text(
+                        text = titleText,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Spacer(Modifier.width(6.dp))
 
                     if (item.isEngineeringEquipment) {
                         Surface(
                             shape = RoundedCornerShape(6.dp),
                             color = Color(0xFFFF9800).copy(alpha = 0.15f),
-                            border = BorderStroke(0.5.dp, Color(0xFFFF9800).copy(alpha = 0.5f)),
-                            modifier = Modifier.padding(start = 6.dp)
+                            border = BorderStroke(0.5.dp, Color(0xFFFF9800).copy(alpha = 0.5f))
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -229,7 +226,7 @@ private fun HistoryItemCard(
                                     Icons.Default.Construction,
                                     contentDescription = null,
                                     tint = Color(0xFFFF9800),
-                                    modifier = Modifier.size(12.dp)
+                                    modifier = Modifier.size(13.dp)
                                 )
                                 Spacer(Modifier.width(3.dp))
                                 Text(
@@ -254,24 +251,24 @@ private fun HistoryItemCard(
                             shape = RoundedCornerShape(6.dp),
                             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                             border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
-                            modifier = Modifier.padding(start = 6.dp)
+                            modifier = Modifier.weight(1f, fill = false)
                         ) {
                             Text(
                                 text = classification,
-                                fontSize = 11.sp,
+                                fontSize = 10.5.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
                                 softWrap = false,
                                 overflow = TextOverflow.Ellipsis,
                                 color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
                             )
                         }
                     }
                 }
 
                 val desc = listOfNotNull(item.make, item.model, item.fuelType).filter { it.isNotBlank() }.joinToString(" • ")
-                if (desc.isNotBlank()) {
+                if (!isNotFound && desc.isNotBlank()) {
                     Text(
                         text = desc,
                         style = MaterialTheme.typography.bodySmall,
@@ -281,16 +278,18 @@ private fun HistoryItemCard(
 
                 // Test Status summary / Retry status
                 val testText = when {
-                    isNotFound -> "לא אותר במאגר • לחץ לבדיקה חוזרת 🔄"
+                    isNotFound -> "לא אותר במאגר • לחץ לבדיקה חוזרת"
                     item.isOffRoad -> {
-                        val offRoadDateFmt = item.offRoadDate?.let { VehicleUtils.formatDate(it) } ?: item.testExpiryDate?.let { VehicleUtils.formatDate(it) }
-                        val timeAgo = VehicleUtils.formatTimeAgo(item.offRoadDate ?: item.testExpiryDate)
+                        val rawDate = item.offRoadDate ?: item.testExpiryDate
+                        val isValidDate = rawDate != null && (rawDate.contains("-") || rawDate.contains("/")) && rawDate.any { it.isDigit() } && !rawDate.contains("היסטורי") && !rawDate.contains("נגרע")
+                        val offRoadDateFmt = if (isValidDate) VehicleUtils.formatDate(rawDate!!) else null
+                        val timeAgo = if (isValidDate) VehicleUtils.formatTimeAgo(rawDate) else null
                         if (offRoadDateFmt != null && timeAgo != null) {
                             "רכב לא פעיל • ירד מהכביש ב-$offRoadDateFmt ($timeAgo)"
                         } else if (offRoadDateFmt != null) {
                             "רכב לא פעיל • ירד מהכביש ב-$offRoadDateFmt"
                         } else {
-                            "רכב לא פעיל (ירד מהכביש / רישום מבוטל)"
+                            "רכב לא פעיל • נגרע ממאגר משרד התחבורה"
                         }
                     }
                     item.isTestValid && item.testExpiryDate.isNullOrBlank() -> "רכב פעיל ברישיון • ללא נתוני תוקף טסט במאגר"
@@ -317,16 +316,23 @@ private fun HistoryItemCard(
             }
 
             // Favorite button
-            IconButton(onClick = onToggleFavorite) {
+            IconButton(
+                onClick = onToggleFavorite,
+                modifier = Modifier.size(36.dp)
+            ) {
                 Icon(
                     imageVector = if (item.isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
                     contentDescription = if (item.isFavorite) "הסר רכב זה מהמועדפים" else "הוסף רכב זה למועדפים",
-                    tint = if (item.isFavorite) Color(0xFFFFB300) else MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = if (item.isFavorite) Color(0xFFFFB300) else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
                 )
             }
 
             // Delete button
-            IconButton(onClick = onDelete) {
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(36.dp)
+            ) {
                 Icon(
                     imageVector = Icons.Outlined.Close,
                     contentDescription = "מחק רכב זה מהיסטוריית החיפושים",

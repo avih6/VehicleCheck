@@ -34,13 +34,22 @@ import com.avih6.vehiclecheck.data.DtcCodeInfo
 import com.avih6.vehiclecheck.data.DtcRepository
 import com.avih6.vehiclecheck.data.DtcSeverity
 
+import android.content.Intent
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+
 @Composable
 fun DtcLookupDialog(
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
+    val focusManager = LocalFocusManager.current
+
     var query by remember { mutableStateOf("") }
     var result by remember { mutableStateOf<DtcCodeInfo?>(null) }
-    val focusManager = LocalFocusManager.current
 
     val liveSearchResults by remember(query) {
         derivedStateOf {
@@ -50,6 +59,62 @@ fun DtcLookupDialog(
 
     val popularCodes = remember {
         listOf("P0300", "P0420", "P0171", "P0128", "P0700", "C0035", "B0001", "U0100")
+    }
+
+    fun copyDtcDetails(info: DtcCodeInfo) {
+        val shareText = buildString {
+            appendLine("קוד תקלה: ${info.code}")
+            appendLine("תיאור: ${info.titleHe} (${info.titleEn})")
+            appendLine("רמת חומרה: ${info.severity.titleHe}")
+            appendLine("מערכת: ${info.categoryHe}")
+            appendLine()
+            appendLine(info.descriptionHe)
+            if (info.symptomsHe.isNotEmpty()) {
+                appendLine("\nתסמינים ברכב:")
+                info.symptomsHe.forEach { appendLine("• $it") }
+            }
+            if (info.possibleCausesHe.isNotEmpty()) {
+                appendLine("\nגורמים אפשריים:")
+                info.possibleCausesHe.forEach { appendLine("• $it") }
+            }
+            if (info.solutionsHe.isNotEmpty()) {
+                appendLine("\nדרכי טיפול:")
+                info.solutionsHe.forEach { appendLine("✔ $it") }
+            }
+            appendLine("\nשותף מאפליקציית בודק רכב (VehicleCheck)")
+        }
+        clipboardManager.setText(AnnotatedString(shareText))
+        Toast.makeText(context, "קוד התקלה הועתק ללוח", Toast.LENGTH_SHORT).show()
+    }
+
+    fun shareDtcDetails(info: DtcCodeInfo) {
+        val shareText = buildString {
+            appendLine("🚗 פירוט קוד תקלה מהרכב: ${info.code}")
+            appendLine("📌 ${info.titleHe} (${info.titleEn})")
+            appendLine("⚠️ חומרה: ${info.severity.titleHe}")
+            appendLine("🔧 מערכת: ${info.categoryHe}")
+            appendLine()
+            appendLine(info.descriptionHe)
+            if (info.symptomsHe.isNotEmpty()) {
+                appendLine("\nתסמינים:")
+                info.symptomsHe.forEach { appendLine("• $it") }
+            }
+            if (info.possibleCausesHe.isNotEmpty()) {
+                appendLine("\nגורמים אפשריים:")
+                info.possibleCausesHe.forEach { appendLine("• $it") }
+            }
+            if (info.solutionsHe.isNotEmpty()) {
+                appendLine("\nדרכי טיפול מומלצות:")
+                info.solutionsHe.forEach { appendLine("✔ $it") }
+            }
+            appendLine("\nנשלח מ-VehicleCheck")
+        }
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, "פירוט תקלת רכב ${info.code}")
+            putExtra(Intent.EXTRA_TEXT, shareText)
+        }
+        context.startActivity(Intent.createChooser(intent, "שיתוף תקלת רכב"))
     }
 
     fun performLookup(code: String) {
@@ -131,24 +196,28 @@ fun DtcLookupDialog(
                 OutlinedTextField(
                     value = query,
                     onValueChange = { input ->
-                        query = input.uppercase().take(10)
-                        if (query.length >= 2) {
-                            val match = DtcRepository.searchCodes(query).firstOrNull()
-                            if (match != null) {
-                                result = match
+                        query = input.uppercase().take(12)
+                        if (query.isBlank()) {
+                            result = null
+                        } else {
+                            val exact = DtcRepository.lookupCode(query)
+                            if (exact != null) {
+                                result = exact
+                            } else if (result != null && !result!!.code.contains(query, ignoreCase = true)) {
+                                result = null
                             }
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("חיפוש לייב של קוד תקלה או מילת מפתח") },
-                    placeholder = { Text("P0300, P0420, חמצן, misfire...") },
+                    label = { Text("חיפוש קוד תקלה או מילת מפתח") },
+                    placeholder = { Text("למשל: P0300, P0420, חמצן, misfire...") },
                     leadingIcon = {
                         Icon(Icons.Default.Build, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     },
                     trailingIcon = {
                         if (query.isNotEmpty()) {
                             IconButton(onClick = { query = ""; result = null }) {
-                                Icon(Icons.Default.Clear, contentDescription = "Clear")
+                                Icon(Icons.Default.Clear, contentDescription = "נקה חיפוש")
                             }
                         }
                     },
@@ -192,7 +261,7 @@ fun DtcLookupDialog(
                         border = BorderStroke(1.5.dp, severityColor.copy(alpha = 0.6f))
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            // Header badges (Always single line and non-wrapping)
+                            // Header badges with guaranteed spacing and clean wrapping
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -213,19 +282,33 @@ fun DtcLookupDialog(
                                     )
                                 }
 
+                                Spacer(Modifier.width(10.dp))
+
                                 Surface(
                                     color = severityColor.copy(alpha = 0.15f),
                                     shape = RoundedCornerShape(10.dp),
-                                    border = BorderStroke(1.dp, severityColor.copy(alpha = 0.3f))
+                                    border = BorderStroke(1.dp, severityColor.copy(alpha = 0.3f)),
+                                    modifier = Modifier.weight(1f, fill = false)
                                 ) {
-                                    Text(
-                                        text = info.severity.titleHe,
-                                        color = severityColor,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        maxLines = 1,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                                    )
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(8.dp)
+                                                .background(severityColor, CircleShape)
+                                        )
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(
+                                            text = info.severity.titleHe,
+                                            color = severityColor,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp,
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                        )
+                                    }
                                 }
                             }
 
@@ -250,6 +333,34 @@ fun DtcLookupDialog(
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.primary
                             )
+
+                            Spacer(Modifier.height(10.dp))
+
+                            // Action buttons: Copy & Share
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                OutlinedButton(
+                                    onClick = { copyDtcDetails(info) },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("העתק", style = MaterialTheme.typography.labelMedium)
+                                }
+
+                                Button(
+                                    onClick = { shareDtcDetails(info) },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("שתף למוסך", style = MaterialTheme.typography.labelMedium)
+                                }
+                            }
 
                             HorizontalDivider(
                                 modifier = Modifier.padding(vertical = 10.dp),
@@ -318,6 +429,129 @@ fun DtcLookupDialog(
                         }
                     }
 
+                }
+
+                // Live Suggestions List when searching or browsing
+                if (liveSearchResults.isNotEmpty()) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = if (query.isNotBlank()) "תוצאות חיפוש (${liveSearchResults.size})" else "קודי תקלות נפוצים",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(6.dp))
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        liveSearchResults.take(8).forEach { item ->
+                            val isCurrent = (result?.code == item.code)
+                            val itemColor = Color(item.severity.colorHex)
+
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        result = item
+                                        query = item.code
+                                        focusManager.clearFocus()
+                                    },
+                                shape = RoundedCornerShape(10.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isCurrent)
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                                    else
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                ),
+                                border = BorderStroke(
+                                    width = if (isCurrent) 1.5.dp else 1.dp,
+                                    color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                        shape = RoundedCornerShape(6.dp)
+                                    ) {
+                                        Text(
+                                            text = item.code,
+                                            fontWeight = FontWeight.Black,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                    Spacer(Modifier.width(8.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = item.titleHe,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.SemiBold,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    Spacer(Modifier.width(6.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(itemColor, CircleShape)
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Icon(
+                                        Icons.Default.ChevronRight,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Not found or invalid code card
+                if (result == null && query.isNotBlank() && liveSearchResults.isEmpty()) {
+                    Spacer(Modifier.height(10.dp))
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f)),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f))
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = "קוד תקלה לא נמצא",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = "הערך שהוזן (\"$query\") אינו מוכר כקוד תקלה או אינו במבנה תקני של OBD2.\n\nקוד תקני מורכב מאות אחת (P למנוע, C לשלדה, B למרכב, U לרשת) ואחריה 4 תווים (למשל: P0420, P0300, B0001, C0035).",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                lineHeight = 20.sp
+                            )
+                        }
+                    }
                     Spacer(Modifier.height(18.dp))
                 }
 

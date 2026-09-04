@@ -42,6 +42,7 @@ import com.avih6.vehiclecheck.ui.components.tvFocusable
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import android.content.pm.PackageManager
+import androidx.compose.ui.draw.clip
 import java.util.Locale
 
 @Composable
@@ -52,6 +53,7 @@ fun SearchScreen(
     val context = LocalContext.current
     val query by viewModel.query.collectAsState()
     val searchState by viewModel.searchState.collectAsState()
+    val searchProgress by viewModel.searchProgress.collectAsState()
     val nativeAd by viewModel.nativeAd.collectAsState()
     val favorites by viewModel.favorites.collectAsState()
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -255,8 +257,72 @@ fun SearchScreen(
         ) { state ->
             when (state) {
                 is SearchState.Loading -> {
-                    Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                    val animatedProgress by androidx.compose.animation.core.animateFloatAsState(
+                        targetValue = searchProgress,
+                        animationSpec = androidx.compose.animation.core.tween(350),
+                        label = "searchProgressAnim"
+                    )
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(18.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp),
+                                        strokeWidth = 2.5.dp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(Modifier.width(10.dp))
+                                    Text(
+                                        text = when {
+                                            searchProgress < 0.30f -> "מאתר רכב במאגרי משרד התחבורה..."
+                                            searchProgress < 0.60f -> "שולף ריקולים ומערכות בטיחות..."
+                                            searchProgress < 0.85f -> "מצליב נתוני ק\"מ, תו נכה והיסטוריה..."
+                                            else -> "מעבד מפרט טכני ומסכם תוצאות..."
+                                        },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1
+                                    )
+                                }
+                                Text(
+                                    text = "${(animatedProgress * 100).toInt().coerceIn(5, 100)}%",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+
+                            Spacer(Modifier.height(14.dp))
+
+                            LinearProgressIndicator(
+                                progress = { animatedProgress.coerceIn(0.05f, 1f) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(8.dp)
+                                    .clip(RoundedCornerShape(4.dp)),
+                                color = MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        }
                     }
                 }
                 is SearchState.Success -> {
@@ -290,6 +356,8 @@ fun SearchScreen(
                             equipmentDetails = state.equipmentDetails,
                             alternateEquipment = state.alternateEquipment,
                             alternateVehicle = state.alternateVehicle,
+                            equipmentPollution = state.equipmentPollution,
+                            safetyDiscount = state.safetyDiscount,
                             onToggleEquipment = { viewModel.toggleEquipmentView() }
                         )
                     }

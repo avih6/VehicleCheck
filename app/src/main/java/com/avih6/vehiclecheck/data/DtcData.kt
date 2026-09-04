@@ -1,4 +1,4 @@
-﻿package com.avih6.vehiclecheck.data
+package com.avih6.vehiclecheck.data
 
 data class DtcCodeInfo(
     val code: String,
@@ -19,6 +19,14 @@ enum class DtcSeverity(val titleHe: String, val colorHex: Long) {
     CRITICAL("קריטית - עצור בצד וכבה מנוע מיד", 0xFFD32F2F)
 }
 
+enum class DtcCategory(val prefix: String, val titleHe: String) {
+    ALL("", "הכל"),
+    POWERTRAIN("P", "מנוע והינע (P)"),
+    CHASSIS("C", "שלדה ו-ABS (C)"),
+    BODY("B", "מרכב וכריות אוויר (B)"),
+    NETWORK("U", "תקשורת ומחשב (U)")
+}
+
 object DtcRepository {
     private val dtcMap = mutableMapOf<String, DtcCodeInfo>()
 
@@ -26,68 +34,86 @@ object DtcRepository {
         registerKnownCodes()
     }
 
-    fun searchCodes(query: String): List<DtcCodeInfo> {
-        val q = query.trim().lowercase()
-        if (q.isBlank()) return dtcMap.values.take(8).toList()
+    fun getAllKnownCodes(): List<DtcCodeInfo> = dtcMap.values.toList()
 
-        return dtcMap.values.filter { item ->
+    fun searchCodes(query: String, prefixFilter: String = ""): List<DtcCodeInfo> {
+        val q = query.trim().lowercase()
+        val baseList = if (prefixFilter.isNotBlank()) {
+            dtcMap.values.filter { it.code.startsWith(prefixFilter, ignoreCase = true) }
+        } else {
+            dtcMap.values
+        }
+
+        if (q.isBlank()) {
+            return baseList.take(20).toList()
+        }
+
+        return baseList.filter { item ->
             item.code.lowercase().contains(q) ||
             item.titleHe.lowercase().contains(q) ||
             item.titleEn.lowercase().contains(q) ||
             item.categoryHe.lowercase().contains(q) ||
             item.descriptionHe.lowercase().contains(q)
         }.sortedByDescending { 
-            if (it.code.lowercase().startsWith(q)) 3
-            else if (it.code.lowercase().contains(q)) 2
+            if (it.code.equals(q, ignoreCase = true)) 4
+            else if (it.code.startsWith(q, ignoreCase = true)) 3
+            else if (it.code.contains(q, ignoreCase = true)) 2
             else 1
-        }.take(12)
+        }.take(25)
     }
 
-    fun lookupCode(rawCode: String): DtcCodeInfo {
+    fun lookupCode(rawCode: String): DtcCodeInfo? {
         val clean = rawCode.trim().uppercase().replace(" ", "")
+        if (clean.isBlank()) return null
         val exact = dtcMap[clean]
         if (exact != null) return exact
 
-        // Dynamic fallback parser for any valid OBD2 code format: [PCBU][0-9]{4}
+        // A valid OBD-II code MUST strictly match standard pattern: 1 letter (P, C, B, U) followed by 4 hexadecimal digits
+        val obd2Regex = Regex("^[PCBU][0-9A-F]{4}$")
+        if (!obd2Regex.matches(clean)) {
+            return null
+        }
+
+        // Dynamic fallback parser for recognized valid OBD2 codes
         val prefix = clean.take(1)
         val system = when (prefix) {
             "P" -> "מערכת הינע ומנוע (Powertrain)"
             "C" -> "שלדה, בלמים והיגוי (Chassis / ABS)"
             "B" -> "מרכב, נוחות ובטיחות (Body / Airbags)"
-            "U" -> "רשת מחשבי הרכב ותקשורת (CAN-Bus / Network)"
-            else -> "מערכת כללית"
+            "U" -> "רשת תקשורת ומחשוב (Network / CAN-Bus)"
+            else -> return null
         }
 
-        val subType = if (clean.length >= 2) {
-            when (clean[1]) {
-                '0' -> "קוד תקלה אוניברסלי בתקן SAE / ISO"
-                '1', '2', '3' -> "קוד תקלה ייעודי של יצרן הרכב (Manufacturer Specific)"
-                else -> "קוד תקלה OBD-II"
-            }
-        } else "קוד OBD-II"
+        val subType = when (clean[1]) {
+            '0' -> "קוד גנרי אוניברסלי (SAE / ISO)"
+            '1' -> "קוד ייעודי של יצרן הרכב (Manufacturer Specific)"
+            '2' -> "קוד גנרי / ייעודי (SAE / OEM)"
+            '3' -> "קוד ייעודי משולב (SAE / OEM)"
+            else -> "קוד OBD-II"
+        }
 
         return DtcCodeInfo(
             code = clean,
-            titleHe = "קוד תקלה $clean - $subType",
+            titleHe = "קוד תקלה $clean ($subType)",
             titleEn = "Diagnostic Trouble Code $clean",
             categoryHe = system,
             severity = if (prefix == "P" || prefix == "C") DtcSeverity.MEDIUM else DtcSeverity.LOW,
-            descriptionHe = "זוהתה תקלה במערכת $system ($subType). מומלץ לבצע דיאגנוסטיקה מעמיקה באמצעות סורק ייעודי או לגשת למוסך מורשה.",
+            descriptionHe = "זוהתה תקלה תקנית במערכת $system ($subType). להסבר מפורט מומלץ לחבר סורק דיאגנוסטיקה מתקדם לצפייה בערכי Live Data ו-Freeze Frame.",
             symptomsHe = listOf(
                 "נורת 'בדוק מנוע' (Check Engine) או נורת אזהרה דולקת בלוח המחוונים",
                 "ייתכן שינוי בהתנהגות המערכת הרלוונטית",
-                "קריאת קוד תקלה בזיכרון מחשב הרכב (ECU/OBD)"
+                "קריאת קוד תקלה פעיל בזיכרון מחשב הרכב (ECU/OBD)"
             ),
             possibleCausesHe = listOf(
-                "קריאת חיישן חריגה או חיישן פגום",
-                "נתק, קצר או מגע רופף בחיווט החשמלי",
+                "קריאת חיישן חריגה או חיישן שאינו תקין",
+                "נתק, קצר או מגע רופף בצמת החיווט",
                 "בלאי באחד מרכיבי המערכת",
-                "תקלת תוכנה או צורך באיפוס מחשב"
+                "תקלת תוכנה או צורך בכיול / איפוס מחשב"
             ),
             solutionsHe = listOf(
-                "בדיקת חיבורים חשמליים וחיווט סביב הרכיב",
-                "ניקוי או החלפת הרכיב הפגום במידת הצורך",
-                "איפוס קוד התקלה ובדיקה חוזרת האם הקוד חוזר"
+                "בדיקת חיבורים חשמליים וחיווט סביב הרכיב הרלוונטי",
+                "ניקוי או החלפת הרכיב הפגום בהתאם להוראות יצרן",
+                "איפוס קוד התקלה ונסיעת מבחן לבדיקה האם התקלה חוזרת"
             )
         )
     }
@@ -417,6 +443,136 @@ object DtcRepository {
             symptoms = listOf("נורת ABS דולקת", "מד מהירות לא פעיל"),
             causes = listOf("פיוז ABS שרוף", "קונקטור ABS מלוכלך/רופף", "תקלת מחשב ABS"),
             solutions = listOf("בדיקת מתח והארקה למחשב ה-ABS")
+        )
+
+        // P0401 - EGR Flow Insufficient
+        register(
+            code = "P0401",
+            titleHe = "זרימת גזי פליטה נמוכה בשסתום EGR",
+            titleEn = "Exhaust Gas Recirculation (EGR) Flow Insufficient Detected",
+            categoryHe = "מערכת פליטה ומיחזור גזים",
+            severity = DtcSeverity.LOW,
+            desc = "שסתום ה-EGR ממחזר חלק מגזי הפליטה חזרה ליניקה להפחתת פליטת מזהמים. זוהתה סתימת פיח או זרימה נמוכה מהסף.",
+            symptoms = listOf("נורת בדוק מנוע דולקת", "נקישות קלות בהאצה (פינגים)", "עשן שחור קל במנועי דיזל"),
+            causes = listOf("שסתום EGR סתום בפיח", "מעברי גזי פליטה בסעפת יניקה סתומים", "צינורית ואקום סדוקה"),
+            solutions = listOf("פירוק וניקוי יסודי של שסתום ה-EGR והסעפת", "החלפת שסתום EGR במידת הצורך")
+        )
+
+        // P0455 - EVAP System Large Leak
+        register(
+            code = "P0455",
+            titleHe = "דליפה גדולה במערכת מיחזור אדי דלק (EVAP)",
+            titleEn = "Evaporative Emission System Leak Detected (Gross Leak / No Flow)",
+            categoryHe = "מערכת בקרת אדי דלק",
+            severity = DtcSeverity.LOW,
+            desc = "מערכת ה-EVAP זיהתה דליפת לחץ משמעותית. לרוב הגורם הוא מכסה מיכל דלק פתוח או שלא הוברג עד הסוף.",
+            symptoms = listOf("נורת בדוק מנוע דולקת", "ריח אדי דלק מורגש סביב מכסה התדלוק"),
+            causes = listOf("מכסה מיכל דלק פתוח, לא מהודק או חסר", "צינורית שחרור אדים מנותקת", "שסתום שחרור אדים תקוע פתוח"),
+            solutions = listOf("בדיקת והידוק מכסה הדלק (3 קליקים)", "איפוס קוד תקלה ונסיעה לבדיקה חוזרת")
+        )
+
+        // P0118 - Coolant Temperature Sensor Circuit High
+        register(
+            code = "P0118",
+            titleHe = "חיישן טמפרטורת נוזל קירור מנוע (ECT) - מתח גבוה / נתק",
+            titleEn = "Engine Coolant Temperature Circuit High Input",
+            categoryHe = "מערכת קירור מנוע",
+            severity = DtcSeverity.MEDIUM,
+            desc = "מחשב הרכב מזהה נתק חשמלי בחיישן חום המנוע, וסבור שהמנוע קר מאוד (-40 מעלות), מה שגורם להפעלת מאווררים קבועה.",
+            symptoms = listOf("מאווררי הרדיאטור עובדים ברציפות במקסימום", "צריכת דלק מוגברת", "התנעה קשה כשהמנוע חם"),
+            causes = listOf("קונקטור חיישן חום מנוע מנותק או חוט קרוע", "חיישן טמפרטורת נוזל קירור פגום", "קורוזיה במגעים"),
+            solutions = listOf("בדיקת חיווט וחיבורי החיישן", "החלפת חיישן ECT")
+        )
+
+        // P0325 - Knock Sensor 1 Circuit Malfunction
+        register(
+            code = "P0325",
+            titleHe = "תקלה בחיישן נקישות מנוע (Knock Sensor)",
+            titleEn = "Knock Sensor 1 Circuit Malfunction (Bank 1)",
+            categoryHe = "מערכת הצתה ותזמון",
+            severity = DtcSeverity.MEDIUM,
+            desc = "חיישן הנקישות מקשיב לרעשי בעירה חריגים בבלוק המנוע. בעת תקלה בו, המחשב מאחר את ההצתה לשמירה על המנוע.",
+            symptoms = listOf("ירידה בסחיבה בהאצה חזקה", "צריכת דלק גבוהה מעט", "נורת מנוע דולקת"),
+            causes = listOf("חיישן נקישות פגום", "חיווט קרוע או שרוף מעל בלוק המנוע"),
+            solutions = listOf("בדיקת חיווט והחלפת חיישן נקישות")
+        )
+
+        // P0507 - Idle Air Control System RPM Higher Than Expected
+        register(
+            code = "P0507",
+            titleHe = "סל\"ד סרק גבוה מהצפוי במנוע",
+            titleEn = "Idle Air Control System RPM Higher Than Expected",
+            categoryHe = "מערכת אוויר ומצערת",
+            severity = DtcSeverity.LOW,
+            desc = "המנוע מסתובב בסל\"ד גבוה מ-1,000 סל\"ד במצב סרק ללא לחיצה על דוושת הגז.",
+            symptoms = listOf("מנוע צועק בעמידה ברמזור (סל\"ד גבוה)", "הרכב \"מושך\" קדימה בעזיבת הבלם"),
+            causes = listOf("בית מצערת מלוכלך בפיח המונע סגירה מלאה", "דליפת ואקום בצנרת היניקה", "שסתום PCV תפוס"),
+            solutions = listOf("ניקוי בית מצערת ואיפוס כיול (Throttle Relearn)", "בדיקת דליפות ואקום")
+        )
+
+        // P0740 - Torque Converter Clutch Circuit
+        register(
+            code = "P0740",
+            titleHe = "תקלה במצמד ממיר מומנט בגיר אוטומטי (TCC)",
+            titleEn = "Torque Converter Clutch Circuit Malfunction",
+            categoryHe = "תיבת הילוכים אוטומטית (גיר)",
+            severity = DtcSeverity.HIGH,
+            desc = "מחשב הגיר מנסה לנעול את ממיר המומנט בנסיעה בינעירונית לשם חיסכון בדלק, אך הנעילה אינה מתבצעת כהלכה.",
+            symptoms = listOf("סל\"ד גבוה מהרגיל בנסיעה מהירה בכביש מהיר", "התחממות שמן גיר", "צריכת דלק מוגברת בבינעירוני"),
+            causes = listOf("סולנואיד נעילת ממיר מומנט (TCC Solenoid) פגום", "שמן גיר בלוי או מפלס שמן נמוך", "בלאי מכני בממיר מומנט"),
+            solutions = listOf("החלפת שמן גיר וסולנואיד TCC במוסך גירים")
+        )
+
+        // C0040 - Right Front Wheel Speed Circuit
+        register(
+            code = "C0040",
+            titleHe = "תקלה בחיישן מהירות גלגל קדמי ימני (ABS)",
+            titleEn = "Right Front Wheel Speed Circuit Malfunction",
+            categoryHe = "מערכת בלמים ו-ABS",
+            severity = DtcSeverity.MEDIUM,
+            desc = "חיישן ה-ABS בגלגל הקדמי ימני אינו מדווח על מהירות הגלגל.",
+            symptoms = listOf("נורת ABS ו-ESP דולקות", "מערכת ABS מנוטרלת בבלימות חירום"),
+            causes = listOf("חיישן ABS קדמי ימני מלוכלך או תקול", "קרע בחיווט בבית הגלגל"),
+            solutions = listOf("בדיקת חיווט והחלפת חיישן ABS ימני")
+        )
+
+        // C0460 - Steering Angle Sensor Malfunction
+        register(
+            code = "C0460",
+            titleHe = "תקלה בחיישן זווית היגוי (Steering Angle Sensor)",
+            titleEn = "Steering Angle Sensor Circuit Malfunction",
+            categoryHe = "מערכת בקרת יציבות והיגוי",
+            severity = DtcSeverity.MEDIUM,
+            desc = "מחשב בקרת היציבות (ESP) אינו יודע לאיזה כיוון הנהג מסובב את ההגה.",
+            symptoms = listOf("נורת בקרת יציבות (ESP/ESC) דולקת קבוע", "הגה כוח עשוי להרגיש כבד"),
+            causes = listOf("איבוד כיול לאחר כיוון פרונט או ניתוק מצבר", "חיישן זווית היגוי פגום בעמוד ההגה"),
+            solutions = listOf("ביצוע כיול זווית היגוי (Zero-Point Calibration) באמצעות סורק")
+        )
+
+        // B0010 - Passenger Frontal Deployment Control
+        register(
+            code = "B0010",
+            titleHe = "תקלה במעגל כרית אוויר נוסע קדמי",
+            titleEn = "Passenger Frontal Deployment Control (Stage 1)",
+            categoryHe = "מערכת כריות אוויר (SRS / Airbag)",
+            severity = DtcSeverity.CRITICAL,
+            desc = "זוהתה תקלה חשמלית במעגל ההפעלה של כרית אוויר הנוסע בדשבורד.",
+            symptoms = listOf("נורת כרית אוויר (Airbag / SRS) דולקת", "כרית אוויר נוסע לא תיפתח בעת תאונה!"),
+            causes = listOf("קונקטור רופף מתחת למושב הנוסע או מאחורי תא הכפפות", "חיישן תפוסת מושב נוסע תקול"),
+            solutions = listOf("בדיקת חיבורים מתחת למושב הנוסע במוסך מורשה")
+        )
+
+        // U0101 - Lost Communication with TCM
+        register(
+            code = "U0101",
+            titleHe = "אובדן תקשורת עם מחשב תיבת ההילוכים (TCM)",
+            titleEn = "Lost Communication with Transmission Control Module (TCM)",
+            categoryHe = "רשת תקשורת מחשבים (CAN-Bus)",
+            severity = DtcSeverity.HIGH,
+            desc = "מחשב המנוע אינו מקבל נתונים ממחשב תיבת ההילוכים ברשת ה-CAN.",
+            symptoms = listOf("הגיר לא מחליף הילוכים או תקוע במצב חירום", "צג ההילוכים בלוח השעונים מהבהב", "חוסר סחיבה"),
+            causes = listOf("פיוז מחשב גיר שרוף", "מגע רופף בקונקטור של מחשב הגיר", "מחשב גיר תקול"),
+            solutions = listOf("בדיקת פיוזים, הארקה ומחבר מחשב הגיר TCM")
         )
     }
 }

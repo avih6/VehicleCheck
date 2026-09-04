@@ -12,6 +12,7 @@ import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.nativead.NativeAd
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.io.IOException
@@ -58,6 +59,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _dbLastUpdated = MutableStateFlow<String?>(null)
     val dbLastUpdated: StateFlow<String?> = _dbLastUpdated.asStateFlow()
 
+    private val _nationalFleetStats = MutableStateFlow(NationalFleetStats())
+    val nationalFleetStats: StateFlow<NationalFleetStats> = _nationalFleetStats.asStateFlow()
+
+    private val _searchProgress = MutableStateFlow(0f)
+    val searchProgress: StateFlow<Float> = _searchProgress.asStateFlow()
+
     private val _nativeAd = MutableStateFlow<NativeAd?>(null)
     val nativeAd: StateFlow<NativeAd?> = _nativeAd.asStateFlow()
 
@@ -69,12 +76,55 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun fetchDatabaseStats() {
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val resp = NetworkClient.apiService.getTotalActiveVehicles()
-                if (resp.result != null && resp.result.total > 0) {
-                    _dbVehicleCount.value = resp.result.total
-                }
-            } catch (e: Exception) {}
+            val privateDeferred = async {
+                try { NetworkClient.apiService.getTotalActiveVehicles("053cea08-09bc-40ec-8f7a-156f0677aff3").result?.total } catch (e: Exception) { null }
+            }
+            val heavyDeferred = async {
+                try { NetworkClient.apiService.getTotalActiveVehicles("cd3acc5c-03c3-4c89-9c54-d40f93c0d790").result?.total } catch (e: Exception) { null }
+            }
+            val motorDeferred = async {
+                try { NetworkClient.apiService.getTotalActiveVehicles("bf9df4e2-d90d-4c0a-a400-19e15af8e95f").result?.total } catch (e: Exception) { null }
+            }
+            val in17Deferred = async {
+                try { NetworkClient.apiService.getTotalActiveVehicles("851ecab1-0622-4dbe-a6c7-f950cf82abf9").result?.total } catch (e: Exception) { null }
+            }
+            val in10Deferred = async {
+                try { NetworkClient.apiService.getTotalActiveVehicles("4e6b9724-4c1e-43f0-909a-154d4cc4e046").result?.total } catch (e: Exception) { null }
+            }
+            val in00Deferred = async {
+                try { NetworkClient.apiService.getTotalActiveVehicles("ec8cbc34-72e1-4b69-9c48-22821ba0bd6c").result?.total } catch (e: Exception) { null }
+            }
+            val inVinDeferred = async {
+                try { NetworkClient.apiService.getTotalActiveVehicles("6f6acd03-f351-4a8f-8ecf-df792f4f573a").result?.total } catch (e: Exception) { null }
+            }
+            val engDeferred = async {
+                try { NetworkClient.apiService.getTotalActiveVehicles("58dc4654-16b1-42ed-8170-98fadec153ea").result?.total } catch (e: Exception) { null }
+            }
+
+            val pTotal = privateDeferred.await()
+            val hTotal = heavyDeferred.await()
+            val mTotal = motorDeferred.await()
+            val in17Total = in17Deferred.await()
+            val in10Total = in10Deferred.await()
+            val in00Total = in00Deferred.await()
+            val inVinTotal = inVinDeferred.await()
+            val engTotal = engDeferred.await()
+
+            val cur = _nationalFleetStats.value
+            _nationalFleetStats.value = cur.copy(
+                activePrivate = pTotal ?: cur.activePrivate,
+                activeHeavy = hTotal ?: cur.activeHeavy,
+                activeMotorcycles = mTotal ?: cur.activeMotorcycles,
+                inactive2017 = in17Total ?: cur.inactive2017,
+                inactive2010_2016 = in10Total ?: cur.inactive2010_2016,
+                inactive2000_2009 = in00Total ?: cur.inactive2000_2009,
+                inactiveVintagePre2000 = inVinTotal ?: cur.inactiveVintagePre2000,
+                engineeringEquipment = engTotal ?: cur.engineeringEquipment
+            )
+
+            if (pTotal != null && pTotal > 0) {
+                _dbVehicleCount.value = pTotal
+            }
 
             try {
                 val metaResp = NetworkClient.apiService.getResourceMetadata()
@@ -117,7 +167,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun performSearch(plateStr: String, preferEngineeringEquipment: Boolean = false) {
         viewModelScope.launch(Dispatchers.IO) {
+            _searchProgress.value = 0.10f
             _searchState.value = SearchState.Loading
+            _nativeAd.value?.destroy()
+            _nativeAd.value = null
 
             try {
                 val plateLong = plateStr.toLongOrNull() ?: 0L
@@ -180,10 +233,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 var equipmentRecord: EngineeringEquipmentRecord? = null
 
                 // Always check Heavy Engineering Equipment (צמ"ה) in parallel
+                var equipmentPollution: EngineeringPollutionRecord? = null
                 try {
                     val respZama = NetworkClient.apiService.getEngineeringEquipment(filters = "{\"mispar_tzama\":$plateLong}")
                     equipmentRecord = respZama.result?.records?.firstOrNull() ?: run {
                         NetworkClient.apiService.getEngineeringEquipment(filters = "{\"mispar_tzama\":\"$plateStr\"}").result?.records?.firstOrNull()
+                    }
+                    if (equipmentRecord != null) {
+                        try {
+                            val respPoll = NetworkClient.apiService.getEngineeringEquipmentPollution(filters = "{\"mispar_tzama\":$plateLong}")
+                            equipmentPollution = respPoll.result?.records?.firstOrNull() ?: run {
+                                NetworkClient.apiService.getEngineeringEquipmentPollution(filters = "{\"mispar_tzama\":\"$plateStr\"}").result?.records?.firstOrNull()
+                            }
+                        } catch (e: Exception) {}
                     }
                 } catch (e: Exception) {}
 
@@ -257,7 +319,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             if (match != null) {
                                 finalVehicle = match.toVehicleRecord()
                                 isOffRoad = true
-                                offRoadDateFormatted = "רכב היסטורי / נגרע"
+                                offRoadDateFormatted = null
                             }
                         } catch (e: Exception) {}
                     }
@@ -267,11 +329,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 var activeEq: EngineeringEquipmentRecord? = null
                 var altEq: EngineeringEquipmentRecord? = null
                 var altVeh: VehicleRecord? = null
+                var altVehIsOffRoad = false
+                var altVehOffRoadDate: String? = null
 
                 if (preferEngineeringEquipment && equipmentRecord != null) {
                     altVeh = finalVehicle
+                    altVehIsOffRoad = isOffRoad
+                    altVehOffRoadDate = offRoadDateFormatted
                     finalVehicle = equipmentRecord.toVehicleRecord()
                     isOffRoad = false
+                    offRoadDateFormatted = null
                     isEngineering = true
                     activeEq = equipmentRecord
                     altEq = null
@@ -294,6 +361,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 val vehicle = finalVehicle
+                _searchProgress.value = 0.35f
 
                 // 3. Parallel Fetch: Recalls, Extra History, Disabled Permit, Specs, Pricing & Stats
                 val recallsDeferred = async {
@@ -307,15 +375,45 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val extraHistoryDeferred = async {
                     try {
                         val resp = NetworkClient.apiService.getExtraHistory(filters = filtersStr)
-                        resp.result?.records?.firstOrNull()
-                    } catch (e: Exception) { null }
+                        resp.result?.records?.firstOrNull() ?: run {
+                            NetworkClient.apiService.searchExtraHistoryByQuery(query = plateStr).result?.records?.firstOrNull {
+                                it.licensePlate == plateLong
+                            }
+                        }
+                    } catch (e: Exception) {
+                        try {
+                            NetworkClient.apiService.searchExtraHistoryByQuery(query = plateStr).result?.records?.firstOrNull {
+                                it.licensePlate == plateLong
+                            }
+                        } catch (e2: Exception) { null }
+                    }
                 }
 
                 val permitDeferred = async {
                     try {
                         val permitFilters = "{\"MISPAR RECHEV\":$plateLong}"
                         val resp = NetworkClient.apiService.getDisabledPermit(filters = permitFilters)
-                        resp.result?.records?.firstOrNull()
+                        resp.result?.records?.firstOrNull() ?: run {
+                            NetworkClient.apiService.searchDisabledPermitByQuery(query = plateStr).result?.records?.firstOrNull {
+                                it.licensePlate == plateLong
+                            }
+                        }
+                    } catch (e: Exception) {
+                        try {
+                            NetworkClient.apiService.searchDisabledPermitByQuery(query = plateStr).result?.records?.firstOrNull {
+                                it.licensePlate == plateLong
+                            }
+                        } catch (e2: Exception) { null }
+                    }
+                }
+
+                val safetyDiscountDeferred = async {
+                    try {
+                        val cleanPlate = plateLong ?: plateStr.replace("-", "").toLongOrNull()
+                        if (cleanPlate != null) {
+                            val resp = NetworkClient.apiService.getSafetyDiscount(filters = "{\"mispar_rechev\":$cleanPlate}")
+                            resp.result?.records?.firstOrNull()
+                        } else null
                     } catch (e: Exception) { null }
                 }
 
@@ -359,17 +457,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     } catch (e: Exception) { null }
                 }
 
-                val statsDeferred = async {
+                val statsDeferred = async<ModelStatistics> {
                     try {
                         val makeCd = vehicle.makeCode
                         val modelCd = vehicle.modelCd
                         val year = vehicle.year ?: 2022
-                        val modelName = vehicle.effectiveModel
+                        val modelName = vehicle.effectiveModel?.trim()
 
                         var totalActive = 0
                         var activeYearCount = 0
                         var prevYearCount = 0
                         var nextYearCount = 0
+                        var inactCount2017 = 0
+                        var inactCount2010 = 0
+                        var inactCount2000 = 0
+                        var inactCountVintage = 0
+                        var specificYearInactive = 0
+                        var prevYearInactive = 0
+                        var nextYearInactive = 0
 
                         val isHeavyOrCommercial = isEngineering ||
                                 (vehicle.effectiveVehicleCategory?.contains("משא") == true ||
@@ -380,17 +485,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
                         if (isHeavyOrCommercial && makeCd != null) {
                             try {
-                                val heavyFilter = if (!modelName.isNullOrBlank()) "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"${modelName.trim()}\"}" else "{\"tozeret_cd\":$makeCd}"
+                                val heavyFilter = if (!modelName.isNullOrBlank()) "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$modelName\"}" else "{\"tozeret_cd\":$makeCd}"
                                 val heavyResp = NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", heavyFilter)
                                 val heavyTotal = heavyResp.result?.total ?: 0
                                 if (heavyTotal > 0) {
                                     totalActive = heavyTotal
-                                    val heavyYearResp = NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", if (!modelName.isNullOrBlank()) "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"${modelName.trim()}\",\"shnat_yitzur\":$year}" else "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$year}")
-                                    activeYearCount = heavyYearResp.result?.total ?: 0
-                                    val heavyPrevYearResp = NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", if (!modelName.isNullOrBlank()) "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"${modelName.trim()}\",\"shnat_yitzur\":${year - 1}}" else "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":${year - 1}}")
-                                    prevYearCount = heavyPrevYearResp.result?.total ?: 0
-                                    val heavyNextYearResp = NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", if (!modelName.isNullOrBlank()) "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"${modelName.trim()}\",\"shnat_yitzur\":${year + 1}}" else "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":${year + 1}}")
-                                    nextYearCount = heavyNextYearResp.result?.total ?: 0
+                                    coroutineScope {
+                                        val yDef = async { NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", if (!modelName.isNullOrBlank()) "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$modelName\",\"shnat_yitzur\":$year}" else "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$year}").result?.total ?: 0 }
+                                        val pDef = async { NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", if (!modelName.isNullOrBlank()) "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$modelName\",\"shnat_yitzur\":${year - 1}}" else "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":${year - 1}}").result?.total ?: 0 }
+                                        val nDef = async { NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", if (!modelName.isNullOrBlank()) "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$modelName\",\"shnat_yitzur\":${year + 1}}" else "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":${year + 1}}").result?.total ?: 0 }
+                                        activeYearCount = yDef.await()
+                                        prevYearCount = pDef.await()
+                                        nextYearCount = nDef.await()
+                                    }
                                 } else {
                                     val allMakeHeavy = NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", "{\"tozeret_cd\":$makeCd}").result?.total ?: 0
                                     if (allMakeHeavy > 0) {
@@ -398,66 +505,131 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                     }
                                 }
                             } catch (e: Exception) {}
-                        } else {
-                            // 1. Query by exact makeCode + modelCd
-                            if (makeCd != null && modelCd != null && modelCd > 0) {
-                                try {
-                                    val activeResp = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}")
-                                    totalActive = activeResp.result?.total ?: 0
+                        } else if (makeCd != null) {
+                            val activeFilter = if (!modelName.isNullOrBlank()) {
+                                "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"$modelName\"}"
+                            } else if (modelCd != null && modelCd > 0) {
+                                "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}"
+                            } else null
 
-                                    if (totalActive > 0) {
-                                        activeYearCount = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd,\"shnat_yitzur\":$year}").result?.total ?: 0
-                                        prevYearCount = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd,\"shnat_yitzur\":${year - 1}}").result?.total ?: 0
-                                        nextYearCount = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd,\"shnat_yitzur\":${year + 1}}").result?.total ?: 0
+                            if (activeFilter != null) {
+                                coroutineScope {
+                                    val actDef = async {
+                                        try { NetworkClient.apiService.getSameModelActiveCount(filters = activeFilter).result?.total ?: 0 } catch (e: Exception) { 0 }
                                     }
-                                } catch (e: Exception) {}
-                            }
-
-                            // 2. Fallback: Query by makeCode + kinuy_mishari
-                            if (totalActive <= 1 && makeCd != null && !modelName.isNullOrBlank()) {
-                                try {
-                                    val kinuyResp = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"${modelName.trim()}\"}")
-                                    val kinuyTotal = kinuyResp.result?.total ?: 0
-                                    if (kinuyTotal > 0) {
-                                        totalActive = kinuyTotal
-                                        activeYearCount = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"${modelName.trim()}\",\"shnat_yitzur\":$year}").result?.total ?: 0
-                                        prevYearCount = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"${modelName.trim()}\",\"shnat_yitzur\":${year - 1}}").result?.total ?: 0
-                                        nextYearCount = NetworkClient.apiService.getSameModelActiveCount(filters = "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"${modelName.trim()}\",\"shnat_yitzur\":${year + 1}}").result?.total ?: 0
+                                    val yDef = async {
+                                        try {
+                                            val yf = activeFilter.removeSuffix("}") + ",\"shnat_yitzur\":$year}"
+                                            NetworkClient.apiService.getSameModelActiveCount(filters = yf).result?.total ?: 0
+                                        } catch (e: Exception) { 0 }
                                     }
-                                } catch (e: Exception) {}
-                            }
-                        }
+                                    val pDef = async {
+                                        try {
+                                            val pf = activeFilter.removeSuffix("}") + ",\"shnat_yitzur\":${year - 1}}"
+                                            NetworkClient.apiService.getSameModelActiveCount(filters = pf).result?.total ?: 0
+                                        } catch (e: Exception) { 0 }
+                                    }
+                                    val nDef = async {
+                                        try {
+                                            val nf = activeFilter.removeSuffix("}") + ",\"shnat_yitzur\":${year + 1}}"
+                                            NetworkClient.apiService.getSameModelActiveCount(filters = nf).result?.total ?: 0
+                                        } catch (e: Exception) { 0 }
+                                    }
 
-                        // Inactive count from deregistered datasets
-                        var inactCount2017 = 0
-                        var inactCount2010 = 0
-                        var inactCount2000 = 0
-                        if (makeCd != null) {
-                            try {
-                                val inactFilter = if (modelCd != null && modelCd > 0) {
-                                    "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}"
-                                } else if (!modelName.isNullOrBlank()) {
-                                    "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"${modelName.trim()}\"}"
-                                } else null
+                                    val inact17Def = async {
+                                        try { NetworkClient.apiService.getDeregisteredCount("851ecab1-0622-4dbe-a6c7-f950cf82abf9", activeFilter).result?.total ?: 0 } catch (e: Exception) { 0 }
+                                    }
+                                    val inact10Def = async {
+                                        try { NetworkClient.apiService.getDeregisteredCount("4e6b9724-4c1e-43f0-909a-154d4cc4e046", activeFilter).result?.total ?: 0 } catch (e: Exception) { 0 }
+                                    }
+                                    val inact00Def = async {
+                                        try { NetworkClient.apiService.getDeregisteredCount("ec8cbc34-72e1-4b69-9c48-22821ba0bd6c", activeFilter).result?.total ?: 0 } catch (e: Exception) { 0 }
+                                    }
+                                    val inactVintageDef = async {
+                                        try {
+                                            if (year < 2005 || isOffRoad) {
+                                                val vFilter = if (!modelName.isNullOrBlank()) {
+                                                    "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$modelName\"}"
+                                                } else {
+                                                    "{\"tozeret_cd\":$makeCd}"
+                                                }
+                                                NetworkClient.apiService.getDeregisteredCount("6f6acd03-f351-4a8f-8ecf-df792f4f573a", vFilter).result?.total ?: 0
+                                            } else 0
+                                        } catch (e: Exception) { 0 }
+                                    }
+                                    val yearInactDef = async {
+                                        try {
+                                            if (year < 2000) {
+                                                val yf = if (!modelName.isNullOrBlank()) {
+                                                    "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$modelName\",\"shnat_yitzur\":$year}"
+                                                } else {
+                                                    "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$year}"
+                                                }
+                                                NetworkClient.apiService.getDeregisteredCount("6f6acd03-f351-4a8f-8ecf-df792f4f573a", yf).result?.total ?: 0
+                                            } else {
+                                                val yf = activeFilter.removeSuffix("}") + ",\"shnat_yitzur\":$year}"
+                                                NetworkClient.apiService.getDeregisteredCount("851ecab1-0622-4dbe-a6c7-f950cf82abf9", yf).result?.total ?: 0
+                                            }
+                                        } catch (e: Exception) { 0 }
+                                    }
+                                    val prevYearInactDef = async {
+                                        try {
+                                            if (year < 2000) {
+                                                val pf = if (!modelName.isNullOrBlank()) {
+                                                    "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$modelName\",\"shnat_yitzur\":${year - 1}}"
+                                                } else {
+                                                    "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":${year - 1}}"
+                                                }
+                                                NetworkClient.apiService.getDeregisteredCount("6f6acd03-f351-4a8f-8ecf-df792f4f573a", pf).result?.total ?: 0
+                                            } else 0
+                                        } catch (e: Exception) { 0 }
+                                    }
+                                    val nextYearInactDef = async {
+                                        try {
+                                            if (year < 2000) {
+                                                val nf = if (!modelName.isNullOrBlank()) {
+                                                    "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$modelName\",\"shnat_yitzur\":${year + 1}}"
+                                                } else {
+                                                    "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":${year + 1}}"
+                                                }
+                                                NetworkClient.apiService.getDeregisteredCount("6f6acd03-f351-4a8f-8ecf-df792f4f573a", nf).result?.total ?: 0
+                                            } else 0
+                                        } catch (e: Exception) { 0 }
+                                    }
 
-                                if (inactFilter != null) {
-                                    inactCount2017 = NetworkClient.apiService.getDeregisteredCount("851ecab1-0622-4dbe-a6c7-f950cf82abf9", inactFilter).result?.total ?: 0
-                                    inactCount2010 = NetworkClient.apiService.getDeregisteredCount("4e6b9724-4c1e-43f0-909a-154d4cc4e046", inactFilter).result?.total ?: 0
-                                    inactCount2000 = NetworkClient.apiService.getDeregisteredCount("ec8cbc34-72e1-4b69-9c48-22821ba0bd6c", inactFilter).result?.total ?: 0
+                                    totalActive = actDef.await()
+                                    // Fallback to degem_cd if kinuy_mishari had 0 records
+                                    if (totalActive == 0 && modelCd != null && modelCd > 0) {
+                                        val subFilter = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}"
+                                        try {
+                                            totalActive = NetworkClient.apiService.getSameModelActiveCount(filters = subFilter).result?.total ?: 0
+                                        } catch (e: Exception) {}
+                                    }
+                                    activeYearCount = yDef.await()
+                                    prevYearCount = pDef.await()
+                                    nextYearCount = nDef.await()
+                                    inactCount2017 = inact17Def.await()
+                                    inactCount2010 = inact10Def.await()
+                                    inactCount2000 = inact00Def.await()
+                                    inactCountVintage = inactVintageDef.await()
+                                    specificYearInactive = yearInactDef.await()
+                                    prevYearInactive = prevYearInactDef.await()
+                                    nextYearInactive = nextYearInactDef.await()
                                 }
-                            } catch (e: Exception) {}
+                            }
                         }
 
-                        val totalInactive = (inactCount2017 + inactCount2010 + inactCount2000).coerceAtLeast(if (isOffRoad) 1 else 0)
+                        val totalInactive = (inactCount2017 + inactCount2010 + inactCount2000 + inactCountVintage).coerceAtLeast(if (isOffRoad) 1 else 0)
                         val realTotalActive = if (totalActive > 0) totalActive else if (isOffRoad) 0 else 1
 
                         val breakdown = mutableListOf<ModelYearCount>()
-                        if (prevYearCount > 0) {
-                            breakdown.add(ModelYearCount(year - 1, prevYearCount, 0))
+                        if (prevYearCount > 0 || prevYearInactive > 0) {
+                            breakdown.add(ModelYearCount(year - 1, prevYearCount, prevYearInactive))
                         }
-                        breakdown.add(ModelYearCount(year, if (activeYearCount > 0) activeYearCount else realTotalActive, totalInactive))
-                        if (nextYearCount > 0) {
-                            breakdown.add(ModelYearCount(year + 1, nextYearCount, 0))
+                        val inactiveForYear = specificYearInactive.coerceAtLeast(if (isOffRoad) 1 else 0)
+                        breakdown.add(ModelYearCount(year, if (activeYearCount > 0) activeYearCount else realTotalActive, inactiveForYear))
+                        if (nextYearCount > 0 || nextYearInactive > 0) {
+                            breakdown.add(ModelYearCount(year + 1, nextYearCount, nextYearInactive))
                         }
 
                         ModelStatistics(
@@ -470,6 +642,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
 
+                _searchProgress.value = 0.50f
                 val recalls = recallsDeferred.await()
                 var recallDetail: RecallDetailRecord? = null
                 val firstRecallId = recalls.firstOrNull()?.recallId
@@ -480,11 +653,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     } catch (e: Exception) {}
                 }
 
+                _searchProgress.value = 0.65f
                 val extraHistory = extraHistoryDeferred.await()
+                _searchProgress.value = 0.75f
                 val permitRecord = permitDeferred.await()
+                _searchProgress.value = 0.85f
                 val techSpec = techSpecDeferred.await()
+                _searchProgress.value = 0.92f
                 val importerInfo = importerDeferred.await()
+                val safetyDiscount = safetyDiscountDeferred.await()
                 val stats = statsDeferred.await()
+                _searchProgress.value = 1.0f
 
                 val formattedPlate = VehicleUtils.formatPlate(plateStr)
                 val testStatus = VehicleUtils.parseTestStatus(vehicle.testExpiryDate, isOffRoad, offRoadDateFormatted)
@@ -515,7 +694,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     isEngineeringEquipment = isEngineering,
                     equipmentDetails = activeEq,
                     alternateEquipment = altEq,
-                    alternateVehicle = altVeh
+                    alternateVehicle = altVeh,
+                    alternateVehicleIsOffRoad = altVehIsOffRoad,
+                    alternateVehicleOffRoadDate = altVehOffRoadDate,
+                    equipmentPollution = equipmentPollution,
+                    safetyDiscount = safetyDiscount
                 )
 
             } catch (e: Exception) {
@@ -535,11 +718,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (curr.isEngineeringEquipment) {
             val altVeh = curr.alternateVehicle ?: return
             val altEq = curr.equipmentDetails
-            val testStatus = VehicleUtils.parseTestStatus(altVeh.testExpiryDate, curr.isOffRoad, curr.offRoadDate)
+            val testStatus = VehicleUtils.parseTestStatus(altVeh.testExpiryDate, curr.alternateVehicleIsOffRoad, curr.alternateVehicleOffRoadDate)
             _searchState.value = curr.copy(
                 vehicle = altVeh,
                 testStatus = testStatus,
                 isEngineeringEquipment = false,
+                isOffRoad = curr.alternateVehicleIsOffRoad,
+                offRoadDate = curr.alternateVehicleOffRoadDate,
                 equipmentDetails = null,
                 alternateEquipment = altEq,
                 alternateVehicle = null
@@ -556,6 +741,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 vehicle = eqVehicle,
                 testStatus = testStatus,
                 isEngineeringEquipment = true,
+                isOffRoad = false,
+                offRoadDate = null,
+                alternateVehicleIsOffRoad = curr.isOffRoad,
+                alternateVehicleOffRoadDate = curr.offRoadDate,
                 equipmentDetails = altEq,
                 alternateEquipment = null,
                 alternateVehicle = altVeh

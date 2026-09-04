@@ -177,6 +177,49 @@ object WikimediaGalleryService {
         scored.map { it.first }.take(limit)
     }
 
+    fun cleanImageTitle(raw: String): String {
+        var t = raw
+            .replace("File:", "", ignoreCase = true)
+            .replace("Image:", "", ignoreCase = true)
+            .replace(".jpg", "", ignoreCase = true)
+            .replace(".jpeg", "", ignoreCase = true)
+            .replace(".png", "", ignoreCase = true)
+            .replace(".webp", "", ignoreCase = true)
+            .replace("_", " ")
+            .trim()
+
+        // Strip camera prefixes (IMG, DSC, SAM, etc.)
+        t = t.replace(Regex("^(IMG|DSC|SAM|P|DJI)_?\\d+[-_ ]*", RegexOption.IGNORE_CASE), "")
+        // Strip camera date tags or bracketed crop notes
+        t = t.replace(Regex("\\(\\s*\\d{4}-\\d{2}-\\d{2}\\s*\\)"), "")
+        t = t.replace(Regex("\\((cropped|resized|edited|front|rear|side|interior|profile)[^)]*\\)", RegexOption.IGNORE_CASE), "")
+        // Strip trailing location or exhibition notes
+        t = t.replace(Regex("\\b(taken at|photographed at|spotted at|exhibited at|on display at|in Tokyo|in London)\\b.*$", RegexOption.IGNORE_CASE), "")
+        t = t.replace(Regex("\\s+"), " ").trim()
+
+        // Cap title length at word boundary
+        if (t.length > 55) {
+            val cut = t.take(52)
+            val lastSpace = cut.lastIndexOf(' ')
+            t = if (lastSpace > 25) cut.substring(0, lastSpace) + "..." else cut + "..."
+        }
+        return t
+    }
+
+    fun cleanImageDescription(raw: String): String {
+        if (raw.isBlank()) return ""
+        var d = raw.replace(Regex("<[^>]*>"), " ")
+        // Remove wiki template syntax like {{en|...}}
+        d = d.replace(Regex("\\{\\{[a-zA-Z0-9_|-]+"), " ").replace("}}", " ")
+        d = d.replace("\n", " ").replace("\r", " ").replace(Regex("\\s+"), " ").trim()
+        if (d.length > 180) {
+            val cut = d.take(175)
+            val lastSpace = cut.lastIndexOf(' ')
+            d = if (lastSpace > 80) cut.substring(0, lastSpace) + "..." else cut + "..."
+        }
+        return d
+    }
+
     private fun isJunkOrNonVehicle(title: String, description: String = "", artist: String = ""): Boolean {
         val t = title.lowercase()
         val d = description.lowercase()
@@ -187,6 +230,21 @@ object WikimediaGalleryService {
             // Diagrams, graphics, non-photo assets
             "logo", "icon", "flag", "diagram", "map", "badge", "emblem", "symbol",
             "drawing", "sketch", "blueprint", "patent", "graph", "chart", "table", "stats", "infographic",
+            // Real estate, buildings, headquarters, factories, dealerships, showrooms
+            "building", "headquarters", "factory", "dealership", "dealer", "showroom", "warehouse",
+            "station", "terminal", "facility", "head office", "tower", "museum", "cemetery", "graveyard",
+            "monument", "memorial", "statue", "architecture", "bridge", "house",
+            // Toys, scale models, miniatures, merchandise
+            "diecast", "die-cast", "scale model", "scale-model", "miniature", "hot wheels", "hotwheels",
+            "matchbox", "lego", "tomica", "tomy", "toy", "model car", "1:18", "1:24", "1:43", "1:64", "1/18", "1/24", "1/43", "1/64",
+            "slot car", "rc car", "radio control",
+            // Geography, cityscapes, aerials, nature
+            "skyline", "panorama", "aerial view", "aerial photo", "satellite view", "satellite image", "landscape", "scenery",
+            // Non-car transport
+            "railway", "railroad", "train", "locomotive", "tram", "streetcar", "subway", "metro", "monorail",
+            "boat", "ship", "ferry", "vessel", "yacht", "harbor", "port", "barge",
+            // Awards, medals, stamps, currency
+            "medal", "coin", "banknote", "currency", "postage stamp", "stamp", "trophy", "award",
             // Vehicle parts, engine bay, interior buttons, component closeups
             "engine", "motor", "fb20", "v6", "v8", "inline-4", "tsi", "tdi", "turbocharger", "supercharger",
             "switch", "button", "vdc off", "esp off", "traction control", "gauge", "gauges", "speedometer",
@@ -207,6 +265,7 @@ object WikimediaGalleryService {
             "letterhead", "magazine", "catalog", "catalogue", "price list", "tariff", "vintage ad", "amsterdam",
             // People, portraits, entertainment, politics
             "portrait", "singer", "actor", "actress", "politician", "minister", "prime minister", "president",
+            "founder", "executive", "ceo", "director", "chairperson", "driver", "racer", "biography", "obituary",
             "knesset", "rabbi", "general", "officer", "soldier", "army", "military base",
             "benayoun", "dor daniel", "habibi", "hakol over habibi", "bennett", "netanyahu", "gaza", "genocide", "war",
             "attack", "october 7", "terror", "conflict", "protest", "memorial", "cemetery", "grave",
@@ -317,15 +376,7 @@ object WikimediaGalleryService {
                     val key = keys.next()
                     val page = pagesObj.getJSONObject(key)
                     val rawTitle = page.optString("title", "")
-                    val title = rawTitle
-                        .replace("File:", "")
-                        .replace(".jpg", "", ignoreCase = true)
-                        .replace(".jpeg", "", ignoreCase = true)
-                        .replace(".png", "", ignoreCase = true)
-                        .replace(".webp", "", ignoreCase = true)
-                        .replace("_", " ")
-                        .replace(Regex("\\s+"), " ")
-                        .trim()
+                    val title = cleanImageTitle(rawTitle)
 
                     val imageInfoArr = page.optJSONArray("imageinfo")
                     if (imageInfoArr != null && imageInfoArr.length() > 0) {
@@ -351,7 +402,7 @@ object WikimediaGalleryService {
                             .trim()
 
                         val rawDesc = extMetadata?.optJSONObject("ImageDescription")?.optString("value").orEmpty()
-                        val cleanDesc = rawDesc.replace(Regex("<[^>]*>"), "").replace("\n", " ").trim()
+                        val cleanDesc = cleanImageDescription(rawDesc)
                         val altText = if (cleanDesc.isNotBlank() && cleanDesc.length > 5) cleanDesc else if (title.isNotBlank()) "תמונת רכב: $title" else "תמונת רכב ממאגר ויקימדיה"
 
                         val checkPath = fullUrl.substringBefore("?")
@@ -420,7 +471,8 @@ object WikimediaGalleryService {
                 while (keys.hasNext()) {
                     val key = keys.next()
                     val page = pagesObj.getJSONObject(key)
-                    val title = page.optString("title", "")
+                    val rawTitle = page.optString("title", "")
+                    val title = cleanImageTitle(rawTitle)
                     val thumbObj = page.optJSONObject("thumbnail")
                     if (thumbObj != null) {
                         val thumbUrl = thumbObj.optString("source")
@@ -480,15 +532,7 @@ object WikimediaGalleryService {
                     val key = keys.next()
                     val page = pagesObj.getJSONObject(key)
                     val rawTitle = page.optString("title", "")
-                    val title = rawTitle
-                        .replace("File:", "")
-                        .replace(".jpg", "", ignoreCase = true)
-                        .replace(".jpeg", "", ignoreCase = true)
-                        .replace(".png", "", ignoreCase = true)
-                        .replace(".webp", "", ignoreCase = true)
-                        .replace("_", " ")
-                        .replace(Regex("\\s+"), " ")
-                        .trim()
+                    val title = cleanImageTitle(rawTitle)
 
                     val imageInfoArr = page.optJSONArray("imageinfo")
                     if (imageInfoArr != null && imageInfoArr.length() > 0) {
@@ -586,9 +630,14 @@ object WikimediaGalleryService {
             score += 1000
         }
 
-        val modelLower = model.lowercase()
-        if (modelLower.isNotBlank() && textToSearch.contains(modelLower)) {
-            score += 500
+        val modelLower = model.lowercase().trim()
+        val hasSpecificModel = modelLower.isNotBlank() && !modelLower.equals("car", ignoreCase = true)
+        if (hasSpecificModel) {
+            if (textToSearch.contains(modelLower)) {
+                score += 1500 // Strongly prioritize matching the exact car model
+            } else {
+                score -= 800 // Penalize images from the same brand that don't match the model
+            }
         }
 
         if (year != null) {

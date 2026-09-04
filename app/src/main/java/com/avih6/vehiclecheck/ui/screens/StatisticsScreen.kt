@@ -91,7 +91,9 @@ fun StatisticsScreen(
     val focusManager = LocalFocusManager.current
     val totalCount by viewModel.dbVehicleCount.collectAsState()
     val lastUpdated by viewModel.dbLastUpdated.collectAsState()
-    val displayTotal = totalCount ?: 4165989
+    val fleetStats by viewModel.nationalFleetStats.collectAsState()
+    var showFleetBreakdown by remember { mutableStateOf(false) }
+    val displayTotal = totalCount ?: fleetStats.activePrivate
 
     val modelQuery by viewModel.modelSearchQuery.collectAsState()
     val modelSuggestions by viewModel.modelSuggestions.collectAsState()
@@ -182,76 +184,346 @@ fun StatisticsScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        if (!lastUpdated.isNullOrBlank()) {
+                            Spacer(Modifier.height(6.dp))
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text(
+                                    text = "עודכן: $lastUpdated",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
 
-        // 2. Key National Metrics Grid (Active Fleet & EV/Hybrid Share)
+        // 2. Key National Metrics Grid (Active Fleet, Grand Total with Vintage & Tzama, Share)
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // Metric 1: Total Active
-                Card(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                // Top Row: Total Active in Israel & Grand Total in Registry
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    // Metric 1: Total Active in Israel (Private + Commercial + Heavy + Motorcycles)
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.DirectionsCar,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(26.dp)
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = "%,d".format(displayTotal),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "רכבים פעילים",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DirectionsCar,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(26.dp)
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = "%,d".format(fleetStats.totalActive),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.primary,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "סה״כ פעילים בישראל",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "פרטי, משא ודו-גלגלי",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+
+                    // Metric 2: Grand Total Vehicles Ever (Including Vintage & Tzama)
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Layers,
+                                contentDescription = null,
+                                tint = Color(0xFF0288D1),
+                                modifier = Modifier.size(26.dp)
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = "%,d".format(fleetStats.grandTotal),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Black,
+                                color = Color(0xFF0288D1),
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "סה״כ כלי רכב בכללי",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "כולל ישנים וצמ״א",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
 
-                // Metric 2: EV & Hybrid
-                Card(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+                // Sub Row: Private & Commercial Active + Electrified Share
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    // Metric 3: Private & Commercial
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Bolt,
-                            contentDescription = null,
-                            tint = Color(0xFF2E7D32),
-                            modifier = Modifier.size(26.dp)
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = "25.2%",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Black,
-                            color = Color(0xFF2E7D32)
-                        )
-                        Text(
-                            text = "מחושמלים (EV/היבריד)",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "%,d".format(fleetStats.activePrivate),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "פרטי ומסחרי פעיל",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "${"%.1f".format(fleetStats.activePrivatePercent)}% מהפעילים",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+
+                    // Metric 4: Electrified Share (Consistent layout: Number on top, Title, Percentage on bottom)
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "%,d".format((0.252f * fleetStats.activePrivate).toInt()),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "מחושמלים (EV/היבריד)",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "25.2% מהפעילים",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF2E7D32),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+
+                // Interactive Expandable Fleet Breakdown Card (Includes Tzama, Vintage, Heavy, etc.)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showFleetBreakdown = !showFleetBreakdown },
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Analytics,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        text = "פילוח מצבת הרכבים והמאגרים",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "התפלגות פעילים, ירדו מהכביש, צמ״א והיסטוריים",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            IconButton(
+                                onClick = { showFleetBreakdown = !showFleetBreakdown },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (showFleetBreakdown) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                    contentDescription = if (showFleetBreakdown) "כווץ" else "הרחב",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+
+                        AnimatedVisibility(visible = showFleetBreakdown) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 10.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
+                                // Section 1: Active breakdown
+                                Text(
+                                    text = "כלי רכב פעילים על הכביש (סה״כ %,d)".format(fleetStats.totalActive),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                FleetBreakdownRow(
+                                    title = "רכב פרטי ומסחרי פעיל",
+                                    count = fleetStats.activePrivate,
+                                    percent = fleetStats.activePrivatePercent,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                FleetBreakdownRow(
+                                    title = "משאיות, אוטובוסים ורכב כבד (>3.5 טון)",
+                                    count = fleetStats.activeHeavy,
+                                    percent = fleetStats.activeHeavyPercent,
+                                    color = Color(0xFF1976D2)
+                                )
+                                FleetBreakdownRow(
+                                    title = "אופנועים וקטנועים (דו-גלגלי)",
+                                    count = fleetStats.activeMotorcycles,
+                                    percent = fleetStats.activeMotorcyclesPercent,
+                                    color = Color(0xFF0097A7)
+                                )
+
+                                Spacer(Modifier.height(4.dp))
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
+                                // Section 2: Inactive & Vintage
+                                Text(
+                                    text = "כלי רכב שירדו מהכביש וביטולים בעבר (סה״כ %,d)".format(fleetStats.totalInactive),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFD32F2F)
+                                )
+                                FleetSimpleCountRow(
+                                    title = "הורדו מהכביש ב-2017 עד היום",
+                                    count = fleetStats.inactive2017
+                                )
+                                FleetSimpleCountRow(
+                                    title = "הורדו מהכביש בשנים 2010–2016",
+                                    count = fleetStats.inactive2010_2016
+                                )
+                                FleetSimpleCountRow(
+                                    title = "הורדו מהכביש בשנים 2000–2009",
+                                    count = fleetStats.inactive2000_2009
+                                )
+                                FleetSimpleCountRow(
+                                    title = "רכבים ישנים והיסטוריים",
+                                    subtitle = "לפני שנת 2000 (סוסיתא, כרמל ורכבי אספנות)",
+                                    count = fleetStats.inactiveVintagePre2000,
+                                    badge = "היסטורי"
+                                )
+
+                                Spacer(Modifier.height(4.dp))
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
+                                // Section 3: Tzama (Heavy Engineering Equipment)
+                                Text(
+                                    text = "ציוד מכני הנדסי (צמ״א / צמ״ה)",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFF57C00)
+                                )
+                                FleetSimpleCountRow(
+                                    title = "ציוד הנדסי כבד ברישיון",
+                                    subtitle = "שופלים, מחפרים, דחפורים, מנופים וטרקטורים",
+                                    count = fleetStats.engineeringEquipment,
+                                    badge = "צמ״א",
+                                    badgeColor = Color(0xFFF57C00)
+                                )
+
+                                Spacer(Modifier.height(4.dp))
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "סה״כ כלל כלי הרכב שנרשמו אי פעם בישראל:",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = "%,d".format(fleetStats.grandTotal),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Black,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -926,6 +1198,10 @@ fun NationalFleetTrendGraph(
         )
     }
 
+    val dailyAverage = remember(dailyData) {
+        if (dailyData.isNotEmpty()) kotlin.math.round(dailyData.map { it.count }.average()).toInt() else 845
+    }
+
     val monthlyData = remember {
         listOf(
             MonthlyTrendPoint("ינו'", 32400),
@@ -937,6 +1213,45 @@ fun NationalFleetTrendGraph(
             MonthlyTrendPoint("יולי", 31200),
             MonthlyTrendPoint("אוג'", 28900)
         )
+    }
+
+    val monthlyTotalDeliveries = remember(monthlyData) {
+        monthlyData.sumOf { it.count }
+    }
+
+    val monthlyAverage = remember(monthlyData) {
+        if (monthlyData.isNotEmpty()) kotlin.math.round(monthlyData.map { it.count }.average()).toInt() else 29263
+    }
+
+    val monthlyTrendStatus = remember(monthlyData) {
+        if (monthlyData.size >= 2) {
+            val lastMonth = monthlyData.last().count
+            val prevMonth = monthlyData[monthlyData.lastIndex - 1].count
+            val diffPercent = ((lastMonth - prevMonth).toDouble() / prevMonth) * 100.0
+            when {
+                diffPercent > 3.0 -> "מגמת עלייה במסירות (+%.1f%%)".format(diffPercent)
+                diffPercent < -3.0 -> "מגמת ירידה במסירות (%.1f%%)".format(diffPercent)
+                else -> "קצב מסירות יציב (%.1f%%)".format(diffPercent)
+            }
+        } else {
+            "קצב מסירות יציב"
+        }
+    }
+
+    val annualGrowthPercent = remember(fleetHistory) {
+        if (fleetHistory.size >= 2) {
+            val last = fleetHistory.last().count
+            val prev = fleetHistory[fleetHistory.size - 2].count
+            if (prev > 0) ((last - prev).toDouble() / prev * 100.0) else 2.8
+        } else 2.8
+    }
+
+    val annualAverageGrowth = remember(fleetHistory) {
+        if (fleetHistory.size >= 2) {
+            val totalGrowth = fleetHistory.last().count - fleetHistory.first().count
+            val yearsSpan = fleetHistory.last().year - fleetHistory.first().year
+            if (yearsSpan > 0) totalGrowth / yearsSpan else 105000
+        } else 105000
     }
 
     Card(
@@ -997,9 +1312,9 @@ fun NationalFleetTrendGraph(
                 ) {
                     Text(
                         text = when (selectedChartMode) {
-                            1 -> "~850 ביום"
-                            2 -> "~29K בחודש"
-                            else -> "+2.8% שנתי"
+                            1 -> "$dailyAverage ממוצע ליום"
+                            2 -> "כ-%,d בחודש (ממוצע)".format(monthlyAverage)
+                            else -> "+%.1f%% שנתי".format(annualGrowthPercent)
                         },
                         color = Color(0xFF2E7D32),
                         fontWeight = FontWeight.Black,
@@ -1215,7 +1530,7 @@ fun NationalFleetTrendGraph(
                 Text(
                     text = when (selectedChartMode) {
                         1 -> "שיא מסירות שבועי: יום ראשון"
-                        2 -> "סך מסירות מתחילת השנה: ~234,000"
+                        2 -> "סך מסירות מתחילת השנה: %,d".format(monthlyTotalDeliveries)
                         else -> "סך כלי רכב בישראל: %,d".format(totalCount)
                     },
                     style = MaterialTheme.typography.bodySmall,
@@ -1224,9 +1539,9 @@ fun NationalFleetTrendGraph(
                 )
                 Text(
                     text = when (selectedChartMode) {
-                        1 -> "ממוצע: כ-850 רכבים ביום"
-                        2 -> "קצב מסירות יציב"
-                        else -> "גידול ממוצע: ~110,000 בשנה"
+                        1 -> "ממוצע: כ-$dailyAverage רכבים ביום"
+                        2 -> monthlyTrendStatus
+                        else -> "גידול ממוצע: כ-%,d בשנה".format(annualAverageGrowth)
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1709,5 +2024,114 @@ fun ModelDetailStatisticsCard(
                 Text("הצג תמונות מגלריית הרכב", fontWeight = FontWeight.Bold, fontSize = 15.sp)
             }
         }
+    }
+}
+
+@Composable
+private fun FleetBreakdownRow(
+    title: String,
+    count: Int,
+    percent: Float,
+    color: Color
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "%,d".format(count),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.width(6.dp))
+                Surface(
+                    color = color.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(4.dp)
+                ) {
+                    Text(
+                        text = "${"%.1f".format(percent)}%",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = color,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+        LinearProgressIndicator(
+            progress = { (percent / 100f).coerceIn(0f, 1f) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(4.dp)
+                .clip(RoundedCornerShape(2.dp)),
+            color = color,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun FleetSimpleCountRow(
+    title: String,
+    count: Int,
+    subtitle: String? = null,
+    badge: String? = null,
+    badgeColor: Color = Color(0xFF0288D1)
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier.weight(1f).padding(end = 8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (badge != null) {
+                    Spacer(Modifier.width(6.dp))
+                    Surface(
+                        color = badgeColor.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = badge,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = badgeColor,
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                        )
+                    }
+                }
+            }
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        Text(
+            text = "%,d".format(count),
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }

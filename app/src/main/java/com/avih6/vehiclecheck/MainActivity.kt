@@ -53,6 +53,8 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
 
+        handleSearchIntent(intent)
+
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default).launch {
             MobileAds.initialize(this@MainActivity) {}
         }
@@ -86,6 +88,24 @@ class MainActivity : ComponentActivity() {
 
             VehicleCheckTheme(darkTheme = isDark, dynamicColor = dynamicColors) {
                 MainAppShell(viewModel)
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleSearchIntent(intent)
+    }
+
+    private fun handleSearchIntent(intent: Intent?) {
+        val plate = intent?.getStringExtra("plate")
+            ?: intent?.getStringExtra("search_plate")
+            ?: intent?.data?.getQueryParameter("plate")
+        if (!plate.isNullOrBlank()) {
+            val clean = plate.filter { it.isDigit() }
+            if (clean.length in 5..8) {
+                viewModel.searchPlateDirect(clean)
             }
         }
     }

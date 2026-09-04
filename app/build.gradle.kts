@@ -13,10 +13,14 @@ android {
         applicationId = "com.avih6.vehiclecheck"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.8.0"
+        versionCode = 3
+        versionName = "0.82.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    androidResources {
+        localeFilters += listOf("he", "en")
     }
 
     buildTypes {
@@ -31,7 +35,6 @@ android {
         }
         debug {
             isMinifyEnabled = false
-            applicationIdSuffix = ".debug"
         }
     }
     packaging {

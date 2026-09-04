@@ -127,7 +127,7 @@ fun VehicleStatsDialog(
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    text = "${stats.totalInactive}",
+                                    text = "%,d".format(stats.totalInactive),
                                     fontWeight = FontWeight.Black,
                                     fontSize = 18.sp,
                                     color = MaterialTheme.colorScheme.error
@@ -167,7 +167,7 @@ fun VehicleStatsDialog(
 
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    text = "${stats.totalActive}",
+                                    text = "%,d".format(stats.totalActive),
                                     fontWeight = FontWeight.Black,
                                     fontSize = 18.sp,
                                     color = Color(0xFF0091EA)
