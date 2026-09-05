@@ -31,6 +31,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.avih6.vehiclecheck.data.*
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ResultCard(
     vehicle: VehicleRecord,
@@ -448,10 +449,24 @@ fun ResultCard(
 
                 Spacer(Modifier.height(8.dp))
 
-                // Badges Row (Active status + Israeli manufacture badge if applicable)
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                val quickClassification = remember(vehicle) {
+                    VehicleUtils.resolveQuickClassification(
+                        make = vehicle.make,
+                        model = vehicle.model,
+                        modelType = vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory,
+                        ownership = vehicle.ownership,
+                        trimLevel = vehicle.trimLevel,
+                        fuel = vehicle.fuelType,
+                        category = vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory,
+                        year = vehicle.year
+                    )
+                }
+
+                // Badges Row (Active status + Smart Classification + Israeli manufacture + Collector)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     // Active / Off-Road Pill Badge
                     val (badgeText, badgeColor, badgeBorder, badgeIcon) = when {
@@ -496,6 +511,36 @@ fun ResultCard(
                         }
                     }
 
+                    // Smart Classification Badge (e.g. 🚑 אמבולנס, 🚖 מונית, 🏍️ אופנוע, 🚚 משאית, etc.)
+                    if (quickClassification.isNotBlank() && !isEngineeringEquipment) {
+                        val isEmergency = quickClassification.contains("אמבולנס") || quickClassification.contains("הצלה")
+                        val isTaxi = quickClassification.contains("מונית")
+                        val isCollectorChip = quickClassification.contains("אספנות")
+                        val chipColor = when {
+                            isEmergency -> Color(0xFFE53935)
+                            isTaxi -> Color(0xFFE65100)
+                            isCollectorChip -> Color(0xFFFFB300)
+                            else -> MaterialTheme.colorScheme.primary
+                        }
+                        Surface(
+                            color = chipColor.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(20.dp),
+                            border = BorderStroke(1.dp, chipColor.copy(alpha = 0.45f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = quickClassification,
+                                    color = chipColor,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                    }
+
                     val headerCountry = remember(vehicle, techSpec) { VehicleUtils.resolveCountryOfOrigin(vehicle, techSpec) }
                     if (headerCountry?.contains("ישראל") == true && !isOffRoad) {
                         Surface(
@@ -517,7 +562,8 @@ fun ResultCard(
                         }
                     }
 
-                    val isTaxi = vehicle.effectiveVehicleCategory?.contains("מונית") == true || vehicle.vehicleCategory?.contains("מונית") == true
+                    val isTaxi = (vehicle.effectiveVehicleCategory?.contains("מונית") == true || vehicle.vehicleCategory?.contains("מונית") == true) &&
+                            !quickClassification.contains("מונית")
                     if (isTaxi && !isOffRoad) {
                         Surface(
                             color = Color(0xFFFFD54F).copy(alpha = 0.25f),
@@ -538,7 +584,7 @@ fun ResultCard(
                         }
                     }
 
-                    if (!isOffRoad && !isEngineeringEquipment) {
+                    if (!isOffRoad && !isEngineeringEquipment && !quickClassification.contains("אספנות")) {
                         if (vehicle.isOfficiallyCollector) {
                             Surface(
                                 color = Color(0xFFFFD700).copy(alpha = 0.15f),
@@ -1508,7 +1554,7 @@ private fun GeneralTabContent(
                     modifier = Modifier.padding(bottom = 10.dp)
                 )
 
-                val effectiveVin = vehicle.effectiveVin ?: vehicle.vin
+                val effectiveVin = vehicle.cleanVin ?: vehicle.effectiveVin ?: vehicle.vin
                 if (!effectiveVin.isNullOrBlank()) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -1589,7 +1635,7 @@ private fun GeneralTabContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
-                        .clickable { com.avih6.vehiclecheck.util.ExternalAppUtils.openDisabledPermitApp(context) }
+                        .clickable { com.avih6.vehiclecheck.util.ExternalAppUtils.openDisabledPermitApp(context, source = "result_card", plate = vehicle.licensePlate.toString()) }
                         .padding(vertical = 4.dp, horizontal = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -2137,7 +2183,7 @@ private fun TechSpecTabContent(
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
-                vehicle.effectiveVin?.let {
+                (vehicle.cleanVin ?: vehicle.effectiveVin)?.let {
                     if (it.isNotBlank()) SpecRow("מספר שילדה (VIN):", it)
                 }
                 vehicle.effectiveVehicleCategory?.let {
@@ -2837,14 +2883,10 @@ private fun StatisticsTabContent(
                 modifier = Modifier.padding(16.dp).fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(brandLogoUrl)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = "Brand Emblem",
-                    modifier = Modifier.size(72.dp).padding(4.dp),
-                    contentScale = ContentScale.Fit
+                AutoBrandLogo(
+                    hebrewMake = vehicle.make,
+                    modelName = vehicle.effectiveModel,
+                    size = 72.dp
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(

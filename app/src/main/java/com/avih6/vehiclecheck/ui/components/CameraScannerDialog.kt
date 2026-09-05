@@ -359,6 +359,8 @@ private fun processImageProxy(
     val mediaImage = imageProxy.image
     if (mediaImage != null) {
         try {
+            val ocrTrace = com.google.firebase.perf.FirebasePerformance.getInstance().newTrace("ocr_processing_latency")
+            ocrTrace.start()
             val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
             recognizer.process(image)
                 .addOnSuccessListener { visionText ->
@@ -366,11 +368,19 @@ private fun processImageProxy(
                         for (line in block.lines) {
                             val text = line.text.filter { it.isDigit() }
                             if (text.length in 7..8) {
+                                ocrTrace.putAttribute("status", "plate_detected")
+                                ocrTrace.stop()
                                 onResult(text)
                                 return@addOnSuccessListener
                             }
                         }
                     }
+                    ocrTrace.putAttribute("status", "no_plate")
+                    ocrTrace.stop()
+                }
+                .addOnFailureListener {
+                    ocrTrace.putAttribute("status", "error")
+                    ocrTrace.stop()
                 }
                 .addOnCompleteListener {
                     imageProxy.close()

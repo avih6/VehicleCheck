@@ -78,7 +78,11 @@
     <string name="ocr_confirm_message">האם לבדוק את מספר הרכב %1$s?</string>
     <string name="ocr_init_failed">שגיאה באתחול סורק המצלמה</string>
     <string name="btn_camera_scan">סריקה במצלמה</string>
-    
+    <string name="ocr_no_plate_found">לא זוהתה לוחית רישוי בתמונה</string>
+    <string name="ocr_plate_detected_searching">זוהתה לוחית: %1$s, מבצע בדיקה...</string>
+    <string name="ocr_multiple_plates_title">זוהו מספר לוחיות רישוי</string>
+    <string name="ocr_multiple_plates_desc">בחר את הלוחית שברצונך לבדוק:</string>
+    <string name="ocr_processing_image">מעבד תמונה ומזהה לוחית רישוי...</string>
     
     <string name="settings_title">הגדרות תצוגה</string>
     <string name="settings_theme_label">ערכת נושא:</string>

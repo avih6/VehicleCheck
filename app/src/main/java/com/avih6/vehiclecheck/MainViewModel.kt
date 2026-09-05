@@ -17,6 +17,10 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.io.IOException
+import android.os.Bundle
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.crashlytics.FirebaseCrashlytics
+import com.google.firebase.perf.FirebasePerformance
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.time.LocalDate
@@ -33,6 +37,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val database = AppDatabase.getDatabase(application)
     private val repository = HistoryRepository(database.vehicleDao())
 
+    private val analytics: FirebaseAnalytics by lazy { FirebaseAnalytics.getInstance(application) }
+    private val performance: FirebasePerformance by lazy { FirebasePerformance.getInstance() }
+    private val crashlytics: FirebaseCrashlytics by lazy { FirebaseCrashlytics.getInstance() }
+
+    init {
+        try {
+            analytics.logEvent(FirebaseAnalytics.Event.APP_OPEN, null)
+        } catch (_: Throwable) {}
+    }
+
+    fun logScreenView(screenName: String) {
+        try {
+            analytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, Bundle().apply {
+                putString(FirebaseAnalytics.Param.SCREEN_NAME, screenName)
+                putString(FirebaseAnalytics.Param.SCREEN_CLASS, screenName)
+            })
+        } catch (_: Throwable) {}
+    }
+
+    fun logEvent(name: String, params: Bundle? = null) {
+        try {
+            analytics.logEvent(name, params)
+        } catch (_: Throwable) {}
+    }
+
+    fun recordException(throwable: Throwable) {
+        try {
+            crashlytics.recordException(throwable)
+        } catch (_: Throwable) {}
+    }
+
     private val _themeMode = MutableStateFlow(prefs.getString("theme_mode", "system") ?: "system")
     val themeMode: StateFlow<String> = _themeMode.asStateFlow()
 
@@ -42,11 +77,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setThemeMode(mode: String) {
         _themeMode.value = mode
         prefs.edit().putString("theme_mode", mode).apply()
+        logEvent("theme_mode_changed", Bundle().apply { putString("mode", mode) })
     }
 
     fun setDynamicColors(enabled: Boolean) {
         _dynamicColors.value = enabled
         prefs.edit().putBoolean("dynamic_colors", enabled).apply()
+        logEvent("dynamic_colors_changed", Bundle().apply { putBoolean("enabled", enabled) })
     }
 
     private val _query = MutableStateFlow("")
@@ -54,6 +91,40 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _searchState = MutableStateFlow<SearchState>(SearchState.Idle)
     val searchState: StateFlow<SearchState> = _searchState.asStateFlow()
+
+    private val _selectedTab = MutableStateFlow(0)
+    val selectedTab: StateFlow<Int> = _selectedTab.asStateFlow()
+
+    fun setSelectedTab(tab: Int) {
+        _selectedTab.value = tab
+        val screenName = when (tab) {
+            0 -> "Search"
+            1 -> "History"
+            2 -> "Statistics"
+            3 -> "Recalls"
+            4 -> "DTC"
+            5 -> "Gallery"
+            6 -> "Services"
+            else -> "Tab_$tab"
+        }
+        logScreenView(screenName)
+    }
+
+    private val _candidatePlates = MutableStateFlow<List<String>?>(null)
+    val candidatePlates: StateFlow<List<String>?> = _candidatePlates.asStateFlow()
+
+    fun setCandidatePlates(plates: List<String>?) {
+        _candidatePlates.value = plates
+    }
+
+    fun selectCandidatePlate(plate: String) {
+        _candidatePlates.value = null
+        setSelectedTab(0)
+        logEvent("share_to_app_candidate_selected", Bundle().apply {
+            putString("plate_length", plate.length.toString())
+        })
+        searchPlateDirect(plate)
+    }
 
     val searchHistory: StateFlow<List<VehicleHistoryEntity>> = repository.allHistory
         .map { list ->
@@ -414,12 +485,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun searchPlateDirect(plate: String, preferEngineeringEquipment: Boolean = false) {
         val clean = plate.filter { it.isDigit() }.take(8)
         _query.value = clean
+        _selectedTab.value = 0
         if (clean.isNotEmpty() && clean.length <= 8) {
             performSearch(clean, preferEngineeringEquipment)
         }
     }
 
     private fun performSearch(plateStr: String, preferEngineeringEquipment: Boolean = false) {
+        val searchTrace = performance.newTrace("vehicle_search_latency")
+        searchTrace.start()
+        searchTrace.putAttribute("query_length", plateStr.length.toString())
+        searchTrace.putAttribute("prefer_engineering", preferEngineeringEquipment.toString())
+
+        logEvent("search_performed", Bundle().apply {
+            putString("query_length", plateStr.length.toString())
+            putBoolean("prefer_engineering", preferEngineeringEquipment)
+        })
+
         viewModelScope.launch(Dispatchers.IO) {
             _searchProgress.value = 0.10f
             _searchState.value = SearchState.Loading
@@ -495,9 +577,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                 recalls = emptyList(),
                                 safetyDiscount = SafetyDiscountRecord(licensePlate = 1234567L, updatedDate = "2024-02-10")
                             )
+                            searchTrace.putAttribute("status", "success")
+                            searchTrace.putAttribute("make", mockVehicle.make ?: "")
+                            searchTrace.stop()
+                            logEvent("search_result_found", Bundle().apply {
+                                putBoolean("found", true)
+                                putString("make", mockVehicle.make ?: "")
+                                putInt("year", mockVehicle.year ?: 0)
+                                putBoolean("is_engineering", false)
+                            })
                             return@launch
                         }
                         "0000000" -> {
+                            searchTrace.putAttribute("status", "not_found")
+                            searchTrace.stop()
+                            logEvent("search_result_found", Bundle().apply {
+                                putBoolean("found", false)
+                                putString("plate_length", plateStr.length.toString())
+                            })
                             _searchState.value = SearchState.NotFound(plateStr)
                             return@launch
                         }
@@ -688,6 +785,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     } else {
                         // Save to history so user can easily recheck anytime
                         repository.saveNotFoundSearch(plateStr)
+                        searchTrace.putAttribute("status", "not_found")
+                        searchTrace.stop()
+                        logEvent("search_result_found", Bundle().apply {
+                            putBoolean("found", false)
+                            putString("plate_length", plateStr.length.toString())
+                        })
                         _searchState.value = SearchState.NotFound(plateStr)
                         return@launch
                     }
@@ -1099,6 +1202,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     isEngineeringEquipment = isEngineering
                 )
 
+                searchTrace.putAttribute("status", "success")
+                searchTrace.putAttribute("make", vehicle.make ?: "unknown")
+                searchTrace.putAttribute("year", vehicle.year?.toString() ?: "unknown")
+                searchTrace.stop()
+
+                logEvent("search_result_found", Bundle().apply {
+                    putBoolean("found", true)
+                    putString("make", vehicle.make ?: "")
+                    putInt("year", vehicle.year ?: 0)
+                    putBoolean("is_engineering", isEngineering)
+                    putBoolean("has_disabled_permit", hasDisabledPermit)
+                    putBoolean("is_off_road", isOffRoad)
+                    putInt("recalls_count", recalls.size)
+                })
+
                 _searchState.value = SearchState.Success(
                     vehicle = vehicle,
                     techSpec = techSpec,
@@ -1128,6 +1246,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 )
 
             } catch (e: Exception) {
+                searchTrace.putAttribute("status", "error")
+                searchTrace.putAttribute("error_type", e.javaClass.simpleName)
+                searchTrace.stop()
+                recordException(e)
+                logEvent("search_error", Bundle().apply {
+                    putString("error_type", e.javaClass.simpleName)
+                    putString("error_msg", e.message ?: "")
+                })
+
                 val errorMsg = when (e) {
                     is UnknownHostException -> "אין חיבור לאינטרנט. אנא בדוק את החיבור ונסה שוב."
                     is SocketTimeoutException -> "השרת אינו מגיב (פסק זמן). נסה שוב בעוד מספר רגעים."
@@ -1182,30 +1309,41 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun toggleFavorite(id: Long, currentStatus: Boolean) {
+        logEvent("vehicle_favorite_toggled", Bundle().apply {
+            putBoolean("is_favorite", !currentStatus)
+        })
         viewModelScope.launch(Dispatchers.IO) {
             repository.toggleFavorite(id, currentStatus)
         }
     }
 
     fun toggleFavoriteByPlate(plate: String, isFavorite: Boolean) {
+        logEvent("vehicle_favorite_toggled", Bundle().apply {
+            putBoolean("is_favorite", !isFavorite)
+        })
         viewModelScope.launch(Dispatchers.IO) {
             repository.toggleFavoriteByPlate(plate, !isFavorite)
         }
     }
 
     fun toggleFavoriteCurrentResult(plate: String, currentFavStatus: Boolean) {
+        logEvent("vehicle_favorite_toggled", Bundle().apply {
+            putBoolean("is_favorite", !currentFavStatus)
+        })
         viewModelScope.launch(Dispatchers.IO) {
             repository.toggleFavoriteByPlate(plate, !currentFavStatus)
         }
     }
 
     fun deleteHistoryEntry(id: Long) {
+        logEvent("history_item_deleted")
         viewModelScope.launch(Dispatchers.IO) {
             repository.delete(id)
         }
     }
 
     fun clearAllHistory() {
+        logEvent("history_cleared")
         viewModelScope.launch(Dispatchers.IO) {
             repository.clearHistory()
         }
@@ -2442,17 +2580,38 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (IS_SCREENSHOT_MODE || isAdLoading || _nativeAd.value != null) return
         isAdLoading = true
 
+        val adTrace = performance.newTrace("ad_load_latency")
+        adTrace.start()
+
         val adUnitId = if (BuildConfig.DEBUG) "ca-app-pub-3940256099942544/2247696110" else "ca-app-pub-6647546375254792/3189297317"
 
         val adLoader = AdLoader.Builder(context, adUnitId)
             .forNativeAd { ad: NativeAd ->
+                adTrace.putAttribute("status", "success")
+                adTrace.stop()
+                logEvent("ad_load_success")
                 _nativeAd.value?.destroy()
                 _nativeAd.value = ad
                 isAdLoading = false
             }
             .withAdListener(object : AdListener() {
                 override fun onAdFailedToLoad(error: LoadAdError) {
+                    adTrace.putAttribute("status", "failed")
+                    adTrace.putAttribute("error_code", error.code.toString())
+                    adTrace.stop()
+                    logEvent("ad_load_failed", Bundle().apply {
+                        putInt("error_code", error.code)
+                        putString("error_msg", error.message)
+                    })
                     isAdLoading = false
+                }
+
+                override fun onAdClicked() {
+                    logEvent("ad_clicked")
+                }
+
+                override fun onAdImpression() {
+                    logEvent("ad_impression")
                 }
             })
             .build()
@@ -2528,11 +2687,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun fetchServices() {
         servicesJob?.cancel()
+        val servicesTrace = performance.newTrace("services_fetch_latency")
+        servicesTrace.start()
+        val cat = _servicesCategory.value
+        servicesTrace.putAttribute("category", cat.name)
+        logEvent("services_fetch_started", Bundle().apply {
+            putString("category", cat.name)
+        })
+
         servicesJob = viewModelScope.launch(Dispatchers.IO) {
             _isLoadingServices.value = true
             try {
                 val q = _servicesQuery.value.trim()
-                val cat = _servicesCategory.value
 
                 // Fetch last modified metadata for the selected category
                 launch {
@@ -2624,8 +2790,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         _partsTradeList.value = resp.result?.records ?: emptyList()
                     }
                 }
+
+                servicesTrace.putAttribute("status", "success")
+                servicesTrace.putAttribute("count", (_servicesTotalCount.value ?: 0).toString())
+                servicesTrace.stop()
+                logEvent("services_fetched", Bundle().apply {
+                    putString("category", cat.name)
+                    putInt("count", _servicesTotalCount.value ?: 0)
+                })
             } catch (e: Exception) {
-                // Retain current or empty
+                servicesTrace.putAttribute("status", "error")
+                servicesTrace.stop()
+                recordException(e)
+                logEvent("services_fetch_error", Bundle().apply {
+                    putString("category", cat.name)
+                    putString("error", e.message ?: "")
+                })
             } finally {
                 _isLoadingServices.value = false
             }

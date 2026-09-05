@@ -122,7 +122,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                 )
                 Spacer(Modifier.height(14.dp))
                 OutlinedButton(
-                    onClick = { com.avih6.vehiclecheck.util.ExternalAppUtils.openDisabledPermitApp(context) },
+                    onClick = { com.avih6.vehiclecheck.util.ExternalAppUtils.openDisabledPermitApp(context, source = "info_screen") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 ) {

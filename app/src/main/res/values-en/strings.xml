@@ -78,7 +78,11 @@
     <string name="ocr_confirm_message">Check vehicle license plate %1$s?</string>
     <string name="ocr_init_failed">Failed to initialize camera scanner</string>
     <string name="btn_camera_scan">Camera Scan</string>
-    
+    <string name="ocr_no_plate_found">No license plate detected in image</string>
+    <string name="ocr_plate_detected_searching">Detected plate: %1$s, searching...</string>
+    <string name="ocr_multiple_plates_title">Multiple License Plates Detected</string>
+    <string name="ocr_multiple_plates_desc">Select the license plate you want to check:</string>
+    <string name="ocr_processing_image">Processing image and detecting license plate...</string>
     
     <string name="settings_title">Settings</string>
     <string name="settings_theme_label">Theme:</string>

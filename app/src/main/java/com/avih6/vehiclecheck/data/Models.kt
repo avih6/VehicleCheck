@@ -158,6 +158,7 @@ data class VehicleRecord(
         return if (!model.isNullOrBlank()) model else if (!modelCode.isNullOrBlank()) modelCode else null
     }
     val effectiveVin: String? get() = if (!vin.isNullOrBlank()) vin else if (!vinAlt.isNullOrBlank()) vinAlt else vinHeavy
+    val cleanVin: String? get() = effectiveVin?.trim('*', ' ')?.ifBlank { null }
     val effectiveStandardType: String? get() = if (!standardType.isNullOrBlank()) standardType else standardTypeHeavy
     val effectiveVehicleCategory: String? get() = if (!vehicleCategory.isNullOrBlank()) vehicleCategory else vehicleCategoryHeavy
     val effectiveSeats: Int? get() = seats ?: seatsHeavy
@@ -903,6 +904,59 @@ object VehicleUtils {
             8 -> "${clean.substring(0, 3)}-${clean.substring(3, 5)}-${clean.substring(5, 8)}"
             else -> raw
         }
+    }
+
+    fun extractLicensePlateCandidates(fullText: String): List<String> {
+        val candidates = linkedSetOf<String>()
+
+        // 1. Formatted/hyphenated/spaced Israeli plate patterns:
+        // Examples: 12-345-67, 123-45-678, 12:345:67, 12 345 67, 123 45 678
+        val formattedPattern = Regex("""\b(\d{2,3})[-.:\s](\d{2,3})[-.:\s](\d{2,3})\b""")
+        formattedPattern.findAll(fullText).forEach { match ->
+            val clean = match.value.filter { it.isDigit() }
+            if (clean.length in 7..8) {
+                candidates.add(clean)
+            }
+        }
+
+        // 2. Token-level analysis on each line to extract standalone 7-8 digit plates
+        // Splitting by whitespace and punctuation prevents prepended numbers (like "Car 1: 12-345-67") from polluting the plate.
+        for (line in fullText.lines()) {
+            val tokens = line.trim().split(Regex("""[,\s/|\\;:()\[\]{}]+"""))
+            for (token in tokens) {
+                val clean = token.filter { it.isDigit() }
+                if (clean.length in 7..8 && (token.length == clean.length || token.contains("-") || token.contains("."))) {
+                    candidates.add(clean)
+                }
+            }
+        }
+
+        // 3. Fallback: Standalone 7-8 digit numbers anywhere in text
+        if (candidates.isEmpty()) {
+            val standaloneDigits = Regex("""\b\d{7,8}\b""")
+            standaloneDigits.findAll(fullText).forEach { match ->
+                candidates.add(match.value)
+            }
+        }
+
+        // 4. Fallback for older / collector vehicles (5-6 digits)
+        if (candidates.isEmpty()) {
+            val olderFormattedPattern = Regex("""\b(\d{2,3})[-.:\s](\d{2,3})\b""")
+            olderFormattedPattern.findAll(fullText).forEach { match ->
+                val clean = match.value.filter { it.isDigit() }
+                if (clean.length in 5..6) {
+                    candidates.add(clean)
+                }
+            }
+            if (candidates.isEmpty()) {
+                val olderDigits = Regex("""\b\d{5,6}\b""")
+                olderDigits.findAll(fullText).forEach { match ->
+                    candidates.add(match.value)
+                }
+            }
+        }
+
+        return candidates.toList()
     }
 
     fun formatPermitDate(dateLong: Long?): String {
