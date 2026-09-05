@@ -1,0 +1,29 @@
+﻿{
+  "project_info": {
+    "project_number": "862853482949",
+    "project_id": "vehicle-check-avih6",
+    "storage_bucket": "vehicle-check-avih6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:862853482949:android:71d785659164332597a3ac",
+        "android_client_info": {
+          "package_name": "com.avih6.vehiclecheck"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDt8WIadt_WHNYTY-4soSX_0Z4gQllW9nY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

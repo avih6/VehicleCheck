@@ -77,12 +77,12 @@ fun HistoryScreen(
                 FilterChip(
                     selected = !showOnlyFavorites,
                     onClick = { showOnlyFavorites = false },
-                    label = { Text("הכל (${history.size})") }
+                    label = { Text("${stringResource(R.string.filter_all)} (${history.size})") }
                 )
                 FilterChip(
                     selected = showOnlyFavorites,
                     onClick = { showOnlyFavorites = true },
-                    label = { Text("מועדפים (${favorites.size})") },
+                    label = { Text("${stringResource(R.string.filter_favorites)} (${favorites.size})") },
                     leadingIcon = {
                         Icon(
                             Icons.Filled.Star,
@@ -98,7 +98,7 @@ fun HistoryScreen(
                 IconButton(onClick = { showClearDialog = true }) {
                     Icon(
                         Icons.Outlined.DeleteSweep,
-                        contentDescription = "Clear History",
+                        contentDescription = stringResource(R.string.history_clear_desc),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -119,7 +119,7 @@ fun HistoryScreen(
                     )
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        text = if (showOnlyFavorites) "אין רכבים שמורים במועדפים" else stringResource(R.string.history_empty),
+                        text = if (showOnlyFavorites) stringResource(R.string.favorites_empty) else stringResource(R.string.history_empty),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -230,7 +230,7 @@ private fun HistoryItemCard(
                                 )
                                 Spacer(Modifier.width(3.dp))
                                 Text(
-                                    text = "צמ\"ה",
+                                    text = stringResource(R.string.construction_badge),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFFFF9800)
@@ -245,7 +245,8 @@ private fun HistoryItemCard(
                             ownership = item.ownership,
                             trimLevel = item.trimLevel,
                             fuel = item.fuelType,
-                            category = item.modelType
+                            category = item.modelType,
+                            year = item.year
                         )
                         Surface(
                             shape = RoundedCornerShape(6.dp),
@@ -278,34 +279,34 @@ private fun HistoryItemCard(
 
                 // Test Status summary / Retry status
                 val testText = when {
-                    isNotFound -> "לא אותר במאגר • לחץ לבדיקה חוזרת"
+                    isNotFound -> stringResource(R.string.test_status_not_found)
                     item.isOffRoad -> {
                         val rawDate = item.offRoadDate ?: item.testExpiryDate
                         val isValidDate = rawDate != null && (rawDate.contains("-") || rawDate.contains("/")) && rawDate.any { it.isDigit() } && !rawDate.contains("היסטורי") && !rawDate.contains("נגרע")
                         val offRoadDateFmt = if (isValidDate) VehicleUtils.formatDate(rawDate!!) else null
                         val timeAgo = if (isValidDate) VehicleUtils.formatTimeAgo(rawDate) else null
                         if (offRoadDateFmt != null && timeAgo != null) {
-                            "רכב לא פעיל • ירד מהכביש ב-$offRoadDateFmt ($timeAgo)"
+                            stringResource(R.string.test_status_off_road_date, offRoadDateFmt, timeAgo)
                         } else if (offRoadDateFmt != null) {
-                            "רכב לא פעיל • ירד מהכביש ב-$offRoadDateFmt"
+                            stringResource(R.string.test_status_off_road_simple, offRoadDateFmt)
                         } else {
-                            "רכב לא פעיל • נגרע ממאגר משרד התחבורה"
+                            stringResource(R.string.test_status_off_road_deregistered)
                         }
                     }
-                    item.isTestValid && item.testExpiryDate.isNullOrBlank() -> "רכב פעיל ברישיון • ללא נתוני תוקף טסט במאגר"
+                    item.isTestValid && item.testExpiryDate.isNullOrBlank() -> stringResource(R.string.test_status_active_no_data)
                     item.isTestValid -> {
                         val diff = VehicleUtils.calculateDateDifferenceHebrew(item.testExpiryDate)
-                        if (diff != null) "טסט בתוקף • $diff" else "טסט בתוקף (עוד ${item.daysUntilTest} ימים)"
+                        if (diff != null) stringResource(R.string.test_status_valid_diff, diff) else stringResource(R.string.test_status_valid_days, item.daysUntilTest)
                     }
                     !item.testExpiryDate.isNullOrBlank() -> {
                         val diff = VehicleUtils.calculateDateDifferenceHebrew(item.testExpiryDate)
-                        if (diff != null) "טסט פג תוקף • $diff" else "טסט לא בתוקף"
+                        if (diff != null) stringResource(R.string.test_status_expired_diff, diff) else stringResource(R.string.test_status_expired)
                     }
                     item.daysUntilTest < 0 -> {
                         val diff = VehicleUtils.calculateDateDifferenceHebrew(item.testExpiryDate)
-                        if (diff != null) "טסט לא בתוקף • $diff" else "טסט לא בתוקף"
+                        if (diff != null) stringResource(R.string.test_status_expired_diff, diff) else stringResource(R.string.test_status_expired)
                     }
-                    else -> "רכב לא פעיל / נגרע מהמצבה"
+                    else -> stringResource(R.string.test_status_inactive)
                 }
                 Text(
                     text = testText,
@@ -322,7 +323,7 @@ private fun HistoryItemCard(
             ) {
                 Icon(
                     imageVector = if (item.isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                    contentDescription = if (item.isFavorite) "הסר רכב זה מהמועדפים" else "הוסף רכב זה למועדפים",
+                    contentDescription = if (item.isFavorite) stringResource(R.string.fav_remove_desc) else stringResource(R.string.fav_add_desc),
                     tint = if (item.isFavorite) Color(0xFFFFB300) else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
@@ -335,7 +336,7 @@ private fun HistoryItemCard(
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Close,
-                    contentDescription = "מחק רכב זה מהיסטוריית החיפושים",
+                    contentDescription = stringResource(R.string.delete_history_item),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     modifier = Modifier.size(18.dp)
                 )

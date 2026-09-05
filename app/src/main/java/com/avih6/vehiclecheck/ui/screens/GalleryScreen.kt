@@ -143,7 +143,7 @@ fun GalleryScreen(
             b.contains("פורד") || b.contains("ford") -> listOf("FOCUS", "KUGA", "PUMA", "MUSTANG", "MUSTANG MACH-E", "EXPLORER", "RANGER", "BRONCO")
             b.contains("פיג'ו") || b.contains("peugeot") -> listOf("208", "2008", "308", "3008", "5008", "408", "508")
             b.contains("רנו") || b.contains("renault") -> listOf("CLIO", "CAPTUR", "MEGANE", "ARKANA", "AUSTRAL", "ZOE")
-            b.contains("וולוו") || b.contains("volvo") -> listOf("XC40", "XC60", "XC90", "EX30", "EX90", "S60", "V60")
+            b.contains("וולוו") || b.contains("וולבו") || b.contains("volvo") -> listOf("XC40", "XC60", "XC90", "EX30", "EX90", "S60", "V60")
             b.contains("סיאט") || b.contains("seat") -> listOf("IBIZA", "LEON", "ARONA", "ATECA", "TARRACO")
             b.contains("סוזוקי") || b.contains("suzuki") -> listOf("SWIFT", "VITARA", "S-CROSS", "IGNIS", "JIMNY")
             b.contains("הונדה") || b.contains("honda") -> listOf("CIVIC", "HR-V", "CR-V", "JAZZ", "ACCORD")

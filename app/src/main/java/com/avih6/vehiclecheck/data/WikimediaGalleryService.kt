@@ -77,13 +77,9 @@ object WikimediaGalleryService {
         }
 
         if (isBus) {
-            commonsQueries.add("Egged bus $brand")
-            commonsQueries.add("Egged $modelClean")
-            commonsQueries.add("Dan bus $brand")
             commonsQueries.add("Israel bus $brand")
             commonsQueries.add("$brand $modelClean bus")
-            commonsQueries.add("$brand O404")
-            commonsQueries.add("$brand O405")
+            commonsQueries.add("$brand bus")
         }
 
         if (isPolice) {
@@ -120,7 +116,7 @@ object WikimediaGalleryService {
 
         val wikiQueries = listOfNotNull(
             if (isAmbulance) "Magen David Adom" else null,
-            if (isBus) "Egged (transportation company)" else null,
+            if (isBus && brand.isNotBlank()) "$brand bus" else null,
             if (brand.isNotBlank() && modelClean.isNotBlank()) "$brand $modelClean" else null,
             if (brand.isNotBlank()) brand else null
         ).distinct()
@@ -130,10 +126,8 @@ object WikimediaGalleryService {
             categoryQueries.add("Category:Ambulances_in_Israel")
             categoryQueries.add("Category:Magen_David_Adom_vehicles")
         }
-        if (isBus) {
-            categoryQueries.add("Category:Egged_buses")
-            categoryQueries.add("Category:Dan_buses")
-            categoryQueries.add("Category:Buses_in_Israel")
+        if (isBus && brand.isNotBlank()) {
+            categoryQueries.add("Category:${brand.replace(" ", "_")}_buses")
         }
         if (isPolice) {
             categoryQueries.add("Category:Police_vehicles_in_Israel")
@@ -270,7 +264,8 @@ object WikimediaGalleryService {
             "benayoun", "dor daniel", "habibi", "hakol over habibi", "bennett", "netanyahu", "gaza", "genocide", "war",
             "attack", "october 7", "terror", "conflict", "protest", "memorial", "cemetery", "grave",
             "concert", "album", "cover", "band", "music", "song", "group", "person", "man", "woman", "people",
-            "headshot", "selfie", "bundesarchiv bild", "israeli singer", "portrait of"
+            "headshot", "selfie", "bundesarchiv bild", "israeli singer", "portrait of",
+            "pikiwiki", "piki_wiki", "leonard cohen", "cohen", "performance", "recital", "historical photo", "troops", "soldiers"
         )
 
         return blockedKeywords.any { combined.contains(it) }
@@ -641,6 +636,11 @@ object WikimediaGalleryService {
         }
 
         if (year != null) {
+            val yearRegex = Regex("\\b(19\\d\\d|20\\d\\d)\\b")
+            val foundYears = yearRegex.findAll(textToSearch).mapNotNull { it.value.toIntOrNull() }.toList()
+            if (foundYears.isNotEmpty() && foundYears.any { Math.abs(it - year) > 10 }) {
+                return -100000
+            }
             if (textToSearch.contains(year.toString())) {
                 score += 400
             } else if (textToSearch.contains((year - 1).toString()) || textToSearch.contains((year + 1).toString())) {
@@ -648,9 +648,7 @@ object WikimediaGalleryService {
             } else if (textToSearch.contains((year - 2).toString()) || textToSearch.contains((year + 2).toString())) {
                 score += 150
             } else {
-                // If the image explicitly specifies a very distant year (e.g. 2005 vs 2012), apply small penalty
-                val yearRegex = Regex("\\b(19\\d\\d|20\\d\\d)\\b")
-                val foundYears = yearRegex.findAll(textToSearch).mapNotNull { it.value.toIntOrNull() }.toList()
+                // If the image explicitly specifies a distant year (e.g. 2005 vs 2012), apply small penalty
                 if (foundYears.isNotEmpty() && foundYears.none { Math.abs(it - year) <= 3 }) {
                     score -= 200
                 }

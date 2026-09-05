@@ -10,6 +10,16 @@ import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
 
 class VehicleApplication : Application(), ImageLoaderFactory {
+    companion object {
+        lateinit var instance: VehicleApplication
+            private set
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        instance = this
+    }
+
     override fun newImageLoader(): ImageLoader {
         val okHttpClient = OkHttpClient.Builder()
             .connectionPool(ConnectionPool(8, 5, TimeUnit.MINUTES))

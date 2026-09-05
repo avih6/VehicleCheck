@@ -3,6 +3,9 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics.plugin)
+    alias(libs.plugins.firebase.perf.plugin)
 }
 
 android {
@@ -13,8 +16,8 @@ android {
         applicationId = "com.avih6.vehiclecheck"
         minSdk = 24
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.83.0"
+        versionCode = 4
+        versionName = "0.84.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -100,6 +103,12 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.browser)
     implementation(libs.coil.compose)
+
+    // Firebase (Analytics, Crashlytics, Performance Monitoring)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.perf)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

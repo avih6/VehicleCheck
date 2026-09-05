@@ -258,6 +258,84 @@ interface GovApiService {
         @Query("filters") filters: String,
         @Query("limit") limit: Int = 1
     ): GovApiResponse<SafetyDiscountRecord>
+
+    // 19. Diesel Emission Particulate Filters Installed (התקנת מסנני חלקיקים להפחתת פליטות)
+    @GET("api/3/action/datastore_search")
+    suspend fun getEmissionFilter(
+        @Query("resource_id") resourceId: String = "7cb2bd95-bf2e-49b6-aea1-fcb5ff6f0473",
+        @Query("filters") filters: String,
+        @Query("limit") limit: Int = 1
+    ): GovApiResponse<EmissionFilterRecord>
+
+    // 20. Ministry of Transport Authorized Garages & Test Stations (מוסכים ומכוני רישוי מורשים)
+    @GET("api/3/action/datastore_search")
+    suspend fun getGaragesAndStations(
+        @Query("resource_id") resourceId: String = "bb68386a-a331-4bbc-b668-bba2766d517d",
+        @Query("q") query: String? = null,
+        @Query("filters") filters: String? = null,
+        @Query("limit") limit: Int = 50
+    ): GovApiResponse<GarageRecord>
+
+    // 21. EV Public Charging Stations (עמדות טעינה ציבוריות לרכב חשמלי)
+    @GET("api/3/action/datastore_search")
+    suspend fun getChargingStations(
+        @Query("resource_id") resourceId: String = "528482f2-d410-4d62-8b17-566ab23a1c52",
+        @Query("q") query: String? = null,
+        @Query("filters") filters: String? = null,
+        @Query("limit") limit: Int = 50
+    ): GovApiResponse<EvChargingStationRecord>
+
+    // 22. Licensed Car Dealers (סוחרי רכב מורשים)
+    @GET("api/3/action/datastore_search")
+    suspend fun getCarDealers(
+        @Query("resource_id") resourceId: String = "eb74ad8c-ffcd-43bb-949c-2244fc8a8651",
+        @Query("q") query: String? = null,
+        @Query("filters") filters: String? = null,
+        @Query("limit") limit: Int = 50
+    ): GovApiResponse<CarDealerRecord>
+
+    // 23. Certified Vehicle Appraisers (שמאי רכב מוסמכים)
+    @GET("api/3/action/datastore_search")
+    suspend fun getAppraisers(
+        @Query("resource_id") resourceId: String = "4a434d65-3ca2-45e5-8026-5d9819c3f95c",
+        @Query("q") query: String? = null,
+        @Query("filters") filters: String? = null,
+        @Query("limit") limit: Int = 50
+    ): GovApiResponse<CarAppraiserRecord>
+
+    // 24. Parts, Import & Traffic Products (סחר, יבוא וייצור מוצרי תעבורה)
+    @GET("api/3/action/datastore_search")
+    suspend fun getPartsTrade(
+        @Query("resource_id") resourceId: String = "42e73a60-7acc-4c5d-b4ec-b0e468a73c51",
+        @Query("q") query: String? = null,
+        @Query("filters") filters: String? = null,
+        @Query("limit") limit: Int = 50
+    ): GovApiResponse<PartsTradeRecord>
+
+    // 25. Cargo Tie-Down Anchor Points (חובת נקודות עיגון לאבטחת מטען - תקנה 85ב / ת"י 2210)
+    @GET("api/3/action/datastore_search")
+    suspend fun getCargoTieDown(
+        @Query("resource_id") resourceId: String = "786b33b5-75c4-42a3-a241-b1af3c9ca487",
+        @Query("filters") filters: String,
+        @Query("limit") limit: Int = 1
+    ): GovApiResponse<CargoTieDownRecord>
+
+    // 26. Bus Fleets & Public Transit Operators (ציי אוטובוסים ומפעילי תחבורה ציבורית)
+    @GET("api/3/action/datastore_search")
+    suspend fun getBusFleet(
+        @Query("resource_id") resourceId: String = "91d298ed-a260-4f93-9d50-d5e3c5b82ce1",
+        @Query("filters") filters: String,
+        @Query("limit") limit: Int = 1
+    ): GovApiResponse<BusFleetRecord>
+
+    // 27. Monthly Deliveries by Model (מסירות רכב חודשיות לפי יצרן ודגם)
+    @GET("api/3/action/datastore_search")
+    suspend fun getMonthlyDeliveries(
+        @Query("resource_id") resourceId: String = "602ac32d-19c0-4b41-88e0-e3ce8a7e80b7",
+        @Query("filters") filters: String,
+        @Query("sort") sort: String = "sgira_month desc",
+        @Query("limit") limit: Int = 36
+    ): GovApiResponse<MonthlyDeliveryRecord>
 }
 
 object NetworkClient {

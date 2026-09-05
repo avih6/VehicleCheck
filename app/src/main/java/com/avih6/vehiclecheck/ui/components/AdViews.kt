@@ -31,7 +31,8 @@ import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdView
 
 @Composable
-fun AdBanner(modifier: Modifier = Modifier) {
+fun AdBanner(modifier: Modifier = Modifier, isScreenshotMode: Boolean = false) {
+    if (isScreenshotMode) return
     var isAdLoaded by remember { mutableStateOf(false) }
     val adUnitId = "ca-app-pub-2696004741445434/8977286943"
 

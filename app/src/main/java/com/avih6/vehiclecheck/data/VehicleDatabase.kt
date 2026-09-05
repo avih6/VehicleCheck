@@ -106,6 +106,18 @@ class HistoryRepository(private val dao: VehicleDao) {
         }
 
         val isReallyValid = isTestValid || (record != null && record.testExpiryDate == null && testStatus !is TestStatus.Expired && !isOffRoad)
+        val isTaxi = record?.vehicleCategory?.contains("מונית") == true || record?.modelType?.contains("מונית") == true
+        val savedCategory = when {
+            isTaxi -> "מונית"
+            !record?.effectiveVehicleCategory.isNullOrBlank() -> record?.effectiveVehicleCategory
+            !record?.effectiveStandardType.isNullOrBlank() -> record?.effectiveStandardType
+            else -> record?.modelType
+        }
+        val savedOwnership = when {
+            isTaxi -> if (!record?.ownership.isNullOrBlank() && record?.ownership != "פרטי") "מונית (${record?.ownership})" else "מונית (פרטי)"
+            else -> record?.ownership
+        }
+
         val entry = VehicleHistoryEntity(
             licensePlate = cleanPlate,
             make = record?.make,
@@ -116,8 +128,8 @@ class HistoryRepository(private val dao: VehicleDao) {
             testExpiryDate = record?.testExpiryDate,
             isTestValid = isReallyValid,
             daysUntilTest = daysUntilTest,
-            modelType = record?.effectiveVehicleCategory ?: record?.modelType,
-            ownership = record?.ownership,
+            modelType = savedCategory,
+            ownership = savedOwnership,
             trimLevel = record?.trimLevel,
             isOffRoad = isOffRoad,
             offRoadDate = offRoadDate,

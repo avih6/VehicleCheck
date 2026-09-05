@@ -12,6 +12,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -48,6 +49,7 @@ import java.util.Locale
 @Composable
 fun SearchScreen(
     viewModel: MainViewModel,
+    onNavigateToServices: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -105,8 +107,8 @@ fun SearchScreen(
 
     val totalCount by viewModel.dbVehicleCount.collectAsState()
     val lastUpdated by viewModel.dbLastUpdated.collectAsState()
-    val countFormatted = "%,d כלי רכב רשומים".format(totalCount ?: 8789653)
-    val updateText = if (!lastUpdated.isNullOrBlank()) "עודכן: $lastUpdated" else "עודכן: -"
+    val countFormatted = stringResource(R.string.stats_count_format, totalCount ?: 8789653)
+    val updateText = stringResource(R.string.stats_updated_format, if (!lastUpdated.isNullOrBlank()) lastUpdated!! else "-")
 
     val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
 
@@ -150,13 +152,13 @@ fun SearchScreen(
                 Spacer(Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = "מאגר כלי רכב רשמי - משרד התחבורה",
+                        text = stringResource(R.string.official_registry_title),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "בדיקת תוקף טסט, מפרט טכני, רמת בטיחות ובעלות",
+                        text = stringResource(R.string.official_registry_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -358,6 +360,10 @@ fun SearchScreen(
                             alternateVehicle = state.alternateVehicle,
                             equipmentPollution = state.equipmentPollution,
                             safetyDiscount = state.safetyDiscount,
+                            dieselFilterStatus = state.dieselFilterStatus,
+                            cargoTieDown = state.cargoTieDown,
+                            busFleet = state.busFleet,
+                            monthlyDeliveries = state.monthlyDeliveries,
                             onToggleEquipment = { viewModel.toggleEquipmentView() }
                         )
                     }
@@ -403,26 +409,71 @@ fun SearchScreen(
                     }
                 }
                 is SearchState.Idle -> {
-                    // Quick Tips Card
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                text = "מה ניתן לבדוק?",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            BulletPoint("תוקף טסט שנתי וכמה ימים נותרו")
-                            BulletPoint("שנת ייצור ומועד עלייה מדויק לכביש")
-                            BulletPoint("סוג בעלות (פרטי / חברה / ליסינג)")
-                            BulletPoint("ציון בטיחות רשמי וקבוצת זיהום")
-                            BulletPoint("דגם מנוע, מידות צמיגים ומספר שלדה")
-                            BulletPoint("בדיקת זכאות לתו נכה פעיל")
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        // Quick Tips Card
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    text = stringResource(R.string.quick_tips_title),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                BulletPoint(stringResource(R.string.tip_mot))
+                                BulletPoint(stringResource(R.string.tip_year))
+                                BulletPoint(stringResource(R.string.tip_ownership))
+                                BulletPoint(stringResource(R.string.tip_safety))
+                                BulletPoint(stringResource(R.string.tip_engine))
+                                BulletPoint(stringResource(R.string.tip_disabled))
+                                BulletPoint(stringResource(R.string.tip_diesel))
+                            }
+                        }
+
+                        if (onNavigateToServices != null) {
+                            Spacer(Modifier.height(12.dp))
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .clickable { onNavigateToServices() },
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(Icons.Default.Storefront, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    }
+                                    Spacer(Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = stringResource(R.string.services_card_title),
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = stringResource(R.string.services_card_desc),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Icon(Icons.Default.ChevronLeft, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                                }
+                            }
                         }
                     }
                 }

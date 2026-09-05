@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -45,7 +45,7 @@ import com.avih6.vehiclecheck.ui.theme.VehicleCheckTheme
 import com.google.android.gms.ads.MobileAds
 import kotlinx.coroutines.launch
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
     private val viewModel: MainViewModel by viewModels()
 
@@ -109,6 +109,17 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun recreate() {
+        if (android.os.Build.VERSION.SDK_INT >= 34) {
+            overrideActivityTransition(android.app.Activity.OVERRIDE_TRANSITION_OPEN, 0, 0)
+            overrideActivityTransition(android.app.Activity.OVERRIDE_TRANSITION_CLOSE, 0, 0)
+        } else {
+            @Suppress("DEPRECATION")
+            overridePendingTransition(0, 0)
+        }
+        super.recreate()
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -155,6 +166,18 @@ fun MainAppShell(viewModel: MainViewModel) {
             ) {
                 DrawerHeader()
                 Spacer(Modifier.height(16.dp))
+
+                NavigationDrawerItem(
+                    label = { Text(stringResource(R.string.tab_services_drawer), fontWeight = FontWeight.Bold) },
+                    selected = selectedTab == 6,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        selectedTab = 6
+                    },
+                    icon = { Icon(Icons.Default.Storefront, null, tint = MaterialTheme.colorScheme.primary) }
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                 NavigationDrawerItem(
                     label = { Text(stringResource(R.string.menu_settings)) },
@@ -235,10 +258,11 @@ fun MainAppShell(viewModel: MainViewModel) {
                             text = when (selectedTab) {
                                 0 -> stringResource(R.string.search_title)
                                 1 -> stringResource(R.string.history_title)
-                                2 -> "סטטיסטיקה ומצבת הרכבים"
-                                3 -> "קריאות חוזרות (ריקולים)"
-                                4 -> "פענוח קודי תקלה (DTC)"
-                                5 -> "גלריית רכבים"
+                                2 -> stringResource(R.string.title_statistics)
+                                3 -> stringResource(R.string.title_recalls)
+                                4 -> stringResource(R.string.title_dtc)
+                                5 -> stringResource(R.string.title_gallery)
+                                6 -> stringResource(R.string.tab_services_drawer)
                                 else -> stringResource(R.string.search_title)
                             },
                             style = MaterialTheme.typography.titleLarge.copy(
@@ -250,9 +274,9 @@ fun MainAppShell(viewModel: MainViewModel) {
                     navigationIcon = {
                         com.avih6.vehiclecheck.ui.components.HoverTooltipIconButton(
                             onClick = { scope.launch { drawerState.open() } },
-                            tooltipText = "תפריט ראשי"
+                            tooltipText = stringResource(R.string.btn_menu)
                         ) {
-                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+                            Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.btn_menu))
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -262,7 +286,10 @@ fun MainAppShell(viewModel: MainViewModel) {
             },
             bottomBar = {
                 Column {
-                    AdBanner(modifier = Modifier.fillMaxWidth())
+                    AdBanner(
+                        modifier = Modifier.fillMaxWidth(),
+                        isScreenshotMode = viewModel.isScreenshotMode
+                    )
 
                     NavigationBar(
                         containerColor = MaterialTheme.colorScheme.surface
@@ -297,10 +324,10 @@ fun MainAppShell(viewModel: MainViewModel) {
                             icon = {
                                 Icon(
                                     if (selectedTab == 2) Icons.Filled.BarChart else Icons.Outlined.BarChart,
-                                    contentDescription = "סטטיסטיקה"
+                                    contentDescription = stringResource(R.string.tab_statistics_short)
                                 )
                             },
-                            label = { Text("סטטיסטיקה", fontSize = 10.sp) },
+                            label = { Text(stringResource(R.string.tab_statistics_short), fontSize = 10.sp) },
                             modifier = Modifier.handCursor()
                         )
                         NavigationBarItem(
@@ -309,10 +336,10 @@ fun MainAppShell(viewModel: MainViewModel) {
                             icon = {
                                 Icon(
                                     if (selectedTab == 3) Icons.Filled.Warning else Icons.Outlined.WarningAmber,
-                                    contentDescription = "ריקולים"
+                                    contentDescription = stringResource(R.string.tab_recalls_short)
                                 )
                             },
-                            label = { Text("ריקולים", fontSize = 10.sp) },
+                            label = { Text(stringResource(R.string.tab_recalls_short), fontSize = 10.sp) },
                             modifier = Modifier.handCursor()
                         )
                         NavigationBarItem(
@@ -321,10 +348,10 @@ fun MainAppShell(viewModel: MainViewModel) {
                             icon = {
                                 Icon(
                                     if (selectedTab == 4) Icons.Filled.Build else Icons.Outlined.Build,
-                                    contentDescription = "תקלות"
+                                    contentDescription = stringResource(R.string.tab_dtc_short)
                                 )
                             },
-                            label = { Text("תקלות", fontSize = 10.sp) },
+                            label = { Text(stringResource(R.string.tab_dtc_short), fontSize = 10.sp) },
                             modifier = Modifier.handCursor()
                         )
                         NavigationBarItem(
@@ -333,10 +360,10 @@ fun MainAppShell(viewModel: MainViewModel) {
                             icon = {
                                 Icon(
                                     if (selectedTab == 5) Icons.Filled.Collections else Icons.Outlined.Collections,
-                                    contentDescription = "גלריה"
+                                    contentDescription = stringResource(R.string.tab_gallery_short)
                                 )
                             },
-                            label = { Text("גלריה", fontSize = 10.sp) },
+                            label = { Text(stringResource(R.string.tab_gallery_short), fontSize = 10.sp) },
                             modifier = Modifier.handCursor()
                         )
                     }
@@ -348,9 +375,14 @@ fun MainAppShell(viewModel: MainViewModel) {
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
+                androidx.activity.compose.BackHandler(enabled = selectedTab == 6) {
+                    selectedTab = 0
+                }
+
                 when (selectedTab) {
                     0 -> SearchScreen(
                         viewModel = viewModel,
+                        onNavigateToServices = { selectedTab = 6 },
                         modifier = Modifier.fillMaxSize()
                     )
                     1 -> HistoryScreen(
@@ -388,6 +420,10 @@ fun MainAppShell(viewModel: MainViewModel) {
                             modifier = Modifier.fillMaxSize()
                         )
                     }
+                    6 -> com.avih6.vehiclecheck.ui.screens.ServicesScreen(
+                        viewModel = viewModel,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
             }
         }

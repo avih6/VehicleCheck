@@ -93,7 +93,7 @@ fun StatisticsScreen(
     val lastUpdated by viewModel.dbLastUpdated.collectAsState()
     val fleetStats by viewModel.nationalFleetStats.collectAsState()
     var showFleetBreakdown by remember { mutableStateOf(false) }
-    val displayTotal = totalCount ?: fleetStats.activePrivate
+    val displayTotal = fleetStats.activePrivate
 
     val modelQuery by viewModel.modelSearchQuery.collectAsState()
     val modelSuggestions by viewModel.modelSuggestions.collectAsState()
@@ -1531,7 +1531,7 @@ fun NationalFleetTrendGraph(
                     text = when (selectedChartMode) {
                         1 -> "שיא מסירות שבועי: יום ראשון"
                         2 -> "סך מסירות מתחילת השנה: %,d".format(monthlyTotalDeliveries)
-                        else -> "סך כלי רכב בישראל: %,d".format(totalCount)
+                        else -> "מצבת כלי רכב פעילים: %,d".format(totalCount)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,

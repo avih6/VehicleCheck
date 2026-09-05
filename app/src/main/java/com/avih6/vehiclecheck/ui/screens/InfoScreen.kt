@@ -48,7 +48,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "גרסה 1.0.0",
+                    text = stringResource(R.string.version_format, "1.0.0"),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -57,11 +57,11 @@ fun InfoScreen(modifier: Modifier = Modifier) {
 
         // MOT Information
         InfoSectionCard(
-            title = "אודות מבחן הרישוי השנתי (טסט)",
+            title = stringResource(R.string.info_mot_title),
             icon = Icons.Outlined.Verified
         ) {
             Text(
-                text = "כל רכב בישראל מחויב במבחן רישוי שנתי (טסט) על מנת לנוע בכבישי הארץ. רכבים חדשים עד גיל 3 פטורים מטסט שנתי, רכבים בני 3 עד 19 שנים מחויבים בטסט פעם בשנה, ורכבים מעל גיל 19 מחויבים בטסט פעמיים בשנה ובאישור מוסך לרכב מיושן.",
+                text = stringResource(R.string.info_mot_desc),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -69,11 +69,11 @@ fun InfoScreen(modifier: Modifier = Modifier) {
 
         // Safety Ratings
         InfoSectionCard(
-            title = "רמת אבזור בטיחותי (0-8)",
+            title = stringResource(R.string.info_safety_title),
             icon = Icons.Outlined.Shield
         ) {
             Text(
-                text = "דירוג הבטיחות נקבע ע\"י משרד התחבורה ומבוסס על מערכות בטיחות אקטיביות המותקנות ברכב (כגון בלימה אוטונומית, שמירה על נתיב, התרעת שטח מת, בקרת שיוט אדפטיבית ועוד). ככל שהציון גבוה יותר, הרכב מצויד במערכות בטיחות מתקדמות יותר.",
+                text = stringResource(R.string.info_safety_desc),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -81,11 +81,11 @@ fun InfoScreen(modifier: Modifier = Modifier) {
 
         // Emission Groups
         InfoSectionCard(
-            title = "קבוצות זיהום אוויר (1-15)",
+            title = stringResource(R.string.info_emission_title),
             icon = Icons.Outlined.Eco
         ) {
             Text(
-                text = "קבוצות הזיהום נעות בין 1 ל-15, כאשר קבוצה 1 כוללת רכבים חשמליים מלאים ללא פליטות מזהמים, וקבוצה 15 כוללת רכבים בעלי פליטת מזהמים גבוהה. קבוצת הזיהום משפיעה על מס הקנייה ועל אגרת הרישוי.",
+                text = stringResource(R.string.info_emission_desc),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -108,7 +108,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                     )
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        text = "אפליקציית בדיקת תו נכה",
+                        text = stringResource(R.string.info_disabled_app_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -116,7 +116,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    text = "אפליקציה ייעודית וקלת משקל לבדיקה ממוקדת של תווי חניית נכים בזמן אמת. אידיאלית לבדיקות שטח מהירות בחניונים ובדרכים.",
+                    text = stringResource(R.string.info_disabled_app_desc),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -132,7 +132,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("פתיחה / הורדה של האפליקציה")
+                    Text(stringResource(R.string.info_disabled_app_btn))
                 }
             }
         }

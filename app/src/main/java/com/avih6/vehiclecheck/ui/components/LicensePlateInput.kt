@@ -47,7 +47,7 @@ fun LicensePlateInput(
             onValueChange(digits)
         },
         modifier = modifier.fillMaxWidth(),
-        label = { Text("מספר רכב (5 עד 8 ספרות)") },
+        label = { Text("מספר רכב או כלי צמ\"ה (עד 8 ספרות)") },
         placeholder = { Text("00-000-00") },
         leadingIcon = {
             Icon(Icons.Default.DirectionsCar, contentDescription = null)

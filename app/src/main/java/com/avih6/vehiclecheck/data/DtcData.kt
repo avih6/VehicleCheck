@@ -27,34 +27,125 @@ enum class DtcCategory(val prefix: String, val titleHe: String) {
     NETWORK("U", "תקשורת ומחשב (U)")
 }
 
+data class DtcCodeSummary(
+    val code: String,
+    val titleHe: String,
+    val titleEn: String
+)
+
 object DtcRepository {
     private val dtcMap = mutableMapOf<String, DtcCodeInfo>()
+    private val extendedCodesMap = mutableMapOf<String, DtcCodeSummary>()
+    @Volatile
+    private var isExtendedLoaded = false
 
     init {
         registerKnownCodes()
     }
 
+    fun loadDatabase(inputStream: java.io.InputStream) {
+        synchronized(extendedCodesMap) {
+            val buffered = java.io.BufferedInputStream(inputStream)
+            buffered.mark(4)
+            val header = ByteArray(2)
+            val bytesRead = buffered.read(header)
+            buffered.reset()
+
+            val isGzip = bytesRead >= 2 && (header[0] == 0x1f.toByte()) && (header[1] == 0x8b.toByte())
+            val readerStream: java.io.InputStream = if (isGzip) java.util.zip.GZIPInputStream(buffered) else buffered
+
+            readerStream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+                for (line in lines) {
+                    val parts = line.split('\t')
+                    if (parts.size >= 3) {
+                        val c = parts[0].trim().uppercase()
+                        extendedCodesMap[c] = DtcCodeSummary(c, parts[1].trim(), parts[2].trim())
+                    }
+                }
+            }
+            isExtendedLoaded = true
+        }
+    }
+
+    private fun ensureExtendedLoaded() {
+        if (isExtendedLoaded) return
+        synchronized(extendedCodesMap) {
+            if (isExtendedLoaded) return
+            try {
+                val app = try { com.avih6.vehiclecheck.VehicleApplication.instance } catch (e: Throwable) { null }
+                if (app == null) {
+                    isExtendedLoaded = true
+                    return
+                }
+                val stream = try {
+                    app.assets.open("dtc_codes.tsv")
+                } catch (e: Exception) {
+                    app.assets.open("dtc_codes.tsv.gz")
+                }
+                stream.use { rawIn ->
+                    loadDatabase(rawIn)
+                }
+            } catch (e: Throwable) {
+                try {
+                    android.util.Log.e("DtcRepository", "Failed to load DTC database", e)
+                } catch (_: Throwable) {}
+            } finally {
+                isExtendedLoaded = true
+            }
+        }
+    }
+
     fun getAllKnownCodes(): List<DtcCodeInfo> = dtcMap.values.toList()
 
     fun searchCodes(query: String, prefixFilter: String = ""): List<DtcCodeInfo> {
+        ensureExtendedLoaded()
         val q = query.trim().lowercase()
-        val baseList = if (prefixFilter.isNotBlank()) {
-            dtcMap.values.filter { it.code.startsWith(prefixFilter, ignoreCase = true) }
-        } else {
-            dtcMap.values
-        }
+        val prefix = prefixFilter.trim().uppercase()
 
         if (q.isBlank()) {
+            val baseList = if (prefix.isNotBlank()) {
+                dtcMap.values.filter { it.code.startsWith(prefix) }
+            } else {
+                dtcMap.values
+            }
             return baseList.take(20).toList()
         }
 
-        return baseList.filter { item ->
-            item.code.lowercase().contains(q) ||
-            item.titleHe.lowercase().contains(q) ||
-            item.titleEn.lowercase().contains(q) ||
-            item.categoryHe.lowercase().contains(q) ||
-            item.descriptionHe.lowercase().contains(q)
-        }.sortedByDescending { 
+        val results = mutableListOf<DtcCodeInfo>()
+        val seenCodes = mutableSetOf<String>()
+
+        // 1. First priority: Curated rich codes
+        for (item in dtcMap.values) {
+            if (prefix.isNotBlank() && !item.code.startsWith(prefix)) continue
+            if (item.code.lowercase().contains(q) ||
+                item.titleHe.lowercase().contains(q) ||
+                item.titleEn.lowercase().contains(q) ||
+                item.categoryHe.lowercase().contains(q) ||
+                item.descriptionHe.lowercase().contains(q)
+            ) {
+                results.add(item)
+                seenCodes.add(item.code)
+            }
+        }
+
+        // 2. Second priority: Comprehensive 11,900+ OBD-II codes database
+        for ((code, entry) in extendedCodesMap) {
+            if (seenCodes.contains(code)) continue
+            if (prefix.isNotBlank() && !code.startsWith(prefix)) continue
+            if (code.lowercase().contains(q) ||
+                entry.titleHe.lowercase().contains(q) ||
+                entry.titleEn.lowercase().contains(q)
+            ) {
+                val info = lookupCode(code)
+                if (info != null) {
+                    results.add(info)
+                    seenCodes.add(code)
+                    if (results.size >= 40) break
+                }
+            }
+        }
+
+        return results.sortedByDescending { 
             if (it.code.equals(q, ignoreCase = true)) 4
             else if (it.code.startsWith(q, ignoreCase = true)) 3
             else if (it.code.contains(q, ignoreCase = true)) 2
@@ -67,6 +158,10 @@ object DtcRepository {
         if (clean.isBlank()) return null
         val exact = dtcMap[clean]
         if (exact != null) return exact
+
+        // Check comprehensive 11,900+ OBD-II database
+        ensureExtendedLoaded()
+        val ext = extendedCodesMap[clean]
 
         // A valid OBD-II code MUST strictly match standard pattern: 1 letter (P, C, B, U) followed by 4 hexadecimal digits
         val obd2Regex = Regex("^[PCBU][0-9A-F]{4}$")
@@ -92,29 +187,81 @@ object DtcRepository {
             else -> "קוד OBD-II"
         }
 
-        return DtcCodeInfo(
-            code = clean,
-            titleHe = "קוד תקלה $clean ($subType)",
-            titleEn = "Diagnostic Trouble Code $clean",
-            categoryHe = system,
-            severity = if (prefix == "P" || prefix == "C") DtcSeverity.MEDIUM else DtcSeverity.LOW,
-            descriptionHe = "זוהתה תקלה תקנית במערכת $system ($subType). להסבר מפורט מומלץ לחבר סורק דיאגנוסטיקה מתקדם לצפייה בערכי Live Data ו-Freeze Frame.",
-            symptomsHe = listOf(
+        val titleHe = ext?.titleHe ?: "קוד תקלה $clean ($subType)"
+        val titleEn = ext?.titleEn ?: "Diagnostic Trouble Code $clean"
+        val descHe = if (ext != null) {
+            "${ext.titleHe} (${ext.titleEn}). זוהתה תקלה במערכת $system ($subType)."
+        } else {
+            "זוהתה תקלה תקנית במערכת $system ($subType). להסבר מפורט מומלץ לחבר סורק דיאגנוסטיקה מתקדם לצפייה בערכי Live Data ו-Freeze Frame."
+        }
+
+        val symptoms = if (prefix == "U") {
+            listOf(
+                "נורת אזהרה או 'בדוק מנוע' (Check Engine) דולקת בלוח המחוונים",
+                "קריאת קוד תקלה $clean ברשת התקשורת של הרכב (CAN-Bus)",
+                "ייתכן תפקוד לקוי או חוסר תגובה מהמערכת הקשורה"
+            )
+        } else if (prefix == "C") {
+            listOf(
+                "נורת ABS / בקרת יציבות (ESP/VSC) או נורת בלמים דולקת בלוח המחוונים",
+                "ייתכן ביטול זמני של מערכות בטיחות אקטיביות (בקרת משיכה, ABS)",
+                "קריאת קוד תקלה פעיל $clean בזיכרון מחשב הבלמים/שלדה"
+            )
+        } else if (prefix == "B") {
+            listOf(
+                "נורת כריות אוויר (Airbag / SRS) או נורת בטיחות/מרכב דולקת",
+                "ייתכן חוסר פעולה של אחד מרכיבי הנוחות או המרכב ברכב",
+                "קריאת קוד תקלה פעיל $clean במחשב המרכב (BCM)"
+            )
+        } else {
+            listOf(
                 "נורת 'בדוק מנוע' (Check Engine) או נורת אזהרה דולקת בלוח המחוונים",
-                "ייתכן שינוי בהתנהגות המערכת הרלוונטית",
-                "קריאת קוד תקלה פעיל בזיכרון מחשב הרכב (ECU/OBD)"
-            ),
-            possibleCausesHe = listOf(
+                "ייתכן שינוי בסחיבה, צריכת דלק מוגברת או תגובת מנוע לקויה",
+                "קריאת קוד תקלה פעיל $clean בזיכרון מחשב הרכב (ECU/OBD)"
+            )
+        }
+
+        val causes = if (ext != null) {
+            listOf(
+                "תקלה ברכיב: ${ext.titleHe} (${ext.titleEn})",
+                "נתק, קצר, קורוזיה או מגע רופף בצמת החיווט ובמחברים",
+                "קריאה חריגה מטווח הפעולה התקין שהוגדר על ידי היצרן",
+                "תקלת תוכנה, בעיית תיאום גרסאות או תקלה במחשב הבקרה"
+            )
+        } else {
+            listOf(
                 "קריאת חיישן חריגה או חיישן שאינו תקין",
                 "נתק, קצר או מגע רופף בצמת החיווט",
                 "בלאי באחד מרכיבי המערכת",
                 "תקלת תוכנה או צורך בכיול / איפוס מחשב"
-            ),
-            solutionsHe = listOf(
+            )
+        }
+
+        val solutions = if (ext != null) {
+            listOf(
+                "בדיקה חזותית וחשמלית של הרכיב (${ext.titleEn}) וצמת החיווט",
+                "קריאת נתוני זמן-אמת (Live Data) לבדיקת תקינות האותות",
+                "החלפת הרכיב הפגום או עדכון תוכנה לפי הנחיות היצרן",
+                "איפוס קוד התקלה ונסיעת מבחן לווידוא כי התקלה לא חוזרת"
+            )
+        } else {
+            listOf(
                 "בדיקת חיבורים חשמליים וחיווט סביב הרכיב הרלוונטי",
                 "ניקוי או החלפת הרכיב הפגום בהתאם להוראות יצרן",
                 "איפוס קוד התקלה ונסיעת מבחן לבדיקה האם התקלה חוזרת"
             )
+        }
+
+        return DtcCodeInfo(
+            code = clean,
+            titleHe = titleHe,
+            titleEn = titleEn,
+            categoryHe = system,
+            severity = if (prefix == "P" || prefix == "C") DtcSeverity.MEDIUM else DtcSeverity.LOW,
+            descriptionHe = descHe,
+            symptomsHe = symptoms,
+            possibleCausesHe = causes,
+            solutionsHe = solutions
         )
     }
 

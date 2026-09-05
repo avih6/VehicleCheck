@@ -37,7 +37,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.avih6.vehiclecheck.data.DtcCategory
 import com.avih6.vehiclecheck.data.DtcCodeInfo
 import com.avih6.vehiclecheck.data.DtcRepository
 import com.avih6.vehiclecheck.data.DtcSeverity
@@ -51,13 +50,12 @@ fun DtcScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     var query by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf(DtcCategory.ALL) }
     var selectedResult by remember { mutableStateOf<DtcCodeInfo?>(null) }
     var isGuideExpanded by remember { mutableStateOf(false) }
 
-    val liveSearchResults by remember(query, selectedCategory) {
+    val liveSearchResults by remember(query) {
         derivedStateOf {
-            DtcRepository.searchCodes(query, selectedCategory.prefix)
+            DtcRepository.searchCodes(query)
         }
     }
 
@@ -66,8 +64,8 @@ fun DtcScreen(
     }
 
     fun selectCode(code: String) {
-        query = code
         selectedResult = DtcRepository.lookupCode(code)
+        query = ""
         keyboardController?.hide()
     }
 
@@ -173,14 +171,14 @@ fun DtcScreen(
         OutlinedTextField(
             value = query,
             onValueChange = { input ->
-                query = input.uppercase().take(12)
+                query = input.uppercase().take(50)
                 if (query.isBlank()) {
                     selectedResult = null
                 } else {
-                    val exact = DtcRepository.lookupCode(query)
+                    val exact = DtcRepository.lookupCode(query.trim())
                     if (exact != null) {
                         selectedResult = exact
-                    } else if (selectedResult != null && !selectedResult!!.code.contains(query, ignoreCase = true)) {
+                    } else if (selectedResult != null && !selectedResult!!.code.equals(query.trim(), ignoreCase = true)) {
                         selectedResult = null
                     }
                 }
@@ -207,34 +205,18 @@ fun DtcScreen(
                 imeAction = ImeAction.Search
             ),
             keyboardActions = KeyboardActions(onSearch = {
-                if (query.isNotBlank()) selectCode(query)
+                keyboardController?.hide()
+                val exact = DtcRepository.lookupCode(query.trim())
+                if (exact != null) {
+                    selectedResult = exact
+                }
             }),
             shape = RoundedCornerShape(16.dp)
         )
 
         Spacer(Modifier.height(10.dp))
 
-        // Subsystem Category Filter Chips
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(DtcCategory.values()) { cat ->
-                FilterChip(
-                    selected = (selectedCategory == cat),
-                    onClick = {
-                        selectedCategory = cat
-                        if (selectedResult != null && cat.prefix.isNotBlank() && !selectedResult!!.code.startsWith(cat.prefix)) {
-                            selectedResult = null
-                        }
-                    },
-                    label = { Text(cat.titleHe, style = MaterialTheme.typography.labelMedium) },
-                    shape = RoundedCornerShape(12.dp)
-                )
-            }
-        }
 
-        Spacer(Modifier.height(8.dp))
 
         // Quick Popular Codes Row
         LazyRow(
@@ -242,8 +224,16 @@ fun DtcScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(popularCodes) { code ->
-                SuggestionChip(
-                    onClick = { selectCode(code) },
+                val isSelected = (selectedResult?.code == code)
+                FilterChip(
+                    selected = isSelected,
+                    onClick = {
+                        if (isSelected) {
+                            selectedResult = null
+                        } else {
+                            selectCode(code)
+                        }
+                    },
                     label = { Text(code, fontWeight = FontWeight.Bold, fontSize = 12.sp) },
                     shape = RoundedCornerShape(10.dp)
                 )
@@ -400,6 +390,14 @@ fun DtcScreen(
                                 )
                             }
                         }
+
+                        IconButton(onClick = { selectedResult = null }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "סגור כרטיס",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
 
                     Spacer(Modifier.height(10.dp))
@@ -529,7 +527,7 @@ fun DtcScreen(
         }
 
         // Live Search Results / Code Suggestions List
-        if (liveSearchResults.isNotEmpty()) {
+        if (selectedResult == null && liveSearchResults.isNotEmpty()) {
             Spacer(Modifier.height(16.dp))
 
             Row(
@@ -565,7 +563,6 @@ fun DtcScreen(
                             .fillMaxWidth()
                             .clickable {
                                 selectedResult = item
-                                query = item.code
                                 keyboardController?.hide()
                             },
                         shape = RoundedCornerShape(12.dp),

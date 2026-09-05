@@ -1,0 +1,148 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Vehicle Check</string>
+    <string name="app_name_full">Vehicle Check - MOT &amp; Specs</string>
+    <string name="search_title">Vehicle Check</string>
+    <string name="search_hint">License Plate</string>
+    <string name="search_btn">Check Now</string>
+    <string name="search_placeholder">Enter license plate number</string>
+    <string name="search_invalid_plate">License plate must contain 5 to 8 digits</string>
+    
+    
+    <string name="test_valid">Valid MOT Test</string>
+    <string name="test_expired">MOT Test Expired</string>
+    <string name="test_expiring_soon">Test Expiring Soon</string>
+    <string name="test_off_road">Deregistered / Off Road</string>
+    <string name="test_unknown">No MOT Information</string>
+    <string name="test_days_left">%1$d days left</string>
+    <string name="test_days_passed">%1$d days since expiration</string>
+    <string name="test_expires_today">Test expires today!</string>
+    <string name="test_expiry_date">Test Expiry: %1$s</string>
+    <string name="last_test_date">Last MOT Inspection: %1$s</string>
+    
+    
+    <string name="spec_identity">Vehicle Identification</string>
+    <string name="spec_technical">Technical Specs &amp; Safety</string>
+    <string name="spec_make_model">Make &amp; Model</string>
+    <string name="spec_year">Manufacture Year</string>
+    <string name="spec_on_road">On Road Since</string>
+    <string name="spec_color">Color</string>
+    <string name="spec_ownership">Ownership</string>
+    <string name="spec_fuel">Fuel Type</string>
+    <string name="spec_trim">Trim Level</string>
+    <string name="spec_engine">Engine Model</string>
+    <string name="spec_tires">Tire Dimensions</string>
+    <string name="spec_safety_score">Safety Score</string>
+    <string name="spec_pollution_group">Emission Group</string>
+    <string name="spec_vin">VIN (Chassis Number)</string>
+    <string name="spec_disabled_permit">Active Disabled Permit</string>
+    <string name="spec_disabled_permit_yes">This vehicle has an active disabled parking permit</string>
+    <string name="spec_disabled_permit_no">No disabled permit registered in database</string>
+    
+    
+    <string name="btn_favorite_add">Add to Favorites</string>
+    <string name="btn_favorite_remove">Remove from Favorites</string>
+    <string name="btn_share">Share Vehicle Report</string>
+    <string name="btn_copy_plate">Copy License Plate</string>
+    <string name="btn_copy_vin">Copy VIN</string>
+    <string name="copied_to_clipboard">Copied to clipboard</string>
+    <string name="share_report_title">Vehicle Check Report - %1$s</string>
+    <string name="btn_check">Check</string>
+    <string name="btn_close">Close</string>
+    <string name="btn_back">Back</string>
+    
+    
+    <string name="tab_search">Search</string>
+    <string name="tab_history">History</string>
+    <string name="tab_info">About &amp; Info</string>
+    <string name="tab_services">Services</string>
+    <string name="tab_statistics">Statistics</string>
+    <string name="tab_recalls">Recalls</string>
+    <string name="tab_dtc">OBD Fault Codes</string>
+    <string name="tab_gallery">Gallery</string>
+    
+    
+    <string name="history_title">Search History</string>
+    <string name="history_empty">No searches yet</string>
+    <string name="history_clear">Clear History</string>
+    <string name="history_clear_confirm">Delete all vehicle search history?</string>
+    <string name="btn_delete">Delete</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="favorites_title">Saved Favorites</string>
+    <string name="favorites_empty">No favorite vehicles saved</string>
+    
+    
+    <string name="camera_scan_plate">Scan License Plate</string>
+    <string name="camera_timeout_msg">Camera closed automatically to save battery</string>
+    <string name="ocr_confirm_title">License Plate Detected</string>
+    <string name="ocr_confirm_message">Check vehicle license plate %1$s?</string>
+    <string name="ocr_init_failed">Failed to initialize camera scanner</string>
+    <string name="btn_camera_scan">Camera Scan</string>
+    
+    
+    <string name="settings_title">Settings</string>
+    <string name="settings_theme_label">Theme:</string>
+    <string name="theme_system">System default</string>
+    <string name="theme_light">Light mode</string>
+    <string name="theme_dark">Dark mode</string>
+    <string name="settings_language_label">App Language:</string>
+    <string name="lang_system">System default</string>
+    <string name="lang_he">עברית (Hebrew)</string>
+    <string name="lang_en">English</string>
+    <string name="settings_dynamic_colors">Dynamic colors (Material You)</string>
+    <string name="settings_dynamic_colors_desc">Automatically matches app theme to your device wallpaper</string>
+    
+    
+    <string name="network_error">Connection error. Please check your internet connection and try again.</string>
+    <string name="not_found">Vehicle not found in Ministry of Transport registry</string>
+    <string name="dataset_source">Data based on Israel Ministry of Transport open government databases (data.gov.il)</string>
+    <string name="disclaimer_title">Legal Disclaimer</string>
+    <string name="disclaimer_text">This app does not represent any government entity. Data is provided as a public service AS-IS from Israel government open databases (data.gov.il).</string>
+    <string name="total_vehicles_gov">Total vehicles in database: ~3.8 million</string>
+
+    
+    <string name="menu_settings">Display Settings</string>
+    <string name="menu_share">Share App</string>
+    <string name="menu_rate">Rate App</string>
+    <string name="menu_contact">Contact &amp; Feedback</string>
+    <string name="menu_privacy">Privacy Policy</string>
+    <string name="menu_terms">Terms of Service</string>
+    <string name="share_app_text">"Check vehicle MOT status, specs, mileage and history with the Vehicle Check app:
+https://play.google.com/store/apps/details?id=com.avih6.vehiclecheck"</string>
+    <string name="contact_subject">Inquiry regarding Vehicle Check app</string>
+    <string name="rate_title">Enjoying the app?</string>
+    <string name="rate_message">Rate us on Google Play and help us keep improving!</string>
+    <string name="feedback_title">We\'d love your feedback</string>
+    <string name="feedback_message">Would you like to send us direct feedback by email?</string>
+    <string name="btn_continue">Continue</string>
+    <string name="btn_yes">Yes</string>
+    <string name="btn_no">No thanks</string>
+    <string name="version_format">Version %1$s</string>
+<string name="btn_menu">Main Menu</string><string name="title_statistics">Vehicle Statistics &amp; Fleet</string><string name="title_recalls">Safety Recalls</string><string name="title_dtc">OBD Fault Codes (DTC)</string><string name="title_gallery">Vehicle Image Gallery</string><string name="tab_services_drawer">Garages, Inspection &amp; EV Charging</string><string name="tab_dtc_short">Faults</string><string name="tab_recalls_short">Recalls</string><string name="tab_statistics_short">Stats</string><string name="tab_gallery_short">Gallery</string><string name="tab_services_short">Services</string><string name="app_slogan">Official Ministry of Transport Data &amp; History</string><string name="official_registry_title">Official Vehicle Registry - Ministry of Transport</string><string name="official_registry_subtitle">Check MOT validity, technical specs, safety rating &amp; ownership</string><string name="stats_count_format">%1$,d registered vehicles</string><string name="stats_updated_format">Updated: %1$s</string><string name="quick_tips_title">What can you check?</string><string name="tip_mot">Annual MOT test validity &amp; remaining days</string><string name="tip_year">Manufacture year and exact on-road date</string><string name="tip_ownership">Ownership type (Private / Company / Leasing)</string><string name="tip_safety">Official safety rating &amp; emission group</string><string name="tip_engine">Engine model, tire dimensions &amp; VIN</string><string name="tip_disabled">Active disabled parking permit check</string><string name="tip_diesel">Polluting diesel &amp; particulate filter status</string><string name="services_card_title">Garages, MOT Stations &amp; EV Charging</string><string name="services_card_desc">Find certified garages, inspection stations &amp; EV chargers nationwide</string><string name="voice_prompt">Speak the license plate number</string>
+    <string name="filter_all">All</string>
+    <string name="filter_favorites">Favorites</string>
+    <string name="history_clear_desc">Clear History</string>
+    <string name="construction_badge">HE</string>
+    <string name="fav_add_desc">Add to favorites</string>
+    <string name="fav_remove_desc">Remove from favorites</string>
+    <string name="delete_history_item">Delete from search history</string>
+    <string name="test_status_not_found">Not found in registry • Tap to retry</string>
+    <string name="test_status_off_road_date">Inactive vehicle • Deregistered on %1$s (%2$s)</string>
+    <string name="test_status_off_road_simple">Inactive vehicle • Deregistered on %1$s</string>
+    <string name="test_status_off_road_deregistered">Inactive vehicle • Deregistered from MOT registry</string>
+    <string name="test_status_active_no_data">Active registration • No MOT expiry data in registry</string>
+    <string name="test_status_valid_diff">Valid MOT • %1$s</string>
+    <string name="test_status_valid_days">Valid MOT (%1$d days left)</string>
+    <string name="test_status_expired_diff">MOT expired • %1$s</string>
+    <string name="test_status_expired">MOT expired</string>
+    <string name="test_status_inactive">Inactive / Deregistered</string>
+    <string name="info_mot_title">Annual Vehicle Inspection (MOT / Test)</string>
+    <string name="info_mot_desc">Every vehicle in Israel is required to pass an annual safety inspection (Test/MOT) to drive on public roads. New vehicles up to 3 years old are exempt, vehicles aged 3 to 19 require an annual inspection, and vehicles over 19 years old require an inspection twice a year along with a classic/aging vehicle garage certificate.</string>
+    <string name="info_safety_title">Safety Equipment Rating (0-8)</string>
+    <string name="info_safety_desc">The official safety rating is determined by the Ministry of Transport based on active safety systems installed in the vehicle (such as autonomous emergency braking, lane keep assist, blind-spot monitoring, adaptive cruise control, and more). Higher scores indicate more advanced safety equipment.</string>
+    <string name="info_emission_title">Emission Groups (1-15)</string>
+    <string name="info_emission_desc">Air pollution green groups range from 1 to 15, where group 1 represents fully electric zero-emission vehicles, and group 15 includes vehicles with high emission levels. The pollution group directly impacts purchase tax and annual licensing fees.</string>
+    <string name="info_disabled_app_title">Disabled Parking Permit Check App</string>
+    <string name="info_disabled_app_desc">A dedicated lightweight app for real-time verification of disabled parking permits. Ideal for quick on-site checks in parking lots and streets.</string>
+    <string name="info_disabled_app_btn">Open / Download the App</string>
+</resources>

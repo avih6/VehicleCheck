@@ -54,6 +54,10 @@ fun ResultCard(
     alternateVehicle: VehicleRecord? = null,
     equipmentPollution: EngineeringPollutionRecord? = null,
     safetyDiscount: SafetyDiscountRecord? = null,
+    dieselFilterStatus: DieselFilterStatus = DieselFilterStatus.NotDiesel,
+    cargoTieDown: CargoTieDownRecord? = null,
+    busFleet: BusFleetRecord? = null,
+    monthlyDeliveries: List<MonthlyDeliveryRecord> = emptyList(),
     onToggleEquipment: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -513,6 +517,27 @@ fun ResultCard(
                         }
                     }
 
+                    val isTaxi = vehicle.effectiveVehicleCategory?.contains("מונית") == true || vehicle.vehicleCategory?.contains("מונית") == true
+                    if (isTaxi && !isOffRoad) {
+                        Surface(
+                            color = Color(0xFFFFD54F).copy(alpha = 0.25f),
+                            shape = RoundedCornerShape(20.dp),
+                            border = BorderStroke(1.dp, Color(0xFFFFB300))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "🚖 מונית (רכב ציבורי)",
+                                    color = Color(0xFFE65100),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                    }
+
                     if (!isOffRoad && !isEngineeringEquipment) {
                         if (vehicle.isOfficiallyCollector) {
                             Surface(
@@ -639,18 +664,22 @@ fun ResultCard(
             )
 
             // Ownership
+            val isHeavy = (vehicle.totalWeight ?: 0) > 3500 || !vehicle.vinHeavy.isNullOrBlank() || vehicle.vehicleCategoryHeavy != null
+            val isTaxi = vehicle.effectiveVehicleCategory?.contains("מונית") == true || vehicle.vehicleCategory?.contains("מונית") == true
             val ownerStr = when {
                 isEngineeringEquipment -> "ציוד עבודה"
+                isTaxi -> if (!vehicle.ownership.isNullOrBlank()) "מונית (${vehicle.ownership})" else "מונית (ציבורי)"
                 !vehicle.ownership.isNullOrBlank() -> vehicle.ownership
+                isHeavy -> "אין במאגר (כבד)"
                 else -> "אין מידע"
             }
             val isCompany = isEngineeringEquipment || ownerStr.contains("חברה") || ownerStr.contains("ליסינג") || ownerStr.contains("השכרה") || ownerStr.contains("עבודה")
-            val hasOwnership = !vehicle.ownership.isNullOrBlank() || isEngineeringEquipment
+            val hasOwnership = !vehicle.ownership.isNullOrBlank() || isEngineeringEquipment || isTaxi
             StatusPill(
                 title = "בעלות",
                 value = ownerStr,
-                isPositive = if (hasOwnership) (!isCompany || isEngineeringEquipment) else false,
-                icon = if (isEngineeringEquipment) Icons.Default.Construction else if (!hasOwnership) Icons.Default.HelpOutline else if (isCompany) Icons.Default.Business else Icons.Default.Person,
+                isPositive = if (hasOwnership) (!isCompany || isEngineeringEquipment || isTaxi) else false,
+                icon = if (isEngineeringEquipment) Icons.Default.Construction else if (!hasOwnership) Icons.Default.HelpOutline else if (isTaxi) Icons.Default.DirectionsCar else if (isCompany) Icons.Default.Business else Icons.Default.Person,
                 modifier = Modifier.weight(1f)
             )
 
@@ -660,7 +689,7 @@ fun ResultCard(
                 is TestStatus.ExpiringSoon -> Triple(StatusPillType.WARNING, "יפוג בקרוב", Icons.Default.HourglassBottom)
                 is TestStatus.Expired -> Triple(StatusPillType.NEGATIVE, "לא בתוקף", Icons.Default.EventBusy)
                 is TestStatus.OffRoad -> Triple(StatusPillType.NEGATIVE, "לא בתוקף", Icons.Default.Cancel)
-                TestStatus.Unknown -> if (isOffRoad) Triple(StatusPillType.NEGATIVE, "לא בתוקף", Icons.Default.Cancel) else Triple(StatusPillType.WARNING, "אין מידע", Icons.Default.HelpOutline)
+                TestStatus.Unknown -> if (isOffRoad) Triple(StatusPillType.NEGATIVE, "לא בתוקף", Icons.Default.Cancel) else if (isHeavy) Triple(StatusPillType.WARNING, "ללא נתון", Icons.Default.HelpOutline) else Triple(StatusPillType.WARNING, "אין מידע", Icons.Default.HelpOutline)
             }
             StatusPill(
                 title = "טסט",
@@ -773,12 +802,16 @@ fun ResultCard(
                     recalls = recalls,
                     recallDetail = recallDetail,
                     stats = stats,
+                    dieselFilterStatus = dieselFilterStatus,
+                    safetyDiscount = safetyDiscount,
+                    cargoTieDown = cargoTieDown,
+                    busFleet = busFleet,
                     onShowAllCounts = { showStatsDialog = true }
                 )
                 1 -> TechSpecTabContent(vehicle, techSpec)
-                2 -> SafetyTabContent(vehicle, techSpec, safetyDiscount)
-                3 -> EnvironmentTabContent(vehicle, techSpec)
-                4 -> StatisticsTabContent(vehicle, stats)
+                2 -> SafetyTabContent(vehicle, techSpec, safetyDiscount, recalls)
+                3 -> EnvironmentTabContent(vehicle, techSpec, dieselFilterStatus)
+                4 -> StatisticsTabContent(vehicle, stats, monthlyDeliveries)
             }
         }
     }
@@ -799,6 +832,10 @@ private fun GeneralTabContent(
     recallDetail: RecallDetailRecord?,
     stats: ModelStatistics,
     isEngineeringEquipment: Boolean = false,
+    dieselFilterStatus: DieselFilterStatus = DieselFilterStatus.NotDiesel,
+    safetyDiscount: SafetyDiscountRecord? = null,
+    cargoTieDown: CargoTieDownRecord? = null,
+    busFleet: BusFleetRecord? = null,
     onShowAllCounts: () -> Unit
 ) {
     val context = LocalContext.current
@@ -914,6 +951,13 @@ private fun GeneralTabContent(
             }
         }
 
+        // Public Transit / Bus Fleet Operator Card (Placed at the very top above registration dates)
+        BusFleetCard(busFleet = busFleet)
+        TaxiFleetCard(vehicle = vehicle)
+
+        // Cargo Tie-Down Anchor Points (תקנה 85ב / ת"י 2210)
+        CargoTieDownCard(cargoTieDown = cargoTieDown)
+
         // MOT Test & License Dates Card (מועדי רישוי ומבחני טסט)
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -942,7 +986,8 @@ private fun GeneralTabContent(
                 Spacer(Modifier.height(12.dp))
 
                 // Last test date (טסט אחרון)
-                val lastTestFormatted = vehicle.lastTestDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע"
+                val isHeavy = (vehicle.totalWeight ?: 0) > 3500 || !vehicle.vinHeavy.isNullOrBlank() || vehicle.vehicleCategoryHeavy != null
+                val lastTestFormatted = vehicle.lastTestDate?.let { VehicleUtils.formatDate(it) } ?: if (isHeavy) "אין מידע במאגר (רכב כבד מעל 3.5 טון)" else "אין מידע במאגר"
                 SpecRow(
                     label = "טסט אחרון (מבחן רישוי אחרון):",
                     value = lastTestFormatted
@@ -1020,7 +1065,7 @@ private fun GeneralTabContent(
                         }
                     }
                 } else {
-                    val expiryFormatted = vehicle.testExpiryDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע"
+                    val expiryFormatted = vehicle.testExpiryDate?.let { VehicleUtils.formatDate(it) } ?: if (isHeavy) "אין מידע במאגר (רכב כבד מעל 3.5 טון)" else "אין מידע במאגר"
                     SpecRow(
                         label = "טסט הבא (תוקף רישיון רכב):",
                         value = expiryFormatted,
@@ -1057,26 +1102,26 @@ private fun GeneralTabContent(
                 // On-road date (מועד עלייה לכביש)
                 SpecRow(
                     label = "מועד עלייה לכביש:",
-                    value = vehicle.onRoadDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע"
+                    value = vehicle.onRoadDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע במאגר"
                 )
 
                 // First registration date (תאריך רישום ראשוני)
                 SpecRow(
                     label = "תאריך רישום ראשוני:",
-                    value = extraHistory?.firstRegistrationDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע"
+                    value = extraHistory?.firstRegistrationDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע במאגר"
                 )
             }
         }
 
         // Collector Vehicle Official Notice (רכב אספנות)
-        // Only show if not engineering equipment. Differentiate between official collector and merely age-eligible.
-        val showCollectorCard = !isEngineeringEquipment && (vehicle.isOfficiallyCollector || vehicle.isAgeCollectorEligible)
+        // Only show if not engineering equipment. Only show if officially collector or active eligible vehicle.
+        val showCollectorCard = !isEngineeringEquipment && (vehicle.isOfficiallyCollector || (!isOffRoad && vehicle.isAgeCollectorEligible))
 
         if (showCollectorCard) {
             val isOfficialCollector = vehicle.isOfficiallyCollector
             val cardColor = when {
                 isOffRoad -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                isOfficialCollector -> Color(0xFFFFB300).copy(alpha = 0.12f)
+                isOfficialCollector -> Color(0xFFFFD700).copy(alpha = 0.12f)
                 else -> Color(0xFFFF9800).copy(alpha = 0.08f)
             }
             val borderColor = when {
@@ -1105,7 +1150,7 @@ private fun GeneralTabContent(
                         )
                         Text(
                             text = when {
-                                isOffRoad -> "רכב בגיל אספנות (רישום מבוטל)"
+                                isOffRoad -> "רכב אספנות (רישום מבוטל)"
                                 isOfficialCollector -> "רכב אספנות רשמי"
                                 else -> "רכב ותיק (מעל 30 שנה)"
                             },
@@ -1121,15 +1166,15 @@ private fun GeneralTabContent(
                     Spacer(Modifier.height(8.dp))
                     when {
                         isOffRoad -> Text(
-                            text = "רכב זה עומד בקריטריון הגיל לרכב אספנות (מעל 30 שנה), אך מאחר שרישומו בוטל והוא נגרע מהמצבה (טוטאל לוס / פירוק / גריטה), לא חלים עליו הסדרי תנועה וביטוח של רכב אספנות פעיל.",
+                            text = "רכב זה היה רשום כרכב אספנות, אך מאחר שרישומו בוטל והוא נגרע מהמצבה (טוטאל לוס / פירוק / גריטה), לא חלים עליו הסדרי תנועה וביטוח של רכב אספנות פעיל.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             lineHeight = 18.sp
                         )
                         isOfficialCollector -> Text(
                             text = "• איסור נסיעה בימי חול (א'-ה') בין השעות 07:00 עד 09:00 בבוקר.\n" +
-                                    "• חובת מבחן רישוי (טסט) חצי-שנתי פעמיים בשנה.\n" +
-                                    "• פטור מבדיקת מעבדה מוסמכת לרכב מיושן.\n" +
+                                    "• חובת מבחן רישוי (טסט) פעם אחת בשנה בלבד (במקום פעמיים בשנה לרכב מיושן רגיל).\n" +
+                                    "• איסור הובלת מטען ושימוש מסחרי (לרכב מסחרי / משאית אספנות).\n" +
                                     "• זכאות לתעריפי ביטוח חובה מופחתים בהתאם לחוק.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -1147,6 +1192,12 @@ private fun GeneralTabContent(
                 }
             }
         }
+
+        // Diesel Clean Air / Particulate Filter Status Card (High-priority alert placed prominently near top)
+        DieselFilterCard(dieselFilterStatus = dieselFilterStatus)
+
+        // Safety Systems Discount Card (Annual License Fee Rebate)
+        SafetyDiscountCard(safetyDiscount = safetyDiscount)
 
         // 1. Comprehensive Vehicle Classification & Body Type Card (סיווג ומרכב הרכב)
         val bodyInfo = remember(vehicle, techSpec) { VehicleUtils.resolveBodyType(vehicle, techSpec) }
@@ -1199,7 +1250,14 @@ private fun GeneralTabContent(
                 SpecRow("קבוצת רישוי ומשקל:", legalClass, isHighlighted = true)
                 SpecRow("דרגת רישיון נדרשת:", legalLicenseNote)
 
-                val ownershipStr = vehicle.ownership ?: "אין מידע"
+                val isHeavyLegal = (vehicle.totalWeight ?: 0) > 3500 || !vehicle.vinHeavy.isNullOrBlank() || vehicle.vehicleCategoryHeavy != null
+                val isTaxiLegal = vehicle.effectiveVehicleCategory?.contains("מונית") == true || vehicle.vehicleCategory?.contains("מונית") == true
+                val ownershipStr = when {
+                    isTaxiLegal && vehicle.ownership?.contains("פרטי") == true -> "פרטי (ברישוי מונית)"
+                    !vehicle.ownership.isNullOrBlank() -> vehicle.ownership
+                    isHeavyLegal -> "אין מידע במאגר משרד התחבורה (רכב כבד מעל 3.5 טון)"
+                    else -> "אין מידע במאגר"
+                }
                 SpecRow("סוג בעלות רשומה:", ownershipStr)
 
                 // Annual licensing fee
@@ -1450,7 +1508,8 @@ private fun GeneralTabContent(
                     modifier = Modifier.padding(bottom = 10.dp)
                 )
 
-                vehicle.vin?.let { vin ->
+                val effectiveVin = vehicle.effectiveVin ?: vehicle.vin
+                if (!effectiveVin.isNullOrBlank()) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -1458,11 +1517,11 @@ private fun GeneralTabContent(
                     ) {
                         Text(text = "מספר שלדה (VIN):", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = vin, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text(text = effectiveVin, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             IconButton(
                                 onClick = {
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    clipboard.setPrimaryClip(ClipData.newPlainText("VIN", vin))
+                                    clipboard.setPrimaryClip(ClipData.newPlainText("VIN", effectiveVin))
                                     Toast.makeText(context, "מספר שלדה הועתק ללוח", Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier.size(28.dp).padding(start = 4.dp)
@@ -1471,13 +1530,16 @@ private fun GeneralTabContent(
                             }
                         }
                     }
+                } else {
+                    SpecRow("מספר שלדה (VIN):", "אין מידע במאגר")
                 }
 
-                extraHistory?.engineNumber?.let { SpecRow("מספר מנוע:", it) }
-                vehicle.engineModel?.let { SpecRow("דגם מנוע:", it) }
-                vehicle.registrationDirective?.let { SpecRow("מספר הוראת רישום:", "$it") }
-                vehicle.makeCode?.let { SpecRow("קוד תוצרת:", "$it") }
-                vehicle.modelCd?.let { SpecRow("קוד דגם משרד התחבורה:", "$it") }
+                val engineNum = extraHistory?.engineNumber ?: vehicle.engineNumber
+                SpecRow("מספר מנוע:", if (!engineNum.isNullOrBlank()) engineNum else "אין מידע במאגר")
+                SpecRow("דגם מנוע:", if (!vehicle.engineModel.isNullOrBlank()) vehicle.engineModel else "אין מידע במאגר")
+                SpecRow("מספר הוראת רישום:", vehicle.registrationDirective?.toString() ?: "אין מידע במאגר")
+                SpecRow("קוד תוצרת:", vehicle.makeCode?.toString() ?: "אין מידע במאגר")
+                SpecRow("קוד דגם משרד התחבורה:", vehicle.modelCd?.toString() ?: "אין מידע במאגר")
             }
         }
 
@@ -1544,6 +1606,393 @@ private fun GeneralTabContent(
                         modifier = Modifier.size(16.dp)
                     )
                 }
+            }
+        }
+
+    }
+}
+
+@Composable
+private fun DieselFilterCard(dieselFilterStatus: DieselFilterStatus) {
+    if (dieselFilterStatus is DieselFilterStatus.NotDiesel) return
+
+    val isRestricted = dieselFilterStatus is DieselFilterStatus.PollutingRestricted
+    val isInstalled = dieselFilterStatus is DieselFilterStatus.FilterInstalled
+    val isClean = dieselFilterStatus is DieselFilterStatus.CleanEuro
+
+    val cardColor = when {
+        isRestricted -> Color(0xFFE65100).copy(alpha = 0.14f)
+        isInstalled -> Color(0xFF2E7D32).copy(alpha = 0.14f)
+        else -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+    }
+    val borderColor = when {
+        isRestricted -> Color(0xFFFF9800).copy(alpha = 0.7f)
+        isInstalled -> Color(0xFF4CAF50).copy(alpha = 0.7f)
+        else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+    }
+    val accentColor = when {
+        isRestricted -> Color(0xFFFF9800)
+        isInstalled -> Color(0xFF4CAF50)
+        else -> MaterialTheme.colorScheme.primary
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = cardColor),
+        border = BorderStroke(1.5.dp, borderColor)
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = when {
+                    isRestricted -> Icons.Default.Warning
+                    isInstalled -> Icons.Default.CheckCircle
+                    else -> Icons.Default.Eco
+                },
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(28.dp)
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = when {
+                        isRestricted -> "רכב דיזל מזהם (חוק אוויר נקי)"
+                        isInstalled -> "הותקן מסנן חלקיקים מאושר (DPF)"
+                        else -> "רכב דיזל עומד בתקן פליטות נקי"
+                    },
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = accentColor
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = when (dieselFilterStatus) {
+                        is DieselFilterStatus.PollutingRestricted ->
+                            "מוגבל כניסה לאזורי אוויר נקי בירושלים ובחיפה. נדרשת התקנת מסנן חלקיקים מאושר לקבלת היתר כניסה."
+                        is DieselFilterStatus.FilterInstalled -> {
+                            val dateStr = if (!dieselFilterStatus.installDate.isNullOrBlank()) " בתאריך ${dieselFilterStatus.installDate.take(10)}" else ""
+                            "הותקן מסנן להפחתת פליטות$dateStr. הרכב מורשה כניסה לאזורי אוויר נקי!"
+                        }
+                        is DieselFilterStatus.CleanEuro ->
+                            "רכב דיזל בתקן פליטות יורו מתקדם, מורשה כניסה לכל אזורי הארץ."
+                        else -> ""
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    lineHeight = 18.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SafetyDiscountCard(safetyDiscount: SafetyDiscountRecord?) {
+    if (safetyDiscount == null) return
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Verified,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "זכאות להנחה באגרת רישוי (מערכות בטיחות)",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "רכב זה רשום במאגר משרד התחבורה כזכאי להנחה שנתית באגרת הרישוי בזכות התקנת מערכות בטיחות מצילות חיים (התרעת התנגשות וסטייה מנתיב בהתקנה מקומית).",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 18.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BusInfoCell(label: String, value: String, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@Composable
+private fun BusFleetCard(busFleet: BusFleetRecord?) {
+    if (busFleet == null) return
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.DirectionsBus,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "תחבורה ציבורית – מפעיל: ${busFleet.operatorName ?: "לא צוין"}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    if (!busFleet.clusterName.isNullOrBlank()) {
+                        Text(
+                            text = "אשכול קווים: ${busFleet.clusterName}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            Spacer(Modifier.height(12.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                busFleet.totalKilometer?.let { km: Long ->
+                    BusInfoCell(
+                        label = "קילומטראז' משרד התחבורה",
+                        value = "%,d ק\"מ".format(km),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                busFleet.seatsNum?.let { seats: Int ->
+                    BusInfoCell(
+                        label = "מספר מקומות ישיבה",
+                        value = "$seats מושבים",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val stone = busFleet.stoneProof ?: "לא צוין"
+                val bullet = busFleet.bulletProof ?: "לא צוין"
+                BusInfoCell(
+                    label = "מיגון אבנים",
+                    value = stone,
+                    modifier = Modifier.weight(1f)
+                )
+                BusInfoCell(
+                    label = "מיגון ירי",
+                    value = bullet,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            val hasSizeOrType = !busFleet.busSize.isNullOrBlank() || !busFleet.busType.isNullOrBlank()
+            if (hasSizeOrType) {
+                Spacer(Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val size = busFleet.busSize
+                    if (!size.isNullOrBlank()) {
+                        BusInfoCell(
+                            label = "גודל אוטובוס",
+                            value = size,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    val type = busFleet.busType
+                    if (!type.isNullOrBlank()) {
+                        BusInfoCell(
+                            label = "ייעוד אוטובוס",
+                            value = type,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TaxiFleetCard(vehicle: VehicleRecord) {
+    val isTaxi = vehicle.effectiveVehicleCategory?.contains("מונית") == true || vehicle.vehicleCategory?.contains("מונית") == true
+    if (!isTaxi) return
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
+        border = BorderStroke(1.dp, Color(0xFFFFB300).copy(alpha = 0.4f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(Color(0xFFFFD54F).copy(alpha = 0.25f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.DirectionsCar,
+                        contentDescription = null,
+                        tint = Color(0xFFE65100),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "תחבורה ציבורית – מונית מורשית",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "רשום במאגר רכבי התחבורה הציבורית של משרד התחבורה",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFFE65100),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            Spacer(Modifier.height(12.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val seats = vehicle.effectiveSeats ?: vehicle.seats
+                if (seats != null && seats > 0) {
+                    BusInfoCell(
+                        label = "מקומות ישיבה",
+                        value = "$seats נוסעים",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                val seatsNext = vehicle.effectiveSeatsNextToDriver ?: vehicle.seatsNextToDriver
+                if (seatsNext != null) {
+                    BusInfoCell(
+                        label = "ליד הנהג",
+                        value = "$seatsNext נוסעים",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                val cat = vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory
+                if (!cat.isNullOrBlank()) {
+                    BusInfoCell(
+                        label = "סיווג במאגר",
+                        value = cat,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CargoTieDownCard(cargoTieDown: CargoTieDownRecord?) {
+    if (cargoTieDown == null) return
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.35f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f))
+    ) {
+        Row(
+            modifier = Modifier.padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(MaterialTheme.colorScheme.tertiary, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Anchor,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onTertiary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "חובת נקודות עיגון לאבטחת מטען (תקנה 85ב / ת\"י 2210)",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(4.dp))
+                val weightStr = if (cargoTieDown.totalWeight != null) " (משקל כולל מורשה: %,d ק\"ג)".format(cargoTieDown.totalWeight) else ""
+                val catStr = if (!cargoTieDown.euCategory.isNullOrBlank()) " לקטגוריה ${cargoTieDown.euCategory}" else ""
+                Text(
+                    text = "הרכב מסווג כרכב מסחרי/משא$catStr$weightStr המחויב בנקודות עיגון תקניות מאושרות לפי ת\"י 2210 לצורך אבטחת מטענים ומעבר מבחן רישוי שנתי.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 18.sp
+                )
             }
         }
     }
@@ -1737,62 +2186,12 @@ private fun TechSpecTabContent(
 private fun SafetyTabContent(
     vehicle: VehicleRecord,
     techSpec: VehicleTechnicalSpecRecord?,
-    safetyDiscount: SafetyDiscountRecord? = null
+    safetyDiscount: SafetyDiscountRecord? = null,
+    recalls: List<VehicleRecallRestrictionRecord> = emptyList()
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         // Safety Discount Eligibility Card (הנחה באגרת רישוי למערכות בטיחות)
-        safetyDiscount?.let { disc ->
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(MaterialTheme.colorScheme.primary, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.Verified,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "זכאות להנחה באגרת רישוי (בטיחות)",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "התקנת מערכות בטיחות מצילות חיים",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(10.dp))
-
-                    Text(
-                        text = "רכב זה רשום במאגר משרד התחבורה כזכאי להנחה שנתית באגרת הרישוי בעקבות התקנת מערכות בטיחות מתקדמות (התרעת התנגשות מלפנים והתרעת סטייה מנתיב בהתקנה מקומית).",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 18.sp
-                    )
-                }
-            }
-        }
+        SafetyDiscountCard(safetyDiscount = safetyDiscount)
 
         // Safety Level Score Banner & Visual Bar (0 to 8)
         val scoreRaw = techSpec?.safetyEquipmentLevel ?: vehicle.safetyRating
@@ -1912,36 +2311,6 @@ private fun SafetyTabContent(
             }
         }
 
-        // Aftermarket Retrofit System Banner (if registered for government safety discount)
-        if (safetyDiscount != null) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Icon(Icons.Default.Verified, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Column {
-                        Text(
-                            text = "הותקנה מערכת התרעה בהתקנה מקומית (מובילאיי / מובון)",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = "ברכב הותקנו מערכות התרעת התנגשות מלפנים וסטייה מנתיב המזכות בהנחה באגרה. מערכות אלו מסומנות ברשימה להלן.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        }
 
         // Full Active Safety Systems Checklist (Distinguishing OEM factory equipment from aftermarket retrofit)
         Card(
@@ -1996,9 +2365,13 @@ private fun SafetyTabContent(
 @Composable
 private fun EnvironmentTabContent(
     vehicle: VehicleRecord,
-    techSpec: VehicleTechnicalSpecRecord?
+    techSpec: VehicleTechnicalSpecRecord?,
+    dieselFilterStatus: DieselFilterStatus = DieselFilterStatus.NotDiesel
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // Diesel Clean Air / Particulate Filter Status Card
+        DieselFilterCard(dieselFilterStatus = dieselFilterStatus)
+
         val groupRaw = techSpec?.emissionGroup ?: vehicle.emissionGroup
         val hasEmissionGroup = groupRaw != null && groupRaw in 1..15
 
@@ -2447,7 +2820,8 @@ private fun buildComprehensiveShareText(
 @Composable
 private fun StatisticsTabContent(
     vehicle: VehicleRecord,
-    stats: ModelStatistics
+    stats: ModelStatistics,
+    monthlyDeliveries: List<MonthlyDeliveryRecord> = emptyList()
 ) {
     val context = LocalContext.current
     val brandLogoUrl = VehicleUtils.getBrandLogoUrl(vehicle.make)
@@ -2639,6 +3013,64 @@ private fun StatisticsTabContent(
                                 modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
                                 color = if (isCurrentVehicleYear) MaterialTheme.colorScheme.primary else Color(0xFF0091EA),
                                 trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. Monthly New Vehicle Deliveries / Deliveries Breakdown
+        if (monthlyDeliveries.isNotEmpty()) {
+            val totalDeliveries = monthlyDeliveries.sumOf { it.deliveryCount ?: 0 }
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.TrendingUp,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "נתוני מסירות רכב חודשיות בישראל",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = "סה\"כ %,d רכבים מדגם זה נמסרו בתקופות המדווחות במאגר משרד התחבורה:".format(totalDeliveries),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    monthlyDeliveries.take(12).forEach { deliv ->
+                        val mRaw = deliv.closingMonth?.toString() ?: ""
+                        val formattedMonth = if (mRaw.length == 6) "${mRaw.substring(4, 6)}/${mRaw.substring(0, 4)}" else mRaw
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "חודש $formattedMonth",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "%,d מסירות".format(deliv.deliveryCount ?: 0),
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }

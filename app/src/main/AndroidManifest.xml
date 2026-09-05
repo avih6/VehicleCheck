@@ -30,6 +30,7 @@
         android:supportsRtl="true"
         android:usesCleartextTraffic="false"
         android:networkSecurityConfig="@xml/network_security_config"
+        android:localeConfig="@xml/locales_config"
         android:theme="@style/Theme.VehicleCheck"
         tools:targetApi="36">
 
@@ -43,9 +44,20 @@
             android:name="com.google.android.gms.ads.flag.NATIVE_AD_DEBUGGER_ENABLED"
             android:value="false" />
 
+        <!-- Support per-app language autoStoreLocales for Android 13+ and backward compatibility -->
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="true" />
+        </service>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:configChanges="locale|layoutDirection|orientation|screenSize|screenLayout|keyboardHidden"
             android:theme="@style/Theme.VehicleCheck"
             android:windowSoftInputMode="adjustResize|stateHidden">
             <intent-filter>

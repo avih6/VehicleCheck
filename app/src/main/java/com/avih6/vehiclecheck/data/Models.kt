@@ -190,6 +190,61 @@ data class VehicleRecord(
             else -> null
         }
     }
+
+    fun mergeWith(other: VehicleRecord?): VehicleRecord {
+        if (other == null) return this
+        return this.copy(
+            licensePlate = this.licensePlate ?: other.licensePlate,
+            make = if (!this.make.isNullOrBlank()) this.make else other.make,
+            makeCode = this.makeCode ?: other.makeCode,
+            model = if (!this.model.isNullOrBlank()) this.model else other.model,
+            modelCode = if (!this.modelCode.isNullOrBlank()) this.modelCode else other.modelCode,
+            modelCd = this.modelCd ?: other.modelCd,
+            modelType = if (!this.modelType.isNullOrBlank()) this.modelType else other.modelType,
+            trimLevel = if (!this.trimLevel.isNullOrBlank()) this.trimLevel else other.trimLevel,
+            year = this.year ?: other.year,
+            onRoadDate = if (!this.onRoadDate.isNullOrBlank()) this.onRoadDate else other.onRoadDate,
+            lastTestDate = if (!this.lastTestDate.isNullOrBlank()) this.lastTestDate else other.lastTestDate,
+            testExpiryDate = if (!this.testExpiryDate.isNullOrBlank()) this.testExpiryDate else other.testExpiryDate,
+            ownership = if (!this.ownership.isNullOrBlank()) this.ownership else other.ownership,
+            color = if (!this.color.isNullOrBlank()) this.color else other.color,
+            colorCode = this.colorCode ?: other.colorCode,
+            fuelType = if (!this.fuelType.isNullOrBlank()) this.fuelType else other.fuelType,
+            engineModel = if (!this.engineModel.isNullOrBlank()) this.engineModel else other.engineModel,
+            frontTire = if (!this.frontTire.isNullOrBlank()) this.frontTire else other.frontTire,
+            rearTire = if (!this.rearTire.isNullOrBlank()) this.rearTire else other.rearTire,
+            safetyRating = this.safetyRating ?: other.safetyRating,
+            emissionGroup = this.emissionGroup ?: other.emissionGroup,
+            vin = if (!this.vin.isNullOrBlank()) this.vin else other.vin,
+            vinAlt = if (!this.vinAlt.isNullOrBlank()) this.vinAlt else other.vinAlt,
+            vinHeavy = if (!this.vinHeavy.isNullOrBlank()) this.vinHeavy else other.vinHeavy,
+            registrationDirective = this.registrationDirective ?: other.registrationDirective,
+            engineDisplacement = this.engineDisplacement ?: other.engineDisplacement,
+            horsepower = this.horsepower ?: other.horsepower,
+            totalWeight = this.totalWeight ?: other.totalWeight,
+            curbWeight = this.curbWeight ?: other.curbWeight,
+            cargoWeight = this.cargoWeight ?: other.cargoWeight,
+            towingCapacity = this.towingCapacity ?: other.towingCapacity,
+            driveType = if (!this.driveType.isNullOrBlank()) this.driveType else other.driveType,
+            seats = this.seats ?: other.seats,
+            seatsNextToDriver = this.seatsNextToDriver ?: other.seatsNextToDriver,
+            vehicleCategory = if (!other.vehicleCategory.isNullOrBlank()) other.vehicleCategory else this.vehicleCategory,
+            standardType = if (!this.standardType.isNullOrBlank()) this.standardType else other.standardType,
+            countryOfOrigin = if (!this.countryOfOrigin.isNullOrBlank()) this.countryOfOrigin else other.countryOfOrigin,
+            feeGroupCd = this.feeGroupCd ?: other.feeGroupCd,
+            cargoBoxType = if (!this.cargoBoxType.isNullOrBlank()) this.cargoBoxType else other.cargoBoxType,
+            cargoBoxInd = this.cargoBoxInd ?: other.cargoBoxInd,
+            bodyTypeName = if (!this.bodyTypeName.isNullOrBlank()) this.bodyTypeName else other.bodyTypeName,
+            standardTypeHeavy = if (!this.standardTypeHeavy.isNullOrBlank()) this.standardTypeHeavy else other.standardTypeHeavy,
+            vehicleCategoryHeavy = if (!this.vehicleCategoryHeavy.isNullOrBlank()) this.vehicleCategoryHeavy else other.vehicleCategoryHeavy,
+            seatsHeavy = this.seatsHeavy ?: other.seatsHeavy,
+            seatsNextToDriverHeavy = this.seatsNextToDriverHeavy ?: other.seatsNextToDriverHeavy,
+            cargoWeightHeavy = this.cargoWeightHeavy ?: other.cargoWeightHeavy,
+            towingCapacityHeavy = if (!this.towingCapacityHeavy.isNullOrBlank()) this.towingCapacityHeavy else other.towingCapacityHeavy,
+            engineNumber = if (!this.engineNumber.isNullOrBlank()) this.engineNumber else other.engineNumber,
+            cancellationDate = if (!this.cancellationDate.isNullOrBlank()) this.cancellationDate else other.cancellationDate
+        )
+    }
 }
 
 @Serializable
@@ -299,40 +354,64 @@ data class DeregisteredVehicleRecord(
         val effectiveCurbWeight = curbWeightRaw?.let { if (it > 0) it else null }
         val effectiveCargoWeight = cargoWeightRaw?.let { if (it > 0) it else null }
 
-        return VehicleRecord(
-            id = id,
-            licensePlate = plate,
-            make = make,
-            makeCode = makeCd,
-            model = if (!model.isNullOrBlank()) model else modelCode,
-            modelCode = modelCode,
-            modelCd = modelCd,
-            modelType = if (!sugDegem.isNullOrBlank()) sugDegem else vehicleType,
-            trimLevel = trimLevel,
-            year = year,
-            onRoadDate = onRoadDate,
-            lastTestDate = effectiveLastTest,
-            testExpiryDate = effectiveExpiry,
-            ownership = if (!ownership.isNullOrBlank()) ownership else "פרטי",
-            color = color,
-            colorCode = null,
-            fuelType = fuelType,
-            engineModel = engineModel,
-            engineNumber = engineNumber,
-            engineDisplacement = effectiveCc,
-            totalWeight = effectiveTotalWeight,
-            curbWeight = effectiveCurbWeight,
-            driveType = effectiveDrive,
-            countryOfOrigin = countryOfOrigin,
-            standardType = standardType,
-            cancellationDate = cancellationDate,
-            frontTire = frontTire,
-            rearTire = rearTire,
-            safetyRating = null,
-            emissionGroup = null,
-            vin = rawVin,
-            registrationDirective = directive
-        )
+            val isHeavyOrCommercial = (effectiveTotalWeight ?: 0) > 3500 || 
+                standardType in listOf("N1", "N2", "N3", "M2", "M3") || 
+                make?.contains("מק") == true || make?.contains("מאק") == true || make?.contains("mack", ignoreCase = true) == true ||
+                make?.contains("סקניה") == true || make?.contains("scania", ignoreCase = true) == true ||
+                make?.contains("דאף") == true || make?.contains("daf", ignoreCase = true) == true ||
+                make?.contains("וולוו משא") == true
+
+            val derivedCategory = when {
+                !vehicleType.isNullOrBlank() -> vehicleType
+                standardType in listOf("N2", "N3") || (effectiveTotalWeight ?: 0) > 3500 -> "משאית"
+                standardType in listOf("M2", "M3") -> "אוטובוס"
+                standardType == "N1" -> "משא אחוד / מסחרי"
+                else -> null
+            }
+
+            val derivedOwnership = when {
+                !ownership.isNullOrBlank() -> ownership
+                isHeavyOrCommercial -> null
+                else -> "פרטי"
+            }
+
+            return VehicleRecord(
+                id = id,
+                licensePlate = plate,
+                make = make,
+                makeCode = makeCd,
+                model = if (!model.isNullOrBlank()) model else modelCode,
+                modelCode = modelCode,
+                modelCd = modelCd,
+                modelType = if (!sugDegem.isNullOrBlank()) sugDegem else derivedCategory,
+                trimLevel = trimLevel,
+                year = year,
+                onRoadDate = onRoadDate,
+                lastTestDate = effectiveLastTest,
+                testExpiryDate = effectiveExpiry,
+                ownership = derivedOwnership,
+                color = color,
+                colorCode = null,
+                fuelType = fuelType,
+                engineModel = engineModel,
+                engineNumber = engineNumber,
+                engineDisplacement = effectiveCc,
+                totalWeight = effectiveTotalWeight,
+                curbWeight = effectiveCurbWeight,
+                cargoWeight = effectiveCargoWeight,
+                driveType = effectiveDrive,
+                countryOfOrigin = countryOfOrigin,
+                standardType = standardType,
+                standardTypeHeavy = standardType,
+                vehicleCategory = derivedCategory,
+                cancellationDate = cancellationDate,
+                frontTire = frontTire,
+                rearTire = rearTire,
+                safetyRating = null,
+                emissionGroup = null,
+                vin = rawVin,
+                registrationDirective = directive
+            )
     }
 }
 
@@ -388,6 +467,44 @@ data class SafetyDiscountRecord(
     @SerialName("_id") val id: Long? = null,
     @SerialName("mispar_rechev") val licensePlate: Long? = null,
     @SerialName("updated_dt") val updatedDate: String? = null
+)
+
+@Serializable
+data class CargoTieDownRecord(
+    @SerialName("_id") val id: Long? = null,
+    @SerialName("mispar_rechev") val licensePlate: Long? = null,
+    @SerialName("sug_rechev_EU_cd") val euCategory: String? = null,
+    @SerialName("mishkal_kolel") val totalWeight: Int? = null
+)
+
+@Serializable
+data class BusFleetRecord(
+    @SerialName("_id") val id: Long? = null,
+    @SerialName("bus_license_id") val busLicenseId: Long? = null,
+    @SerialName("operator_nm") val operatorName: String? = null,
+    @SerialName("cluster_nm") val clusterName: String? = null,
+    @SerialName("stone_proof_nm") val stoneProof: String? = null,
+    @SerialName("bullet_proof_nm") val bulletProof: String? = null,
+    @SerialName("BusSize_nm") val busSize: String? = null,
+    @SerialName("BusType_nm") val busType: String? = null,
+    @SerialName("SeatsNum") val seatsNum: Int? = null,
+    @SerialName("production_year") val productionYear: Int? = null,
+    @SerialName("production_country") val productionCountry: String? = null,
+    @SerialName("PropulsionType_nm") val propulsionType: String? = null,
+    @SerialName("total_kilometer") val totalKilometer: Long? = null
+)
+
+@Serializable
+data class MonthlyDeliveryRecord(
+    @SerialName("_id") val id: Long? = null,
+    @SerialName("sgira_month") val closingMonth: Int? = null,
+    @SerialName("sug_degem") val modelType: String? = null,
+    @SerialName("tozeret_cd") val makeCode: Int? = null,
+    @SerialName("tozeret_nm") val makeName: String? = null,
+    @SerialName("degem_cd") val modelCode: Int? = null,
+    @SerialName("degem_nm") val modelName: String? = null,
+    @SerialName("kinuy_mishari") val commercialName: String? = null,
+    @SerialName("car_num") val deliveryCount: Int? = null
 )
 
 @Serializable
@@ -620,7 +737,11 @@ sealed interface SearchState {
         val alternateVehicleIsOffRoad: Boolean = false,
         val alternateVehicleOffRoadDate: String? = null,
         val equipmentPollution: EngineeringPollutionRecord? = null,
-        val safetyDiscount: SafetyDiscountRecord? = null
+        val safetyDiscount: SafetyDiscountRecord? = null,
+        val dieselFilterStatus: DieselFilterStatus = DieselFilterStatus.NotDiesel,
+        val cargoTieDown: CargoTieDownRecord? = null,
+        val busFleet: BusFleetRecord? = null,
+        val monthlyDeliveries: List<MonthlyDeliveryRecord> = emptyList()
     ) : SearchState
     data class NotFound(val plate: String) : SearchState
     data class Error(val message: String) : SearchState
@@ -1194,7 +1315,7 @@ object VehicleUtils {
             m.contains("הונדה") || m.contains("honda") -> "honda"
             m.contains("סוזוקי") || m.contains("suzuki") -> "suzuki"
             m.contains("סיאט") || m.contains("seat") -> "seat"
-            m.contains("וולוו") || m.contains("volvo") -> "volvo"
+            m.contains("וולוו") || m.contains("וולבו") || m.contains("volvo") -> "volvo"
             m.contains("מיצובישי") || m.contains("mitsubishi") -> "mitsubishi"
             m.contains("בי ואי די") || m.contains("בי.ואי.די") || m.contains("בי וי די") || m.contains("בי.וויי.די") || m.contains("ביוואידי") || m.contains("byd") || m.contains("b.y.d") -> "byd"
             m.contains("מ.ג") || m.contains("מ.ג.") || m.contains("מ ג") || m.contains("אם ג'י") || m.contains("אם.ג'י") || m.contains("אי אם ג'י") || m.contains("mg") || m.contains("m.g") -> "mg"
@@ -1726,7 +1847,8 @@ object VehicleUtils {
         ownership: String? = null,
         trimLevel: String? = null,
         fuel: String? = null,
-        category: String? = null
+        category: String? = null,
+        year: Int? = null
     ): String {
         val m = model.orEmpty().lowercase()
         val mk = make.orEmpty().lowercase()
@@ -1736,15 +1858,24 @@ object VehicleUtils {
         val cat = category.orEmpty().lowercase()
         val combined = "$m $mk $t $o $tl $cat"
 
+        val isOldVehicle = year != null && year > 1900 && ((LocalDate.now().year - year) >= 30)
+        val isOfficialCollector = combined.contains("אספנות") || t.contains("רכב אספנות") || o.contains("אספנות")
+
         return when {
-            // 0. Trailers & Semi-trailers (גרורים ונתמכים - נצר סירני וכו')
+            // 0. Taxis & Public Transport Passenger Vehicles (מוניות)
+            combined.contains("זוטובוס") || combined.contains("מונית שירות") -> "🚖 מונית שירות"
+            combined.contains("מונית") || o.contains("מונית") || t.contains("מונית") || cat.contains("מונית") || m.contains("מונית") -> "🚖 מונית"
+
+            // 0a. Trailers & Semi-trailers (גרורים ונתמכים - נצר סירני וכו')
             combined.contains("סירני") || combined.contains("נתמך") || combined.contains("גרור") || 
             combined.contains("נגרר") || combined.contains("trailer") || combined.contains("o4") || 
             combined.contains("o3") || combined.contains("o2") || combined.contains("o1") -> "🚛 נתמך / גרור"
 
             // 0b. Heavy Machinery / Construction (צמ"ה)
             combined.contains("הנדסי") || combined.contains("צמ\"ה") || combined.contains("צמה") || 
-            mk.contains("קטרפילר") || mk.contains("komatsu") || mk.contains("caterpillar") || mk.contains("jcb") || mk.contains("bobcat") -> "🚜 ציוד הנדסי"
+            combined.contains("מלגזה") || combined.contains("מחפר") || combined.contains("טרקטור") ||
+            mk.contains("קטרפילר") || mk.contains("komatsu") || mk.contains("caterpillar") || mk.contains("jcb") ||
+            mk.contains("bobcat") || mk.contains("maxilift") || mk.contains("מקסיליפט") -> "🚜 ציוד הנדסי"
 
             // 1. Ambulance & Emergency Vehicles (מד"א / איחוד הצלה / אמבולנס / ספרינטר מד"א)
             combined.contains("אמבולנס") || combined.contains("ambulance") || combined.contains("הצלה") ||
@@ -1752,10 +1883,11 @@ object VehicleUtils {
             combined.contains("מדא") || (mk.contains("מרצדס") && (m.contains("ספרינטר") || m.contains("sprinter")) && (o.contains("חברה") || o.contains("עירייה") || t.contains("בטחון") || t.contains("מיוחד"))) -> "🚑 אמבולנס"
 
             // 2. Bus & Minibus (אוטובוס / אוטובוס זעיר)
-            combined.contains("אוטובוס") || combined.contains("bus") || combined.contains("o404") || combined.contains("o405") ||
+            combined.contains("זעיר") && (combined.contains("אוטובוס") || t.contains("m2") || cat.contains("m2")) -> "🚐 אוטובוס זעיר"
+            combined.contains("אוטובוס") || combined.contains("bus") || t.contains("m2") || t.contains("m3") ||
+            cat.contains("m2") || cat.contains("m3") || combined.contains("o404") || combined.contains("o405") ||
             combined.contains("tourismo") || combined.contains("citaro") || combined.contains("travego") || combined.contains("b12") ||
-            combined.contains("b7") || combined.contains("centroliner") || combined.contains("lion") || (mk.contains("מרצדס") && m.contains("o 404")) ||
-            t.contains("אוטובוס") || cat.contains("אוטובוס") -> "🚌 אוטובוס"
+            combined.contains("b7") || combined.contains("centroliner") || combined.contains("lion") || (mk.contains("מרצדס") && m.contains("o 404")) -> "🚌 אוטובוס"
 
             // 3. Commercial Vans & Transporters (הייאס, טרנזיט, קנגו, ברלינגו, דוקאטו, טרנספורטר, ספרינטר, קאדי, סוואנה)
             m.contains("hiace") || m.contains("הייאס") || m.contains("היאס") || m.contains("transit") || m.contains("טרנזיט") ||
@@ -1777,10 +1909,15 @@ object VehicleUtils {
 
             // 5. Heavy Trucks (משאית / משא כבד)
             combined.contains("משאית") || combined.contains("משא כבד") || t.contains("משא") || cat.contains("משא") || 
+            t.contains("n2") || t.contains("n3") || cat.contains("n2") || cat.contains("n3") ||
+            combined.contains("n2") || combined.contains("n3") ||
             m.contains("משא") || m.contains("actros") || m.contains("atego") || m.contains("axor") || m.contains("fh") || 
             m.contains("fm") || m.contains("tgx") || m.contains("tgs") || m.contains("tgl") || m.contains("stralis") || 
             m.contains("eurocargo") || m.contains("scania") || m.contains("man ") || mk.contains("סקניה") ||
-            mk.contains("דאף") || mk.contains("daf") || mk.contains("מאק") || mk.contains("mack") -> "🚚 משא / מסחרי"
+            mk.contains("דאף") || mk.contains("daf") || mk.contains("מאק") || mk.contains("mack") ||
+            mk == "מק" || mk.startsWith("מק ") || mk.endsWith(" מק") -> {
+                if (isOfficialCollector) "🚚 משאית אספנות" else "🚚 משא / מסחרי"
+            }
 
             // 6. Motorcycles & Scooters (אופנוע / קטנוע)
             combined.contains("אופנוע") || combined.contains("קטנוע") || combined.contains("scooter") || combined.contains("motorcycle") ||
@@ -1827,8 +1964,8 @@ object VehicleUtils {
             m.contains("סוויפט") || m.contains("ignis") || m.contains("איגניס") || m.contains("aygo") || m.contains("אייגו") ||
             m.contains("leaf") || m.contains("ליף") || m.contains("zoe") || m.contains("dolphin") || m.contains("דולפין") -> "🚗 הצ'בק"
 
-            // 10. Vintage / Collector
-            combined.contains("אספנות") || (t.contains("רכב אספנות")) -> "🏆 אספנות"
+            // 10. Vintage / Collector (רק אם רשום רשמית כאספנות במאגר!)
+            isOfficialCollector -> "🏆 אספנות"
 
             // 11. Default Passenger Car (פרטי / סדאן / מנהלים)
             else -> "🚗 רכב פרטי"
@@ -2356,4 +2493,136 @@ object VehicleModelCatalog {
         .sortedByDescending { it.second }
         .map { it.first }
     }
+}
+
+@Serializable
+data class EmissionFilterRecord(
+    @Serializable(with = FlexibleLongSerializer::class) @SerialName("_id") val id: Long? = null,
+    @Serializable(with = FlexibleLongSerializer::class) @SerialName("mispar_rechev") val licensePlate: Long? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("sug_rechev_EU_cd") val euCategory: String? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("shnat_yitzur") val year: Int? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("rishum_rishon_dt") val firstRegistrationDate: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("taarich_hatkana") val installDate: String? = null
+)
+
+sealed class DieselFilterStatus {
+    object NotDiesel : DieselFilterStatus()
+    data class FilterInstalled(val installDate: String?) : DieselFilterStatus()
+    data class PollutingRestricted(val reason: String) : DieselFilterStatus()
+    object CleanEuro : DieselFilterStatus()
+}
+
+@Serializable
+data class GarageRecord(
+    @Serializable(with = FlexibleLongSerializer::class) @SerialName("_id") val id: Long? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("mispar_mosah") val garageNumber: Int? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("shem_mosah") val garageName: String? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("cod_sug_mosah") val typeCode: Int? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("sug_mosah") val garageType: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("ktovet") val address: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("yishuv") val city: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("telephone") val phone: String? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("mikud") val postalCode: Int? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("cod_miktzoa") val specialtyCode: Int? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("miktzoa") val specialty: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("menahel_miktzoa") val managerName: String? = null
+) {
+    val isTestStation: Boolean get() = garageType?.contains("רישוי") == true || specialty?.contains("רישוי") == true
+}
+
+@Serializable
+data class EvChargingStationRecord(
+    @Serializable(with = FlexibleLongSerializer::class) @SerialName("_id") val id: Long? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("OID") val oid: Int? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("OBJECTID") val objectId: Int? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("op") val operator: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("name") val stationName: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("Address") val address: String? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("count") val totalSockets: Int? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("cnt_fast") val fastSockets: Int? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("cnt_slow") val slowSockets: Int? = null
+) {
+    val hasFastCharging: Boolean get() = (fastSockets ?: 0) > 0
+}
+
+enum class ServicesCategory(val titleHe: String, val resourceId: String) {
+    TEST_STATIONS("מכוני רישוי (טסט)", "bb68386a-a331-4bbc-b668-bba2766d517d"),
+    GARAGES("מוסכים מורשים", "bb68386a-a331-4bbc-b668-bba2766d517d"),
+    EV_CHARGING("עמדות טעינה (EV)", "528482f2-d410-4d62-8b17-566ab23a1c52"),
+    CAR_DEALERS("סוחרי רכב מורשים", "eb74ad8c-ffcd-43bb-949c-2244fc8a8651"),
+    APPRAISERS("שמאי רכב מוסמכים", "4a434d65-3ca2-45e5-8026-5d9819c3f95c"),
+    PARTS_TRADE("חלפים ומוצרי תעבורה", "42e73a60-7acc-4c5d-b4ec-b0e468a73c51")
+}
+
+@Serializable
+data class CarDealerRecord(
+    @Serializable(with = FlexibleLongSerializer::class) @SerialName("_id") val id: Long? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("shem") val name: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("yishuv") val city: String? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("mikud") val postalCode: Int? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("ktovet") val address: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("het_pei") val companyId: String? = null
+)
+
+@Serializable
+data class CarAppraiserRecord(
+    @Serializable(with = FlexibleLongSerializer::class) @SerialName("_id") val id: Long? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("mispar_rishayon") val licenseNumber: Int? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("shem_prati") val firstName: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("shem_mishpaha") val lastName: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("yishuv") val city: String? = null
+) {
+    val fullName: String get() = listOfNotNull(firstName, lastName).joinToString(" ").trim()
+}
+
+@Serializable
+data class PartsTradeRecord(
+    @Serializable(with = FlexibleLongSerializer::class) @SerialName("_id") val id: Long? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("mispar_esek") val businessNumber: Int? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("shem_esek") val businessName: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("sug_esek") val businessType: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("yishuv") val city: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("ktovet") val address: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("telephone") val phone: String? = null,
+    @Serializable(with = FlexibleIntSerializer::class) @SerialName("cod_isuk") val occupationCode: Int? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("isuk") val occupation: String? = null
+)
+
+data class GarageSpecialtyOption(
+    val title: String,
+    val dbValues: List<String>
+)
+
+data class TestStationSpecialtyOption(
+    val title: String,
+    val dbValue: String?
+)
+
+object ServicesSpecialties {
+    val garageOptions = listOf(
+        GarageSpecialtyOption("הכל", emptyList()),
+        GarageSpecialtyOption("מכונאות", listOf("מכונאות רכב בנזין", "מכונאות רכב דיזל", "מכונאות דיזל משאיות ואוטובוסים")),
+        GarageSpecialtyOption("מיזוג ומזגנים", listOf("שירות תיקון למזגן אויר לרכב")),
+        GarageSpecialtyOption("חשמל רכב", listOf("חשמלאות רכב")),
+        GarageSpecialtyOption("חשמלי / היברידי", listOf("תיקון אחזקת רכב חשמלי/היברידי")),
+        GarageSpecialtyOption("פחחות וצבע", listOf("תיקון מרכבי רכב", "צבעות רכב", "אוטוטק מרכבי רכב וצביעתם")),
+        GarageSpecialtyOption("צמיגים", listOf("תיקון והחלפת צמיגים", "אוטוטק תיקון והחלפת צמיגים")),
+        GarageSpecialtyOption("כיוון מתלים ופרונט", listOf("תיקון וכוון מתלים ברכב")),
+        GarageSpecialtyOption("תיבות הילוכים", listOf("תיקון תיבות הילוכים אוטומטיות"))
+    )
+
+    val testStationOptions = listOf(
+        TestStationSpecialtyOption("הכל", null),
+        TestStationSpecialtyOption("רישוי שנתי (טסט)", "מכון רישוי-פתוח לשרות הציבור"),
+        TestStationSpecialtyOption("בדיקת קנייה ומכירה", "בדיקות-רכב )קניה ומכירה)"),
+        TestStationSpecialtyOption("בדיקה לאחר תאונה", "בדיקת רכב לאחר תאונה"),
+        TestStationSpecialtyOption("בדיקות עשן דיזל", "בדיקות עשן ברכב דיזל"),
+        TestStationSpecialtyOption("כוון מתלים ופרונט", "תיקון וכוון מתלים ברכב")
+    )
+
+    val evFilterOptions = listOf(
+        "הכל",
+        "טעינה מהירה (DC)",
+        "טעינה רגילה (AC)"
+    )
 }

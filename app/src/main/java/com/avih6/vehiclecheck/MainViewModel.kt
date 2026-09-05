@@ -11,6 +11,7 @@ import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.nativead.NativeAd
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
@@ -18,8 +19,15 @@ import kotlinx.coroutines.launch
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
+
+    // TOGGLE FOR SCREENSHOTS - SET TO TRUE FOR PLAY STORE SCREENSHOTS, FALSE FOR PRODUCTION
+    private val IS_SCREENSHOT_MODE = false
+    val isScreenshotMode: Boolean get() = IS_SCREENSHOT_MODE
 
     private val prefs = application.getSharedPreferences("vehicle_check_prefs", Context.MODE_PRIVATE)
     private val database = AppDatabase.getDatabase(application)
@@ -48,9 +56,252 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val searchState: StateFlow<SearchState> = _searchState.asStateFlow()
 
     val searchHistory: StateFlow<List<VehicleHistoryEntity>> = repository.allHistory
+        .map { list ->
+            if (IS_SCREENSHOT_MODE) {
+                val now = LocalDate.now()
+                val zone = ZoneId.systemDefault()
+                fun getTimestamp(date: LocalDate, hour: Int, minute: Int): Long {
+                    return date.atTime(hour, minute).atZone(zone).toInstant().toEpochMilli()
+                }
+
+                listOf(
+                    // Multiple searches for today
+                    VehicleHistoryEntity(
+                        id = -1,
+                        licensePlate = "12-345-67",
+                        make = "טויוטה",
+                        model = "ראב 4 היברידי",
+                        year = 2024,
+                        color = "לבן פנינה",
+                        fuelType = "בנזין-חשמלי (היברידי)",
+                        testExpiryDate = "2027-02-15",
+                        isTestValid = true,
+                        daysUntilTest = 345,
+                        ownership = "פרטי",
+                        trimLevel = "E-MOTION 4X4",
+                        isFavorite = true,
+                        timestamp = getTimestamp(now, 10, 15)
+                    ),
+                    VehicleHistoryEntity(
+                        id = -2,
+                        licensePlate = "56-661-26",
+                        make = "קיה",
+                        model = "נירו הייבריד",
+                        year = 2023,
+                        color = "כסוף מטאלי",
+                        fuelType = "בנזין-חשמלי (היברידי)",
+                        testExpiryDate = "2027-01-02",
+                        isTestValid = true,
+                        daysUntilTest = 301,
+                        ownership = "מונית (פרטי)",
+                        trimLevel = "PLATINUM",
+                        isFavorite = false,
+                        timestamp = getTimestamp(now, 11, 45)
+                    ),
+                    VehicleHistoryEntity(
+                        id = -3,
+                        licensePlate = "87-654-32",
+                        make = "יונדאי",
+                        model = "איוניק 5",
+                        year = 2024,
+                        color = "אפור מט",
+                        fuelType = "חשמלי מלא",
+                        testExpiryDate = "2027-04-20",
+                        isTestValid = true,
+                        daysUntilTest = 410,
+                        ownership = "פרטי",
+                        trimLevel = "LUXURY EV",
+                        isFavorite = true,
+                        timestamp = getTimestamp(now, 16, 30)
+                    ),
+
+                    // Yesterday
+                    VehicleHistoryEntity(
+                        id = -4,
+                        licensePlate = "31-770-39",
+                        make = "מ.א.ן",
+                        model = "CO 19.360 E6",
+                        year = 2016,
+                        color = "לבן",
+                        fuelType = "דיזל",
+                        testExpiryDate = "2027-02-07",
+                        isTestValid = true,
+                        daysUntilTest = 337,
+                        ownership = "תחבורה ציבורית",
+                        trimLevel = "אוטובוס בינעירוני",
+                        isFavorite = false,
+                        timestamp = getTimestamp(now.minusDays(1), 14, 20)
+                    ),
+                    VehicleHistoryEntity(
+                        id = -5,
+                        licensePlate = "175",
+                        make = "Maxilift",
+                        model = "175 (מלגזה/מחפר)",
+                        year = 2022,
+                        color = "צהוב תעשייתי",
+                        fuelType = "דיזל",
+                        testExpiryDate = "2026-11-30",
+                        isTestValid = true,
+                        daysUntilTest = 86,
+                        ownership = "ציוד עבודה",
+                        isEngineeringEquipment = true,
+                        isFavorite = false,
+                        timestamp = getTimestamp(now.minusDays(1), 16, 10)
+                    ),
+
+                    // 2 days ago
+                    VehicleHistoryEntity(
+                        id = -6,
+                        licensePlate = "234-05-002",
+                        make = "וולבו",
+                        model = "B13R E6",
+                        year = 2024,
+                        color = "לבן",
+                        fuelType = "דיזל",
+                        testExpiryDate = "2027-09-30",
+                        isTestValid = true,
+                        daysUntilTest = 572,
+                        ownership = "תחבורה ציבורית",
+                        trimLevel = "אוטובוס תיירותי",
+                        isFavorite = false,
+                        timestamp = getTimestamp(now.minusDays(2), 10, 10)
+                    ),
+                    VehicleHistoryEntity(
+                        id = -7,
+                        licensePlate = "99-887-66",
+                        make = "ימאהה",
+                        model = "MT-07",
+                        year = 2022,
+                        color = "שחור",
+                        fuelType = "בנזין",
+                        testExpiryDate = "2026-08-15",
+                        isTestValid = false,
+                        daysUntilTest = -21,
+                        ownership = "פרטי",
+                        trimLevel = "אופנוע כביש",
+                        isFavorite = false,
+                        timestamp = getTimestamp(now.minusDays(2), 12, 30)
+                    ),
+                    VehicleHistoryEntity(
+                        id = -8,
+                        licensePlate = "44-556-77",
+                        make = "מאזדה",
+                        model = "3",
+                        year = 2015,
+                        color = "אדום מטאלי",
+                        fuelType = "בנזין",
+                        testExpiryDate = "2023-05-12",
+                        isTestValid = false,
+                        daysUntilTest = -846,
+                        ownership = "פרטי",
+                        isOffRoad = true,
+                        offRoadDate = "2023-05-12",
+                        isFavorite = false,
+                        timestamp = getTimestamp(now.minusDays(2), 17, 0)
+                    ),
+
+                    // Older
+                    VehicleHistoryEntity(
+                        id = -9,
+                        licensePlate = "77-889-90",
+                        make = "אלפא רומיאו",
+                        model = "ספיידר 2.0",
+                        year = 1985,
+                        color = "אדום קלאסי",
+                        fuelType = "בנזין",
+                        testExpiryDate = "2027-05-01",
+                        isTestValid = true,
+                        daysUntilTest = 421,
+                        ownership = "רכב אספנות",
+                        trimLevel = "VELOCE SPIDER",
+                        isFavorite = true,
+                        timestamp = getTimestamp(now.minusDays(3), 11, 15)
+                    ),
+                    VehicleHistoryEntity(
+                        id = -10,
+                        licensePlate = "246-04-601",
+                        make = "רנו",
+                        model = "D12",
+                        year = 2018,
+                        color = "לבן",
+                        fuelType = "דיזל",
+                        testExpiryDate = null,
+                        isTestValid = false,
+                        daysUntilTest = 0,
+                        ownership = null,
+                        trimLevel = "משאית חלוקה 12 טון",
+                        isFavorite = false,
+                        timestamp = getTimestamp(now.minusDays(3), 15, 45)
+                    )
+                )
+            } else {
+                list
+            }
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val favorites: StateFlow<List<VehicleHistoryEntity>> = repository.favorites
+        .map { list ->
+            if (IS_SCREENSHOT_MODE) {
+                val now = LocalDate.now()
+                val zone = ZoneId.systemDefault()
+                fun getTimestamp(date: LocalDate, hour: Int, minute: Int): Long {
+                    return date.atTime(hour, minute).atZone(zone).toInstant().toEpochMilli()
+                }
+                listOf(
+                    VehicleHistoryEntity(
+                        id = -1,
+                        licensePlate = "12-345-67",
+                        make = "טויוטה",
+                        model = "ראב 4 היברידי",
+                        year = 2024,
+                        color = "לבן פנינה",
+                        fuelType = "בנזין-חשמלי (היברידי)",
+                        testExpiryDate = "2027-02-15",
+                        isTestValid = true,
+                        daysUntilTest = 345,
+                        ownership = "פרטי",
+                        trimLevel = "E-MOTION 4X4",
+                        isFavorite = true,
+                        timestamp = getTimestamp(now, 10, 15)
+                    ),
+                    VehicleHistoryEntity(
+                        id = -3,
+                        licensePlate = "87-654-32",
+                        make = "יונדאי",
+                        model = "איוניק 5",
+                        year = 2024,
+                        color = "אפור מט",
+                        fuelType = "חשמלי מלא",
+                        testExpiryDate = "2027-04-20",
+                        isTestValid = true,
+                        daysUntilTest = 410,
+                        ownership = "פרטי",
+                        trimLevel = "LUXURY EV",
+                        isFavorite = true,
+                        timestamp = getTimestamp(now, 16, 30)
+                    ),
+                    VehicleHistoryEntity(
+                        id = -9,
+                        licensePlate = "77-889-90",
+                        make = "אלפא רומיאו",
+                        model = "ספיידר 2.0",
+                        year = 1985,
+                        color = "אדום קלאסי",
+                        fuelType = "בנזין",
+                        testExpiryDate = "2027-05-01",
+                        isTestValid = true,
+                        daysUntilTest = 421,
+                        ownership = "רכב אספנות",
+                        trimLevel = "VELOCE SPIDER",
+                        isFavorite = true,
+                        timestamp = getTimestamp(now.minusDays(3), 11, 15)
+                    )
+                )
+            } else {
+                list
+            }
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _nationalFleetStats = MutableStateFlow(NationalFleetStats())
@@ -72,6 +323,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         fetchDatabaseStats()
+        if (IS_SCREENSHOT_MODE) {
+            resetSearchState()
+            _dbVehicleCount.value = 3985420
+            _dbLastUpdated.value = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+        }
     }
 
     private fun fetchDatabaseStats() {
@@ -148,8 +404,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun search() {
         val plate = _query.value.trim()
-        if (plate.length !in 5..8) {
-            _searchState.value = SearchState.Error("מספר הרכב חייב להכיל בין 5 ל-8 ספרות")
+        if (plate.isEmpty() || plate.length > 8) {
+            _searchState.value = SearchState.Error("מספר הרכב או כלי הצמ\"ה חייב להכיל עד 8 ספרות")
             return
         }
         performSearch(plate)
@@ -158,7 +414,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun searchPlateDirect(plate: String, preferEngineeringEquipment: Boolean = false) {
         val clean = plate.filter { it.isDigit() }.take(8)
         _query.value = clean
-        if (clean.length in 5..8) {
+        if (clean.isNotEmpty() && clean.length <= 8) {
             performSearch(clean, preferEngineeringEquipment)
         }
     }
@@ -171,6 +427,83 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _nativeAd.value = null
 
             try {
+                if (IS_SCREENSHOT_MODE) {
+                    val cleanQuery = plateStr.filter { it.isDigit() }
+                    when (cleanQuery) {
+                        "1234567", "12345678" -> {
+                            val mockVehicle = VehicleRecord(
+                                id = 1234567,
+                                licensePlate = 1234567,
+                                make = "טויוטה",
+                                makeCode = 111,
+                                model = "RAV4 HYBRID",
+                                modelCode = "AXAH54",
+                                modelCd = 452,
+                                trimLevel = "E-MOTION 4X4",
+                                year = 2024,
+                                onRoadDate = "2024-02",
+                                lastTestDate = "2026-02-15",
+                                testExpiryDate = "2027-02-15",
+                                ownership = "פרטי",
+                                color = "לבן פנינה",
+                                fuelType = "בנזין-חשמלי (היברידי)",
+                                engineModel = "A25A-FXS",
+                                frontTire = "225/60R18",
+                                rearTire = "225/60R18",
+                                safetyRating = 7,
+                                emissionGroup = 2,
+                                vin = "JTMB6RFV50D123456",
+                                registrationDirective = 240182,
+                                engineDisplacement = 2487,
+                                horsepower = 222,
+                                totalWeight = 2225,
+                                curbWeight = 1735,
+                                driveType = "4X4",
+                                seats = 5,
+                                vehicleCategory = "רכב פרטי M1",
+                                countryOfOrigin = "יפן"
+                            )
+                            val mockTechSpec = VehicleTechnicalSpecRecord(
+                                makeName = "טויוטה",
+                                commercialName = "RAV4 HYBRID",
+                                year = 2024,
+                                forwardCollisionWarning = 1,
+                                laneDepartureWarning = 1,
+                                adaptiveCruise = 1,
+                                pedestrianBicycleEmergencyBrake = 1,
+                                airbags = 7,
+                                tpms = 1,
+                                alloyWheels = 1,
+                                abs = 1,
+                                stabilityControl = 1,
+                                doors = 5,
+                                seats = 5,
+                                height = 1685
+                            )
+                            _searchState.value = SearchState.Success(
+                                vehicle = mockVehicle,
+                                techSpec = mockTechSpec,
+                                importerInfo = null,
+                                extraHistory = VehicleExtraHistoryRecord(licensePlate = 1234567L, lastTestMileage = 14200L, firstRegistrationDate = "2024-02-10"),
+                                formattedPlate = "12-345-67",
+                                testStatus = TestStatus.Valid(345L),
+                                hasDisabledPermit = false,
+                                permitIssueDate = null,
+                                isOffRoad = false,
+                                offRoadDate = null,
+                                stats = ModelStatistics(totalActive = 18450, totalInactive = 412),
+                                recalls = emptyList(),
+                                safetyDiscount = SafetyDiscountRecord(licensePlate = 1234567L, updatedDate = "2024-02-10")
+                            )
+                            return@launch
+                        }
+                        "0000000" -> {
+                            _searchState.value = SearchState.NotFound(plateStr)
+                            return@launch
+                        }
+                    }
+                }
+
                 val plateLong = plateStr.toLongOrNull() ?: 0L
                 val filtersStr = "{\"mispar_rechev\":$plateLong}"
                 val paddedPlate = if (plateStr.length == 7) "0$plateStr" else plateStr
@@ -196,27 +529,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 // Check Public Vehicle (Taxis/Buses)
-                if (activeVehicle == null) {
-                    try {
-                        val pub = NetworkClient.apiService.getPublicVehicle(filters = filtersStr)
-                        activeVehicle = pub.result?.records?.firstOrNull() ?: run {
-                            NetworkClient.apiService.getPublicVehicle(filters = "{\"mispar_rechev\":\"$plateStr\"}").result?.records?.firstOrNull()
-                        } ?: run {
-                            NetworkClient.apiService.getPublicVehicle(filters = "{\"mispar_rechev\":\"$paddedPlate\"}").result?.records?.firstOrNull()
-                        }
-                    } catch (e: Exception) {}
+                var pubVehicle: VehicleRecord? = null
+                try {
+                    val pub = NetworkClient.apiService.getPublicVehicle(filters = filtersStr)
+                    pubVehicle = pub.result?.records?.firstOrNull() ?: run {
+                        NetworkClient.apiService.getPublicVehicle(filters = "{\"mispar_rechev\":\"$plateStr\"}").result?.records?.firstOrNull()
+                    } ?: run {
+                        NetworkClient.apiService.getPublicVehicle(filters = "{\"mispar_rechev\":\"$paddedPlate\"}").result?.records?.firstOrNull()
+                    }
+                } catch (e: Exception) {}
+
+                if (pubVehicle != null) {
+                    activeVehicle = if (activeVehicle != null) activeVehicle.mergeWith(pubVehicle) else pubVehicle
                 }
 
                 // Check Heavy vehicle (includes Trucks & Buses)
-                if (activeVehicle == null) {
-                    try {
-                        val heavy = NetworkClient.apiService.getHeavyVehicle(filters = filtersStr)
-                        activeVehicle = heavy.result?.records?.firstOrNull() ?: run {
-                            NetworkClient.apiService.getHeavyVehicle(filters = "{\"mispar_rechev\":\"$plateStr\"}").result?.records?.firstOrNull()
-                        } ?: run {
-                            NetworkClient.apiService.getHeavyVehicle(filters = "{\"mispar_rechev\":\"$paddedPlate\"}").result?.records?.firstOrNull()
-                        }
-                    } catch (e: Exception) {}
+                var heavyVehicle: VehicleRecord? = null
+                try {
+                    val heavy = NetworkClient.apiService.getHeavyVehicle(filters = filtersStr)
+                    heavyVehicle = heavy.result?.records?.firstOrNull() ?: run {
+                        NetworkClient.apiService.getHeavyVehicle(filters = "{\"mispar_rechev\":\"$plateStr\"}").result?.records?.firstOrNull()
+                    } ?: run {
+                        NetworkClient.apiService.getHeavyVehicle(filters = "{\"mispar_rechev\":\"$paddedPlate\"}").result?.records?.firstOrNull()
+                    }
+                } catch (e: Exception) {}
+
+                if (heavyVehicle != null) {
+                    activeVehicle = if (activeVehicle != null) activeVehicle.mergeWith(heavyVehicle) else heavyVehicle
                 }
                 if (activeVehicle == null) {
                     try {
@@ -411,6 +750,50 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         if (cleanPlate != null) {
                             val resp = NetworkClient.apiService.getSafetyDiscount(filters = "{\"mispar_rechev\":$cleanPlate}")
                             resp.result?.records?.firstOrNull()
+                        } else null
+                    } catch (e: Exception) { null }
+                }
+
+                val cargoTieDownDeferred = async {
+                    try {
+                        val cleanPlate = plateLong ?: plateStr.replace("-", "").toLongOrNull()
+                        if (cleanPlate != null) {
+                            val resp = NetworkClient.apiService.getCargoTieDown(filters = "{\"mispar_rechev\":$cleanPlate}")
+                            resp.result?.records?.firstOrNull()
+                        } else null
+                    } catch (e: Exception) { null }
+                }
+
+                val busFleetDeferred = async {
+                    try {
+                        val cleanPlate = plateLong ?: plateStr.replace("-", "").toLongOrNull()
+                        if (cleanPlate != null) {
+                            val resp = NetworkClient.apiService.getBusFleet(filters = "{\"bus_license_id\":$cleanPlate}")
+                            resp.result?.records?.firstOrNull()
+                        } else null
+                    } catch (e: Exception) { null }
+                }
+
+                val monthlyDeliveriesDeferred = async {
+                    try {
+                        val makeCd = vehicle.makeCode
+                        val modelCd = vehicle.modelCd
+                        if (makeCd != null && modelCd != null) {
+                            val resp = NetworkClient.apiService.getMonthlyDeliveries(filters = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}")
+                            resp.result?.records ?: emptyList()
+                        } else emptyList()
+                    } catch (e: Exception) { emptyList() }
+                }
+
+                val emissionFilterDeferred = async {
+                    try {
+                        val isDiesel = vehicle.fuelType?.contains("דיזל") == true || vehicle.fuelType?.contains("סולר") == true
+                        if (isDiesel) {
+                            val cleanPlate = plateLong ?: plateStr.replace("-", "").toLongOrNull()
+                            if (cleanPlate != null) {
+                                val resp = NetworkClient.apiService.getEmissionFilter(filters = "{\"mispar_rechev\":$cleanPlate}")
+                                resp.result?.records?.firstOrNull()
+                            } else null
                         } else null
                     } catch (e: Exception) { null }
                 }
@@ -681,8 +1064,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _searchProgress.value = 0.92f
                 val importerInfo = importerDeferred.await()
                 val safetyDiscount = safetyDiscountDeferred.await()
+                val cargoTieDown = cargoTieDownDeferred.await()
+                val busFleet = busFleetDeferred.await()
+                val monthlyDeliveries = monthlyDeliveriesDeferred.await()
+                val emissionFilter = emissionFilterDeferred.await()
                 val stats = statsDeferred.await()
                 _searchProgress.value = 1.0f
+
+                val isDiesel = vehicle.fuelType?.contains("דיזל") == true || vehicle.fuelType?.contains("סולר") == true
+                val dieselStatus = if (!isDiesel) {
+                    DieselFilterStatus.NotDiesel
+                } else if (emissionFilter != null) {
+                    DieselFilterStatus.FilterInstalled(emissionFilter.installDate)
+                } else {
+                    val year = vehicle.year ?: 2000
+                    val emissionGroup = vehicle.emissionGroup ?: 15
+                    val isPolluting = year <= 2006 || emissionGroup >= 14 || (vehicle.vehicleCategory?.contains("משא") == true && year <= 2009)
+                    if (isPolluting) {
+                        DieselFilterStatus.PollutingRestricted("רכב דיזל מזהם לפי חוק אוויר נקי - מוגבל כניסה לאזורי אוויר נקי בירושלים ובחיפה ללא התקנת מסנן חלקיקים")
+                    } else {
+                        DieselFilterStatus.CleanEuro
+                    }
+                }
 
                 val formattedPlate = VehicleUtils.formatPlate(plateStr)
                 val testStatus = VehicleUtils.parseTestStatus(vehicle.testExpiryDate, isOffRoad, offRoadDateFormatted)
@@ -717,7 +1120,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     alternateVehicleIsOffRoad = altVehIsOffRoad,
                     alternateVehicleOffRoadDate = altVehOffRoadDate,
                     equipmentPollution = equipmentPollution,
-                    safetyDiscount = safetyDiscount
+                    safetyDiscount = safetyDiscount,
+                    dieselFilterStatus = dieselStatus,
+                    cargoTieDown = cargoTieDown,
+                    busFleet = busFleet,
+                    monthlyDeliveries = monthlyDeliveries
                 )
 
             } catch (e: Exception) {
@@ -1513,6 +1920,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             "פורד" to "FORD",
             "הונדה" to "HONDA",
             "וולוו" to "VOLVO",
+            "וולבו" to "VOLVO",
             "ג'יפ" to "JEEP",
             "בי ואי די" to "BYD",
             "ביוואידי" to "BYD",
@@ -2031,7 +2439,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun loadNativeAd(context: Context) {
-        if (isAdLoading || _nativeAd.value != null) return
+        if (IS_SCREENSHOT_MODE || isAdLoading || _nativeAd.value != null) return
         isAdLoading = true
 
         val adUnitId = if (BuildConfig.DEBUG) "ca-app-pub-3940256099942544/2247696110" else "ca-app-pub-6647546375254792/3189297317"
@@ -2050,6 +2458,178 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             .build()
 
         adLoader.loadAd(AdRequest.Builder().build())
+    }
+
+    // Services Hub (Garages, Test Stations, EV Charging)
+    private val _servicesCategory = MutableStateFlow(ServicesCategory.TEST_STATIONS)
+    val servicesCategory: StateFlow<ServicesCategory> = _servicesCategory.asStateFlow()
+
+    private val _servicesQuery = MutableStateFlow("")
+    val servicesQuery: StateFlow<String> = _servicesQuery.asStateFlow()
+
+    private val _garageSpecialtyFilter = MutableStateFlow("הכל")
+    val garageSpecialtyFilter: StateFlow<String> = _garageSpecialtyFilter.asStateFlow()
+
+    private val _testStationFilter = MutableStateFlow("הכל")
+    val testStationFilter: StateFlow<String> = _testStationFilter.asStateFlow()
+
+    private val _evFilter = MutableStateFlow("הכל")
+    val evFilter: StateFlow<String> = _evFilter.asStateFlow()
+
+    private val _garagesList = MutableStateFlow<List<GarageRecord>>(emptyList())
+    val garagesList: StateFlow<List<GarageRecord>> = _garagesList.asStateFlow()
+
+    private val _chargingStationsList = MutableStateFlow<List<EvChargingStationRecord>>(emptyList())
+    val chargingStationsList: StateFlow<List<EvChargingStationRecord>> = _chargingStationsList.asStateFlow()
+
+    private val _carDealersList = MutableStateFlow<List<CarDealerRecord>>(emptyList())
+    val carDealersList: StateFlow<List<CarDealerRecord>> = _carDealersList.asStateFlow()
+
+    private val _appraisersList = MutableStateFlow<List<CarAppraiserRecord>>(emptyList())
+    val appraisersList: StateFlow<List<CarAppraiserRecord>> = _appraisersList.asStateFlow()
+
+    private val _partsTradeList = MutableStateFlow<List<PartsTradeRecord>>(emptyList())
+    val partsTradeList: StateFlow<List<PartsTradeRecord>> = _partsTradeList.asStateFlow()
+
+    private val _servicesLastUpdated = MutableStateFlow<String?>(null)
+    val servicesLastUpdated: StateFlow<String?> = _servicesLastUpdated.asStateFlow()
+
+    private val _servicesTotalCount = MutableStateFlow<Int?>(null)
+    val servicesTotalCount: StateFlow<Int?> = _servicesTotalCount.asStateFlow()
+
+    private val _isLoadingServices = MutableStateFlow(false)
+    val isLoadingServices: StateFlow<Boolean> = _isLoadingServices.asStateFlow()
+
+    private var servicesJob: Job? = null
+
+    fun setServicesCategory(category: ServicesCategory) {
+        _servicesCategory.value = category
+        fetchServices()
+    }
+
+    fun setServicesQuery(query: String) {
+        _servicesQuery.value = query
+        fetchServices()
+    }
+
+    fun setGarageSpecialtyFilter(specialty: String) {
+        _garageSpecialtyFilter.value = specialty
+        fetchServices()
+    }
+
+    fun setTestStationFilter(filter: String) {
+        _testStationFilter.value = filter
+        fetchServices()
+    }
+
+    fun setEvFilter(filter: String) {
+        _evFilter.value = filter
+    }
+
+    fun fetchServices() {
+        servicesJob?.cancel()
+        servicesJob = viewModelScope.launch(Dispatchers.IO) {
+            _isLoadingServices.value = true
+            try {
+                val q = _servicesQuery.value.trim()
+                val cat = _servicesCategory.value
+
+                // Fetch last modified metadata for the selected category
+                launch {
+                    try {
+                        val meta = NetworkClient.apiService.getResourceMetadata(cat.resourceId)
+                        val rawTs = meta.result?.lastModified ?: meta.result?.metadataModified
+                        if (!rawTs.isNullOrBlank()) {
+                            val formatted = try {
+                                val clean = rawTs.substringBefore('.').replace('T', ' ')
+                                val parts = clean.split(' ')
+                                val dateParts = parts[0].split('-')
+                                if (dateParts.size == 3) {
+                                    val timePart = if (parts.size > 1) parts[1].take(5) else ""
+                                    "${dateParts[2]}/${dateParts[1]}/${dateParts[0]} $timePart".trim()
+                                } else clean
+                            } catch (_: Exception) { rawTs }
+                            _servicesLastUpdated.value = formatted
+                        }
+                    } catch (_: Exception) {}
+                }
+
+                when (cat) {
+                    ServicesCategory.TEST_STATIONS -> {
+                        val selectedOpt = ServicesSpecialties.testStationOptions.firstOrNull { it.title == _testStationFilter.value }
+                        val filterMap = mutableMapOf<String, Any>("sug_mosah" to "מכון רישוי")
+                        if (selectedOpt?.dbValue != null) {
+                            filterMap["miktzoa"] = selectedOpt.dbValue
+                        }
+                        val filterJson = org.json.JSONObject(filterMap as Map<*, *>).toString()
+                        val resp = NetworkClient.apiService.getGaragesAndStations(
+                            query = if (q.isNotBlank()) q else null,
+                            filters = filterJson,
+                            limit = 500
+                        )
+                        _servicesTotalCount.value = resp.result?.total
+                        _garagesList.value = resp.result?.records ?: emptyList()
+                    }
+                    ServicesCategory.GARAGES -> {
+                        val selectedOpt = ServicesSpecialties.garageOptions.firstOrNull { it.title == _garageSpecialtyFilter.value }
+                        val filterJson = if (selectedOpt != null && selectedOpt.dbValues.isNotEmpty()) {
+                            if (selectedOpt.dbValues.size == 1) {
+                                org.json.JSONObject(mapOf("miktzoa" to selectedOpt.dbValues.first())).toString()
+                            } else {
+                                val jsonArr = org.json.JSONArray(selectedOpt.dbValues)
+                                val obj = org.json.JSONObject()
+                                obj.put("miktzoa", jsonArr)
+                                obj.toString()
+                            }
+                        } else null
+
+                        val resp = NetworkClient.apiService.getGaragesAndStations(
+                            query = if (q.isNotBlank()) q else null,
+                            filters = filterJson,
+                            limit = 1000
+                        )
+                        _servicesTotalCount.value = resp.result?.total
+                        _garagesList.value = (resp.result?.records ?: emptyList()).filter { !it.isTestStation }
+                    }
+                    ServicesCategory.EV_CHARGING -> {
+                        val resp = NetworkClient.apiService.getChargingStations(
+                            query = if (q.isNotBlank()) q else null,
+                            limit = 2500
+                        )
+                        _servicesTotalCount.value = resp.result?.total
+                        _chargingStationsList.value = resp.result?.records ?: emptyList()
+                    }
+                    ServicesCategory.CAR_DEALERS -> {
+                        val resp = NetworkClient.apiService.getCarDealers(
+                            query = if (q.isNotBlank()) q else null,
+                            limit = 1000
+                        )
+                        _servicesTotalCount.value = resp.result?.total
+                        _carDealersList.value = resp.result?.records ?: emptyList()
+                    }
+                    ServicesCategory.APPRAISERS -> {
+                        val resp = NetworkClient.apiService.getAppraisers(
+                            query = if (q.isNotBlank()) q else null,
+                            limit = 1500
+                        )
+                        _servicesTotalCount.value = resp.result?.total
+                        _appraisersList.value = resp.result?.records ?: emptyList()
+                    }
+                    ServicesCategory.PARTS_TRADE -> {
+                        val resp = NetworkClient.apiService.getPartsTrade(
+                            query = if (q.isNotBlank()) q else null,
+                            limit = 1000
+                        )
+                        _servicesTotalCount.value = resp.result?.total
+                        _partsTradeList.value = resp.result?.records ?: emptyList()
+                    }
+                }
+            } catch (e: Exception) {
+                // Retain current or empty
+            } finally {
+                _isLoadingServices.value = false
+            }
+        }
     }
 
     override fun onCleared() {

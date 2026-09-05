@@ -1,7 +1,8 @@
-﻿<resources>
-    <style name="Theme.VehicleCheck" parent="android:Theme.Material.NoActionBar">
+<resources>
+    <style name="Theme.VehicleCheck" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">#0B131E</item>
     </style>
 </resources>
