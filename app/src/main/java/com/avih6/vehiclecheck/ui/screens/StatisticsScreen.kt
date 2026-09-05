@@ -1571,8 +1571,8 @@ fun ModelDetailStatisticsCard(
         )
     }
 
-    val cleanMake = detail.makeHe
-        .replace(Regex(" (יפן|גרמנ|גרמניה|ארהב|ארה\"ב|צרפת|קוריאה|סין|צ'כיה|ספרד|איטליה|בריטניה|טורקיה|הודו)$"), "")
+    val cleanMake = VehicleUtils.formatMake(detail.makeHe)
+        .replace(Regex(" (יפן|גרמנ|גרמניה|ארהב|ארה\"ב|ארה''ב|ארה'ב|צרפת|קוריאה|סין|צ'כיה|ספרד|איטליה|בריטניה|טורקיה|הודו)$"), "")
         .trim()
 
     var cleanModel = detail.modelName
@@ -1593,8 +1593,12 @@ fun ModelDetailStatisticsCard(
         ?.replace(Regex("\\bהצ\\b"), "האצ'בק")
         ?.takeIf { it.isNotBlank() && !displayTitle.contains(it, ignoreCase = true) }
 
+    val formattedMakeEn = if (detail.makeEn.isNotBlank() && detail.makeEn != "car" && !displayTitle.contains(detail.makeEn, ignoreCase = true)) {
+        detail.makeEn.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.ROOT) else it.toString() }
+    } else null
+
     val subtitle = listOfNotNull(
-        if (detail.makeEn.isNotBlank() && detail.makeEn != "car" && !displayTitle.contains(detail.makeEn, ignoreCase = true)) detail.makeEn else null,
+        formattedMakeEn,
         cleanCommercial
     ).filter { it.isNotBlank() }.joinToString(" • ")
 
@@ -1848,9 +1852,7 @@ fun ModelDetailStatisticsCard(
 
                                 val points = sorted.mapIndexed { index, item ->
                                     val x = if (sorted.size > 1) index * stepX else width / 2
-                                    val normalized = if (maxCount > minCount) {
-                                        ((item.activeCount - minCount).toFloat() / (maxCount - minCount)).coerceIn(0.1f, 1f)
-                                    } else 0.5f
+                                    val normalized = (item.activeCount.toFloat() / maxCount).coerceIn(0.06f, 1f)
                                     val y = height - bottomPadding - (normalized * usableHeight * animProgress.value)
                                     Offset(x, y)
                                 }
@@ -1875,18 +1877,19 @@ fun ModelDetailStatisticsCard(
                                     fillPath.moveTo(points.first().x, height - bottomPadding)
                                     fillPath.lineTo(points.first().x, points.first().y)
 
+                                    val tension = 0.28f
                                     for (i in 0 until points.size - 1) {
                                         val p0 = points[i]
                                         val p1 = points[i + 1]
                                         val pPrev = if (i > 0) points[i - 1] else p0
                                         val pNext = if (i < points.size - 2) points[i + 2] else p1
                                         val controlPoint1 = Offset(
-                                            x = p0.x + (p1.x - pPrev.x) / 5f,
-                                            y = (p0.y + (p1.y - pPrev.y) / 5f).coerceIn(topPadding, height - bottomPadding)
+                                            x = p0.x + (p1.x - pPrev.x) * tension,
+                                            y = (p0.y + (p1.y - pPrev.y) * tension).coerceIn(topPadding, height - bottomPadding)
                                         )
                                         val controlPoint2 = Offset(
-                                            x = p1.x - (pNext.x - p0.x) / 5f,
-                                            y = (p1.y - (pNext.y - p0.y) / 5f).coerceIn(topPadding, height - bottomPadding)
+                                            x = p1.x - (pNext.x - p0.x) * tension,
+                                            y = (p1.y - (pNext.y - p0.y) * tension).coerceIn(topPadding, height - bottomPadding)
                                         )
                                         strokePath.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, p1.x, p1.y)
                                         fillPath.cubicTo(controlPoint1.x, controlPoint1.y, controlPoint2.x, controlPoint2.y, p1.x, p1.y)

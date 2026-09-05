@@ -105,7 +105,7 @@ fun SearchScreen(
 
     val totalCount by viewModel.dbVehicleCount.collectAsState()
     val lastUpdated by viewModel.dbLastUpdated.collectAsState()
-    val countFormatted = "%,d כלי רכב רשומים".format(totalCount ?: 4165989)
+    val countFormatted = "%,d כלי רכב רשומים".format(totalCount ?: 8789653)
     val updateText = if (!lastUpdated.isNullOrBlank()) "עודכן: $lastUpdated" else "עודכן: -"
 
     val focusManager = androidx.compose.ui.platform.LocalFocusManager.current

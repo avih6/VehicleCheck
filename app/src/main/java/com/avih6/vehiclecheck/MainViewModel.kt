@@ -53,14 +53,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val favorites: StateFlow<List<VehicleHistoryEntity>> = repository.favorites
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _dbVehicleCount = MutableStateFlow<Int?>(null)
+    private val _nationalFleetStats = MutableStateFlow(NationalFleetStats())
+    val nationalFleetStats: StateFlow<NationalFleetStats> = _nationalFleetStats.asStateFlow()
+
+    private val _dbVehicleCount = MutableStateFlow<Int?>(_nationalFleetStats.value.grandTotal)
     val dbVehicleCount: StateFlow<Int?> = _dbVehicleCount.asStateFlow()
 
     private val _dbLastUpdated = MutableStateFlow<String?>(null)
     val dbLastUpdated: StateFlow<String?> = _dbLastUpdated.asStateFlow()
-
-    private val _nationalFleetStats = MutableStateFlow(NationalFleetStats())
-    val nationalFleetStats: StateFlow<NationalFleetStats> = _nationalFleetStats.asStateFlow()
 
     private val _searchProgress = MutableStateFlow(0f)
     val searchProgress: StateFlow<Float> = _searchProgress.asStateFlow()
@@ -122,9 +122,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 engineeringEquipment = engTotal ?: cur.engineeringEquipment
             )
 
-            if (pTotal != null && pTotal > 0) {
-                _dbVehicleCount.value = pTotal
-            }
+            _dbVehicleCount.value = _nationalFleetStats.value.grandTotal
 
             try {
                 val metaResp = NetworkClient.apiService.getResourceMetadata()
@@ -462,20 +460,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         val makeCd = vehicle.makeCode
                         val modelCd = vehicle.modelCd
                         val year = vehicle.year ?: 2022
-                        val modelName = vehicle.effectiveModel?.trim()
+                        val baseInfo = VehicleUtils.extractBaseModel(vehicle.make, vehicle.model, vehicle.modelCode, vehicle.vin)
 
                         var totalActive = 0
                         var activeYearCount = 0
                         var prevYearCount = 0
                         var nextYearCount = 0
                         var inactCount2017 = 0
-                        var inactCount2010 = 0
-                        var inactCount2000 = 0
+                        var inactCountMaster = 0
                         var inactCountVintage = 0
                         var specificYearInactive = 0
                         var prevYearInactive = 0
                         var nextYearInactive = 0
 
+                        val isTwoWheeler = vehicle.effectiveVehicleCategory?.contains("אופנוע") == true ||
+                                vehicle.effectiveVehicleCategory?.contains("קטנוע") == true ||
+                                vehicle.effectiveStandardType?.startsWith("L") == true
                         val isHeavyOrCommercial = isEngineering ||
                                 (vehicle.effectiveVehicleCategory?.contains("משא") == true ||
                                  vehicle.effectiveVehicleCategory?.contains("אוטובוס") == true ||
@@ -483,143 +483,162 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                  vehicle.effectiveStandardType?.startsWith("M3") == true ||
                                  vehicle.effectiveStandardType?.startsWith("M2") == true)
 
-                        if (isHeavyOrCommercial && makeCd != null) {
-                            try {
-                                val heavyFilter = if (!modelName.isNullOrBlank()) "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$modelName\"}" else "{\"tozeret_cd\":$makeCd}"
-                                val heavyResp = NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", heavyFilter)
-                                val heavyTotal = heavyResp.result?.total ?: 0
-                                if (heavyTotal > 0) {
-                                    totalActive = heavyTotal
-                                    coroutineScope {
-                                        val yDef = async { NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", if (!modelName.isNullOrBlank()) "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$modelName\",\"shnat_yitzur\":$year}" else "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$year}").result?.total ?: 0 }
-                                        val pDef = async { NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", if (!modelName.isNullOrBlank()) "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$modelName\",\"shnat_yitzur\":${year - 1}}" else "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":${year - 1}}").result?.total ?: 0 }
-                                        val nDef = async { NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", if (!modelName.isNullOrBlank()) "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$modelName\",\"shnat_yitzur\":${year + 1}}" else "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":${year + 1}}").result?.total ?: 0 }
-                                        activeYearCount = yDef.await()
-                                        prevYearCount = pDef.await()
-                                        nextYearCount = nDef.await()
-                                    }
-                                } else {
-                                    val allMakeHeavy = NetworkClient.apiService.getDeregisteredCount("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", "{\"tozeret_cd\":$makeCd}").result?.total ?: 0
-                                    if (allMakeHeavy > 0) {
-                                        totalActive = allMakeHeavy
-                                    }
+                        val activeResourceId = when {
+                            isTwoWheeler -> "bf9df4e2-d90d-4c0a-a400-19e15af8e95f"
+                            isHeavyOrCommercial -> "cd3acc5c-03c3-4c89-9c54-d40f93c0d790"
+                            else -> "053cea08-09bc-40ec-8f7a-156f0677aff3"
+                        }
+
+                        suspend fun queryMaxCount(
+                            resId: String,
+                            terms: List<String>,
+                            makeFilter: String,
+                            exactKinuy: String? = null,
+                            exactDegem: String? = null
+                        ): Int {
+                            var maxCount = 0
+                            if (!exactKinuy.isNullOrBlank()) {
+                                try {
+                                    val f = makeFilter.removeSuffix("}") + ",\"kinuy_mishari\":\"$exactKinuy\"}"
+                                    val c = NetworkClient.apiService.getSameModelActiveCount(resourceId = resId, filters = f).result?.total ?: 0
+                                    if (c > maxCount) maxCount = c
+                                } catch (_: Exception) {}
+                            }
+                            if (!exactDegem.isNullOrBlank()) {
+                                try {
+                                    val f = makeFilter.removeSuffix("}") + ",\"degem_nm\":\"$exactDegem\"}"
+                                    val c = NetworkClient.apiService.getSameModelActiveCount(resourceId = resId, filters = f).result?.total ?: 0
+                                    if (c > maxCount) maxCount = c
+                                } catch (_: Exception) {}
+                            }
+                            for (t in terms) {
+                                if (t.isBlank()) continue
+                                try {
+                                    val c = NetworkClient.apiService.getSameModelActiveCount(resourceId = resId, filters = makeFilter, query = t).result?.total ?: 0
+                                    if (c > maxCount) maxCount = c
+                                } catch (_: Exception) {}
+                            }
+                            return maxCount
+                        }
+
+                        suspend fun queryInactiveMaxCount(
+                            resId: String,
+                            terms: List<String>,
+                            makeFilter: String,
+                            exactKinuy: String? = null,
+                            exactDegem: String? = null
+                        ): Int {
+                            var maxCount = 0
+                            if (!exactKinuy.isNullOrBlank()) {
+                                try {
+                                    val f = makeFilter.removeSuffix("}") + ",\"kinuy_mishari\":\"$exactKinuy\"}"
+                                    val c = NetworkClient.apiService.getDeregisteredCount(resourceId = resId, filters = f).result?.total ?: 0
+                                    if (c > maxCount) maxCount = c
+                                } catch (_: Exception) {}
+                            }
+                            if (!exactDegem.isNullOrBlank()) {
+                                try {
+                                    val f = makeFilter.removeSuffix("}") + ",\"degem_nm\":\"$exactDegem\"}"
+                                    val c = NetworkClient.apiService.getDeregisteredCount(resourceId = resId, filters = f).result?.total ?: 0
+                                    if (c > maxCount) maxCount = c
+                                } catch (_: Exception) {}
+                            }
+                            for (t in terms) {
+                                if (t.isBlank()) continue
+                                try {
+                                    val c = NetworkClient.apiService.getDeregisteredCount(resourceId = resId, filters = makeFilter, query = t).result?.total ?: 0
+                                    if (c > maxCount) maxCount = c
+                                } catch (_: Exception) {}
+                            }
+                            return maxCount
+                        }
+
+                        if (makeCd != null) {
+                            val makeFilter = "{\"tozeret_cd\":$makeCd}"
+                            coroutineScope {
+                                val actDef = async {
+                                    val mainAct = queryMaxCount(
+                                        resId = activeResourceId,
+                                        terms = baseInfo.searchTerms,
+                                        makeFilter = makeFilter,
+                                        exactKinuy = baseInfo.exactKinuyFilter,
+                                        exactDegem = vehicle.modelCode
+                                    )
+                                    val personalAct = if (!isTwoWheeler && !isHeavyOrCommercial) {
+                                        queryMaxCount(
+                                            resId = "03adc637-b6fe-402b-9937-7c3d3afc9140",
+                                            terms = baseInfo.searchTerms,
+                                            makeFilter = makeFilter,
+                                            exactDegem = vehicle.modelCode
+                                        )
+                                    } else 0
+                                    mainAct + personalAct
                                 }
-                            } catch (e: Exception) {}
-                        } else if (makeCd != null) {
-                            val activeFilter = if (!modelName.isNullOrBlank()) {
-                                "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"$modelName\"}"
-                            } else if (modelCd != null && modelCd > 0) {
-                                "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}"
-                            } else null
 
-                            if (activeFilter != null) {
-                                coroutineScope {
-                                    val actDef = async {
-                                        try { NetworkClient.apiService.getSameModelActiveCount(filters = activeFilter).result?.total ?: 0 } catch (e: Exception) { 0 }
-                                    }
-                                    val yDef = async {
-                                        try {
-                                            val yf = activeFilter.removeSuffix("}") + ",\"shnat_yitzur\":$year}"
-                                            NetworkClient.apiService.getSameModelActiveCount(filters = yf).result?.total ?: 0
-                                        } catch (e: Exception) { 0 }
-                                    }
-                                    val pDef = async {
-                                        try {
-                                            val pf = activeFilter.removeSuffix("}") + ",\"shnat_yitzur\":${year - 1}}"
-                                            NetworkClient.apiService.getSameModelActiveCount(filters = pf).result?.total ?: 0
-                                        } catch (e: Exception) { 0 }
-                                    }
-                                    val nDef = async {
-                                        try {
-                                            val nf = activeFilter.removeSuffix("}") + ",\"shnat_yitzur\":${year + 1}}"
-                                            NetworkClient.apiService.getSameModelActiveCount(filters = nf).result?.total ?: 0
-                                        } catch (e: Exception) { 0 }
-                                    }
-
-                                    val inact17Def = async {
-                                        try { NetworkClient.apiService.getDeregisteredCount("851ecab1-0622-4dbe-a6c7-f950cf82abf9", activeFilter).result?.total ?: 0 } catch (e: Exception) { 0 }
-                                    }
-                                    val inact10Def = async {
-                                        try { NetworkClient.apiService.getDeregisteredCount("4e6b9724-4c1e-43f0-909a-154d4cc4e046", activeFilter).result?.total ?: 0 } catch (e: Exception) { 0 }
-                                    }
-                                    val inact00Def = async {
-                                        try { NetworkClient.apiService.getDeregisteredCount("ec8cbc34-72e1-4b69-9c48-22821ba0bd6c", activeFilter).result?.total ?: 0 } catch (e: Exception) { 0 }
-                                    }
-                                    val inactVintageDef = async {
-                                        try {
-                                            if (year < 2005 || isOffRoad) {
-                                                val vFilter = if (!modelName.isNullOrBlank()) {
-                                                    "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$modelName\"}"
-                                                } else {
-                                                    "{\"tozeret_cd\":$makeCd}"
-                                                }
-                                                NetworkClient.apiService.getDeregisteredCount("6f6acd03-f351-4a8f-8ecf-df792f4f573a", vFilter).result?.total ?: 0
-                                            } else 0
-                                        } catch (e: Exception) { 0 }
-                                    }
-                                    val yearInactDef = async {
-                                        try {
-                                            if (year < 2000) {
-                                                val yf = if (!modelName.isNullOrBlank()) {
-                                                    "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$modelName\",\"shnat_yitzur\":$year}"
-                                                } else {
-                                                    "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$year}"
-                                                }
-                                                NetworkClient.apiService.getDeregisteredCount("6f6acd03-f351-4a8f-8ecf-df792f4f573a", yf).result?.total ?: 0
-                                            } else {
-                                                val yf = activeFilter.removeSuffix("}") + ",\"shnat_yitzur\":$year}"
-                                                NetworkClient.apiService.getDeregisteredCount("851ecab1-0622-4dbe-a6c7-f950cf82abf9", yf).result?.total ?: 0
-                                            }
-                                        } catch (e: Exception) { 0 }
-                                    }
-                                    val prevYearInactDef = async {
-                                        try {
-                                            if (year < 2000) {
-                                                val pf = if (!modelName.isNullOrBlank()) {
-                                                    "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$modelName\",\"shnat_yitzur\":${year - 1}}"
-                                                } else {
-                                                    "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":${year - 1}}"
-                                                }
-                                                NetworkClient.apiService.getDeregisteredCount("6f6acd03-f351-4a8f-8ecf-df792f4f573a", pf).result?.total ?: 0
-                                            } else 0
-                                        } catch (e: Exception) { 0 }
-                                    }
-                                    val nextYearInactDef = async {
-                                        try {
-                                            if (year < 2000) {
-                                                val nf = if (!modelName.isNullOrBlank()) {
-                                                    "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$modelName\",\"shnat_yitzur\":${year + 1}}"
-                                                } else {
-                                                    "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":${year + 1}}"
-                                                }
-                                                NetworkClient.apiService.getDeregisteredCount("6f6acd03-f351-4a8f-8ecf-df792f4f573a", nf).result?.total ?: 0
-                                            } else 0
-                                        } catch (e: Exception) { 0 }
-                                    }
-
-                                    totalActive = actDef.await()
-                                    // Fallback to degem_cd if kinuy_mishari had 0 records
-                                    if (totalActive == 0 && modelCd != null && modelCd > 0) {
-                                        val subFilter = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}"
-                                        try {
-                                            totalActive = NetworkClient.apiService.getSameModelActiveCount(filters = subFilter).result?.total ?: 0
-                                        } catch (e: Exception) {}
-                                    }
-                                    activeYearCount = yDef.await()
-                                    prevYearCount = pDef.await()
-                                    nextYearCount = nDef.await()
-                                    inactCount2017 = inact17Def.await()
-                                    inactCount2010 = inact10Def.await()
-                                    inactCount2000 = inact00Def.await()
-                                    inactCountVintage = inactVintageDef.await()
-                                    specificYearInactive = yearInactDef.await()
-                                    prevYearInactive = prevYearInactDef.await()
-                                    nextYearInactive = nextYearInactDef.await()
+                                val yDef = async {
+                                    val yf = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$year}"
+                                    queryMaxCount(activeResourceId, baseInfo.searchTerms, yf, exactKinuy = baseInfo.exactKinuyFilter, exactDegem = vehicle.modelCode)
                                 }
+                                val pDef = async {
+                                    val pf = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":${year - 1}}"
+                                    queryMaxCount(activeResourceId, baseInfo.searchTerms, pf, exactKinuy = baseInfo.exactKinuyFilter, exactDegem = vehicle.modelCode)
+                                }
+                                val nDef = async {
+                                    val nf = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":${year + 1}}"
+                                    queryMaxCount(activeResourceId, baseInfo.searchTerms, nf, exactKinuy = baseInfo.exactKinuyFilter, exactDegem = vehicle.modelCode)
+                                }
+
+                                // Inactive datasets that work reliably without 409 conflict
+                                val inact17Def = async {
+                                    queryInactiveMaxCount("851ecab1-0622-4dbe-a6c7-f950cf82abf9", baseInfo.searchTerms, makeFilter, baseInfo.exactKinuyFilter, vehicle.modelCode)
+                                }
+                                val inactMasterDef = async {
+                                    queryInactiveMaxCount("f6efe89a-fb3d-43a4-bb61-9bf12a9b9099", baseInfo.searchTerms, makeFilter, baseInfo.exactKinuyFilter, vehicle.modelCode)
+                                }
+                                val inactVintageDef = async {
+                                    if (year < 2005 || isOffRoad) {
+                                        queryInactiveMaxCount("6f6acd03-f351-4a8f-8ecf-df792f4f573a", baseInfo.searchTerms, makeFilter, baseInfo.exactKinuyFilter, vehicle.modelCode)
+                                    } else 0
+                                }
+
+                                val yearInactDef = async {
+                                    val targetRes = if (year < 2000) "6f6acd03-f351-4a8f-8ecf-df792f4f573a" else "851ecab1-0622-4dbe-a6c7-f950cf82abf9"
+                                    val yf = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$year}"
+                                    queryInactiveMaxCount(targetRes, baseInfo.searchTerms, yf, baseInfo.exactKinuyFilter, vehicle.modelCode)
+                                }
+                                val prevYearInactDef = async {
+                                    val prevYear = year - 1
+                                    val targetRes = if (prevYear < 2000) "6f6acd03-f351-4a8f-8ecf-df792f4f573a" else "851ecab1-0622-4dbe-a6c7-f950cf82abf9"
+                                    val pf = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$prevYear}"
+                                    queryInactiveMaxCount(targetRes, baseInfo.searchTerms, pf, baseInfo.exactKinuyFilter, vehicle.modelCode)
+                                }
+                                val nextYearInactDef = async {
+                                    val nextYear = year + 1
+                                    val targetRes = if (nextYear < 2000) "6f6acd03-f351-4a8f-8ecf-df792f4f573a" else "851ecab1-0622-4dbe-a6c7-f950cf82abf9"
+                                    val nf = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$nextYear}"
+                                    queryInactiveMaxCount(targetRes, baseInfo.searchTerms, nf, baseInfo.exactKinuyFilter, vehicle.modelCode)
+                                }
+
+                                totalActive = actDef.await()
+                                if (totalActive == 0 && modelCd != null && modelCd > 0) {
+                                    val subFilter = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}"
+                                    try {
+                                        totalActive = NetworkClient.apiService.getSameModelActiveCount(resourceId = activeResourceId, filters = subFilter).result?.total ?: 0
+                                    } catch (_: Exception) {}
+                                }
+                                activeYearCount = yDef.await()
+                                prevYearCount = pDef.await()
+                                nextYearCount = nDef.await()
+                                inactCount2017 = inact17Def.await()
+                                inactCountMaster = inactMasterDef.await()
+                                inactCountVintage = inactVintageDef.await()
+                                specificYearInactive = yearInactDef.await()
+                                prevYearInactive = prevYearInactDef.await()
+                                nextYearInactive = nextYearInactDef.await()
                             }
                         }
 
-                        val totalInactive = (inactCount2017 + inactCount2010 + inactCount2000 + inactCountVintage).coerceAtLeast(if (isOffRoad) 1 else 0)
+                        val totalInactive = (inactCount2017 + inactCountMaster + inactCountVintage).coerceAtLeast(if (isOffRoad) 1 else 0)
                         val realTotalActive = if (totalActive > 0) totalActive else if (isOffRoad) 0 else 1
 
                         val breakdown = mutableListOf<ModelYearCount>()
@@ -627,7 +646,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             breakdown.add(ModelYearCount(year - 1, prevYearCount, prevYearInactive))
                         }
                         val inactiveForYear = specificYearInactive.coerceAtLeast(if (isOffRoad) 1 else 0)
-                        breakdown.add(ModelYearCount(year, if (activeYearCount > 0) activeYearCount else realTotalActive, inactiveForYear))
+                        breakdown.add(ModelYearCount(year, if (activeYearCount > 0) activeYearCount else (if (isOffRoad) 0 else 1), inactiveForYear))
                         if (nextYearCount > 0 || nextYearInactive > 0) {
                             breakdown.add(ModelYearCount(year + 1, nextYearCount, nextYearInactive))
                         }
@@ -840,6 +859,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onModelSearchQueryChange(newQuery: String) {
         _modelSearchQuery.value = newQuery
+        _modelSearchError.value = null
+        _selectedModelDetail.value = null
     }
 
     fun selectModelSuggestion(suggestion: ModelSuggestion) {
@@ -1338,13 +1359,236 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             "ספרינג" to "SPRING",
             "לוגאן" to "LOGAN",
             "לודג'י" to "LODGY",
-            "דוקר" to "DOKKER"
+            "דוקר" to "DOKKER",
+
+            // Fiat & Abarth
+            "500e" to "500",
+            "500x" to "500X",
+            "500" to "500",
+            "טיפו" to "TIPO",
+            "פנדה" to "PANDA",
+            "דובלו" to "DOBLO",
+            "דוקאטו" to "DUCATO",
+            "פונטו" to "PUNTO",
+            "595" to "595",
+            "695" to "695",
+
+            // Opel
+            "קורסה" to "CORSA",
+            "מוקה" to "MOKKA",
+            "אסטרה" to "ASTRA",
+            "גרנדלנד" to "GRANDLAND",
+            "קרוסלנד" to "CROSSLAND",
+            "קומבו" to "COMBO",
+            "אינסיגניה" to "INSIGNIA",
+            "זאפירה" to "ZAFIRA",
+            "ויוארו" to "VIVARO",
+
+            // Lexus
+            "nx" to "NX",
+            "rx" to "RX",
+            "ux" to "UX",
+            "es" to "ES",
+            "lbx" to "LBX",
+            "rz" to "RZ",
+            "is300" to "IS300",
+            "ct200" to "CT200",
+
+            // Mini
+            "קופר" to "COOPER",
+            "קאנטרימן" to "COUNTRYMAN",
+            "קלאבמן" to "CLUBMAN",
+            "אייסמן" to "ACEMAN",
+
+            // Isuzu
+            "דימקס" to "D-MAX",
+            "די מקס" to "D-MAX",
+            "d-max" to "D-MAX",
+
+            // Alfa Romeo
+            "ג'וליה" to "GIULIA",
+            "סטלביו" to "STELVIO",
+            "סטלוויו" to "STELVIO",
+            "טונלה" to "TONALE",
+            "ג'ולייטה" to "GIULIETTA",
+            "מיטו" to "MITO",
+
+            // Land Rover
+            "דיפנדר" to "DEFENDER",
+            "דיסקברי ספורט" to "DISCOVERY SPORT",
+            "דיסקברי" to "DISCOVERY",
+            "איווק" to "EVOQUE",
+            "וולאר" to "VELAR",
+            "ריינג' רובר ספורט" to "RANGE ROVER SPORT",
+            "ריינג' רובר" to "RANGE ROVER",
+
+            // Cadillac
+            "אסקלייד" to "ESCALADE",
+            "ליריק" to "LYRIQ",
+            "xt4" to "XT4",
+            "xt5" to "XT5",
+            "xt6" to "XT6",
+
+            // Dodge & Ram
+            "ראם 1500" to "RAM 1500",
+            "ראם 2500" to "RAM 2500",
+            "ראם 3500" to "RAM 3500",
+            "ראם" to "RAM",
+            "צ'אלנג'ר" to "CHALLENGER",
+            "צ'ארג'ר" to "CHARGER",
+            "דורנגו" to "DURANGO",
+
+            // Ford Heavy & Pickups
+            "f-350" to "F-350",
+            "f350" to "F-350",
+            "f-250" to "F-250",
+            "f250" to "F-250",
+
+            // Seres & Leapmotor
+            "סרס 3" to "SERES 3",
+            "סרס 5" to "SERES 5",
+            "סרס 7" to "SERES 7",
+            "t03" to "T03",
+            "טי 03" to "T03",
+            "c10" to "C10",
+            "סי 10" to "C10",
+
+            // Smart
+            "#1" to "#1",
+            "#3" to "#3",
+            "פורטו" to "FORTWO",
+            "פורפור" to "FORFOUR",
+
+            // Two-Wheelers & Scooters
+            "טימקס" to "TMAX",
+            "טי מקס" to "TMAX",
+            "tmax" to "TMAX",
+            "t-max" to "TMAX",
+            "איקס מקס" to "XMAX",
+            "איקסמקס" to "XMAX",
+            "xmax" to "XMAX",
+            "פורזה" to "FORZA",
+            "ג'וימקס" to "JOYMAX",
+            "ג'ויריד" to "JOYRIDE",
+            "קרוזים" to "CRUISYM",
+            "דאונטאון" to "DOWNTOWN",
+            "אקסייטינג" to "XCITING",
+            "ak550" to "AK550",
+            "ווספה" to "VESPA",
+            "וספה" to "VESPA"
         )
 
         hebrewToEnModel.forEach { (heb, eng) ->
             if (q.contains(heb, ignoreCase = true)) {
                 queries.add(q.replace(Regex(heb, RegexOption.IGNORE_CASE), eng).trim())
                 queries.add(eng)
+            }
+        }
+
+        val brandTranslations = mapOf(
+            "טסלה" to "TESLA",
+            "יונדאי" to "HYUNDAI",
+            "טויוטה" to "TOYOTA",
+            "קיה" to "KIA",
+            "סקודה" to "SKODA",
+            "מאזדה" to "MAZDA",
+            "פולקסווגן" to "VOLKSWAGEN",
+            "פולקסוואגן" to "VOLKSWAGEN",
+            "סיאט" to "SEAT",
+            "קופרה" to "CUPRA",
+            "אאודי" to "AUDI",
+            "אודי" to "AUDI",
+            "ב.מ.וו" to "BMW",
+            "במוו" to "BMW",
+            "מרצדס" to "MERCEDES",
+            "רנו" to "RENAULT",
+            "פיג'ו" to "PEUGEOT",
+            "פיגו" to "PEUGEOT",
+            "סיטרואן" to "CITROEN",
+            "ניסאן" to "NISSAN",
+            "מיצובישי" to "MITSUBISHI",
+            "סוזוקי" to "SUZUKI",
+            "סובארו" to "SUBARU",
+            "שברולט" to "CHEVROLET",
+            "פורד" to "FORD",
+            "הונדה" to "HONDA",
+            "וולוו" to "VOLVO",
+            "ג'יפ" to "JEEP",
+            "בי ואי די" to "BYD",
+            "ביוואידי" to "BYD",
+            "ג'ילי" to "GEELY",
+            "צ'רי" to "CHERY",
+            "זיקר" to "ZEEKR",
+            "אקספנג" to "XPENG",
+            "פיאט" to "FIAT",
+            "אופל" to "OPEL",
+            "לקסוס" to "LEXUS",
+            "מיני" to "MINI",
+            "דאצ'יה" to "DACIA",
+            "דאציה" to "DACIA",
+            "איסוזו" to "ISUZU",
+            "אלפא רומיאו" to "ALFA ROMEO",
+            "אלפא" to "ALFA ROMEO",
+            "לנד רובר" to "LAND ROVER",
+            "לנדרובר" to "LAND ROVER",
+            "יגואר" to "JAGUAR",
+            "פורשה" to "PORSCHE",
+            "קאדילק" to "CADILLAC",
+            "קאדילאק" to "CADILLAC",
+            "סמארט" to "SMART",
+            "דודג'" to "DODGE",
+            "דודג" to "DODGE",
+            "ראם" to "RAM",
+            "סרס" to "SERES",
+            "ליפמוטור" to "LEAPMOTOR",
+            "לינק אנד קו" to "LYNK & CO",
+            "לינק&קו" to "LYNK & CO",
+            "ניאו" to "NIO",
+            "וויה" to "VOYAH",
+            "סאנגיונג" to "SSANGYONG",
+            "קיי ג'י אם" to "KGM",
+            "אבארט" to "ABARTH",
+            "אינפיניטי" to "INFINITI",
+            "ימאהה" to "YAMAHA",
+            "קאוואסאקי" to "KAWASAKI",
+            "קאווסאקי" to "KAWASAKI",
+            "דוקאטי" to "DUCATI",
+            "ק.ט.מ" to "KTM",
+            "קיי טי אם" to "KTM",
+            "סאן יאנג" to "SYM",
+            "סאניאנג" to "SYM",
+            "קימקו" to "KYMCO",
+            "פיאג'ו" to "PIAGGIO",
+            "פיאג'יו" to "PIAGGIO",
+            "ווספה" to "VESPA",
+            "וספה" to "VESPA"
+        )
+
+        val expandedQueries = mutableListOf<String>()
+        queries.forEach { currentQ ->
+            brandTranslations.forEach { (hebBrand, engBrand) ->
+                if (currentQ.contains(hebBrand, ignoreCase = true)) {
+                    expandedQueries.add(currentQ.replace(Regex(hebBrand, RegexOption.IGNORE_CASE), engBrand).trim())
+                }
+            }
+        }
+        queries.addAll(expandedQueries)
+
+        val multiWordBrands = listOf(
+            "לנד רובר" to "LAND ROVER",
+            "לנדרובר" to "LAND ROVER",
+            "אלפא רומיאו" to "ALFA ROMEO",
+            "בי ואי די" to "BYD",
+            "לינק אנד קו" to "LYNK & CO",
+            "מרצדס בנץ" to "MERCEDES-BENZ"
+        )
+        for ((mHeb, mEng) in multiWordBrands) {
+            if (q.startsWith(mHeb, ignoreCase = true)) {
+                val rem = q.removePrefix(mHeb).trim()
+                if (rem.isNotBlank()) {
+                    queries.add("$mEng $rem")
+                    queries.add(rem)
+                }
             }
         }
 
@@ -1361,6 +1605,94 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         return queries.distinct().filter { it.isNotBlank() }
+    }
+
+    private fun cleanSearchString(s: String): String {
+        return s.lowercase(java.util.Locale.ROOT)
+            .replace("-", " ")
+            .replace("/", " ")
+            .replace("'", "")
+            .replace("\"", "")
+            .replace("״", "")
+            .replace("׳", "")
+            .trim()
+    }
+
+    private fun isTextRelevantToQuery(rawQuery: String, candidateQueries: List<String>, vehicleTexts: List<String>): Boolean {
+        val cleanTexts = vehicleTexts.filter { it.isNotBlank() }.map { cleanSearchString(it) }
+        if (cleanTexts.isEmpty()) return false
+
+        val cleanRaw = cleanSearchString(rawQuery)
+        if (cleanRaw.isBlank()) return false
+
+        // 1. Direct contains or reverse contains
+        for (vt in cleanTexts) {
+            if (vt.length >= 2 && cleanRaw.length >= 2) {
+                if (vt.contains(cleanRaw) || (cleanRaw.contains(vt) && vt.length >= 3)) {
+                    return true
+                }
+            }
+        }
+
+        // 2. Candidate variations contains
+        for (cand in candidateQueries) {
+            val cleanCand = cleanSearchString(cand)
+            if (cleanCand.length < 2) continue
+            for (vt in cleanTexts) {
+                if (vt.contains(cleanCand) || (cleanCand.contains(vt) && vt.length >= 3)) {
+                    return true
+                }
+            }
+        }
+
+        // 3. Significant token match
+        val genericWords = setOf("רכב", "אוטו", "דגם", "car", "auto", "vehicle", "ישראל", "ספרד", "יפן", "גרמניה", "קוריאה", "סין", "turkey", "spain", "japan", "germany")
+        val allQueryTokens = (listOf(rawQuery) + candidateQueries)
+            .flatMap { it.split("\\s+".toRegex()) }
+            .map { cleanSearchString(it) }
+            .filter { it.length >= 2 && it !in genericWords }
+            .distinct()
+
+        for (token in allQueryTokens) {
+            for (vt in cleanTexts) {
+                if (vt.split("\\s+".toRegex()).any { word -> word == token || (word.length >= 4 && word.contains(token)) }) {
+                    return true
+                }
+                if (vt.contains(token) && token.length >= 3) {
+                    return true
+                }
+            }
+        }
+
+        return false
+    }
+
+    private fun isSpecRecordRelevant(rawQuery: String, candidateQueries: List<String>, record: VehicleTechnicalSpecRecord): Boolean {
+        val (makeEn, modelEn) = VehicleUtils.getEnglishMakeAndModel(record.makeName.orEmpty(), record.commercialName.orEmpty())
+        val texts = listOfNotNull(
+            record.makeName,
+            record.commercialName,
+            record.trimLevel,
+            record.bodyType,
+            makeEn,
+            modelEn
+        )
+        return isTextRelevantToQuery(rawQuery, candidateQueries, texts)
+    }
+
+    private fun isVehicleRecordRelevant(rawQuery: String, candidateQueries: List<String>, record: VehicleRecord): Boolean {
+        val (makeEn, modelEn) = VehicleUtils.getEnglishMakeAndModel(record.make.orEmpty(), record.effectiveModel.orEmpty())
+        val texts = listOfNotNull(
+            record.make,
+            record.model,
+            record.effectiveModel,
+            record.trimLevel,
+            record.vehicleCategory,
+            record.effectiveVehicleCategory,
+            makeEn,
+            modelEn
+        )
+        return isTextRelevantToQuery(rawQuery, candidateQueries, texts)
     }
 
     fun searchModelStatistics(query: String? = null) {
@@ -1381,8 +1713,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     try {
                         val specResp = NetworkClient.apiService.searchModelsTechnicalSpec(query = candQuery, limit = 15)
                         val recs = specResp.result?.records.orEmpty()
-                        if (recs.isNotEmpty()) {
-                            foundRecords = recs
+                        val relevant = recs.filter { isSpecRecordRelevant(q, candidateQueries, it) }
+                        if (relevant.isNotEmpty()) {
+                            foundRecords = relevant
                             break
                         }
                     } catch (_: Exception) {}
@@ -1396,7 +1729,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val modelName = first.commercialName.orEmpty().ifBlank { first.trimLevel.orEmpty().ifBlank { q } }
                     val commercialName = first.commercialName ?: first.trimLevel
                     val vehicleType = first.bodyType
-                    val (makeEn, _) = VehicleUtils.getEnglishMakeAndModel(makeHe, modelName)
+                    val (makeEnRaw, _) = VehicleUtils.getEnglishMakeAndModel(makeHe, modelName)
+                    val makeEn = makeEnRaw.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.ROOT) else it.toString() }
                     val classification = VehicleUtils.resolveQuickClassification(
                         make = makeHe,
                         model = modelName,
@@ -1514,63 +1848,176 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         yearDistribution = distribution
                     )
                 } else {
-                    // Fallback to active vehicles query
+                    // Fallback to active vehicles query (Private/commercial, Heavy vehicles, Motorcycles, Personal import)
                     var foundActiveRecords = emptyList<VehicleRecord>()
                     var activeTotal = 0
+
+                    // A. Search Private / Light Commercial Active Vehicles
                     for (cand in candidateQueries) {
                         try {
                             val activeVehicles = NetworkClient.apiService.searchVehicleByQuery(query = cand, limit = 10)
                             val recs = activeVehicles.result?.records.orEmpty()
-                            if (recs.isNotEmpty()) {
-                                foundActiveRecords = recs
-                                activeTotal = activeVehicles.result?.total ?: recs.size
+                            val relevant = recs.filter { isVehicleRecordRelevant(q, candidateQueries, it) }
+                            if (relevant.isNotEmpty()) {
+                                foundActiveRecords = relevant
+                                activeTotal = activeVehicles.result?.total ?: relevant.size
                                 break
                             }
                         } catch (_: Exception) {}
                     }
 
+                    // B. Fallback: Search Heavy Vehicles (Trucks, Pickups like Cybertruck/Silverado/Ram/F-350, Buses)
+                    if (foundActiveRecords.isEmpty()) {
+                        for (cand in candidateQueries) {
+                            try {
+                                val heavyVehicles = NetworkClient.apiService.searchHeavyVehicleByQuery(query = cand, limit = 10)
+                                val recs = heavyVehicles.result?.records.orEmpty()
+                                val relevant = recs.filter { isVehicleRecordRelevant(q, candidateQueries, it) }
+                                if (relevant.isNotEmpty()) {
+                                    foundActiveRecords = relevant
+                                    activeTotal = heavyVehicles.result?.total ?: relevant.size
+                                    break
+                                }
+                            } catch (_: Exception) {}
+                        }
+                    }
+
+                    // C. Fallback: Search Two-Wheelers / Motorcycles / Scooters (TMAX, Vespa, etc.)
+                    if (foundActiveRecords.isEmpty()) {
+                        for (cand in candidateQueries) {
+                            try {
+                                val twoWheelers = NetworkClient.apiService.searchTwoWheelerByQuery(query = cand, limit = 10)
+                                val recs = twoWheelers.result?.records.orEmpty()
+                                val relevant = recs.filter { isVehicleRecordRelevant(q, candidateQueries, it) }
+                                if (relevant.isNotEmpty()) {
+                                    foundActiveRecords = relevant
+                                    activeTotal = twoWheelers.result?.total ?: relevant.size
+                                    break
+                                }
+                            } catch (_: Exception) {}
+                        }
+                    }
+
+                    // D. Fallback: Search Personal Import Vehicles
+                    if (foundActiveRecords.isEmpty()) {
+                        for (cand in candidateQueries) {
+                            try {
+                                val personalImports = NetworkClient.apiService.searchPersonalImportByQuery(query = cand, limit = 10)
+                                val recs = personalImports.result?.records.orEmpty()
+                                val mappedRecs = recs.map { it.toVehicleRecord() }
+                                val relevant = mappedRecs.filter { isVehicleRecordRelevant(q, candidateQueries, it) }
+                                if (relevant.isNotEmpty()) {
+                                    foundActiveRecords = relevant
+                                    activeTotal = personalImports.result?.total ?: relevant.size
+                                    break
+                                }
+                            } catch (_: Exception) {}
+                        }
+                    }
+
                     if (foundActiveRecords.isNotEmpty()) {
                         val first = foundActiveRecords.first()
                         val makeHe = first.make.orEmpty().ifBlank { q }
-                        val modelName = first.model.orEmpty().ifBlank { q }
-                        val (makeEn, _) = VehicleUtils.getEnglishMakeAndModel(makeHe, modelName)
-                        val totalActive = activeTotal.coerceAtLeast(1)
+                        val modelName = first.effectiveModel.orEmpty().ifBlank { q }
+                        val (makeEnRaw, _) = VehicleUtils.getEnglishMakeAndModel(makeHe, modelName)
+                        val makeEn = makeEnRaw.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.ROOT) else it.toString() }
+                        val totalActive = activeTotal.coerceAtLeast(foundActiveRecords.size).coerceAtLeast(1)
                         val classification = VehicleUtils.resolveQuickClassification(
                             make = makeHe,
                             model = modelName,
                             modelType = first.modelType,
                             ownership = first.ownership,
                             trimLevel = first.trimLevel,
-                            fuel = first.fuelType
+                            fuel = first.fuelType,
+                            category = first.effectiveVehicleCategory
                         )
+
+                        // Real Year Distribution from records
+                        val currentYear = java.time.LocalDate.now().year
+                        val recordsByYear = foundActiveRecords.mapNotNull { it.year }.groupingBy { it }.eachCount()
+                        val yearDist = if (recordsByYear.isNotEmpty()) {
+                            recordsByYear.entries.sortedByDescending { it.key }.map { (yr, count) ->
+                                val scaledCount = if (foundActiveRecords.size < totalActive) {
+                                    ((count.toDouble() / foundActiveRecords.size) * totalActive).toInt().coerceAtLeast(1)
+                                } else {
+                                    count
+                                }
+                                ModelYearCount(yr, scaledCount, 0)
+                            }
+                        } else {
+                            listOf(
+                                ModelYearCount(currentYear, (totalActive * 0.35).toInt().coerceAtLeast(1), 0),
+                                ModelYearCount(currentYear - 1, (totalActive * 0.30).toInt().coerceAtLeast(1), (totalActive * 0.01).toInt()),
+                                ModelYearCount(currentYear - 2, (totalActive * 0.20).toInt().coerceAtLeast(1), (totalActive * 0.02).toInt()),
+                                ModelYearCount(currentYear - 3, (totalActive * 0.15).toInt().coerceAtLeast(1), (totalActive * 0.02).toInt())
+                            )
+                        }
+
+                        val fuels = foundActiveRecords.mapNotNull { it.fuelType }.distinct()
+                        val fuelDisplay = if (fuels.isNotEmpty()) fuels else listOfNotNull(first.fuelType).distinct().ifEmpty { listOf("חשמלי / בנזין") }
+
+                        val commercialName = if (!first.trimLevel.isNullOrBlank()) {
+                            first.trimLevel
+                        } else if (modelName.equals("CYBERTRUCK", ignoreCase = true)) {
+                            "Cybertruck"
+                        } else null
+
+                        val vehicleCategory = first.effectiveVehicleCategory ?: first.vehicleCategory
 
                         _selectedModelDetail.value = ModelStatisticsDetail(
                             makeHe = makeHe,
                             makeEn = makeEn,
                             modelName = modelName,
-                            commercialName = first.trimLevel,
-                            vehicleType = first.vehicleCategory,
+                            commercialName = commercialName,
+                            vehicleType = vehicleCategory,
                             classification = classification,
                             totalActive = totalActive,
-                            totalInactive = (totalActive * 0.05).toInt(),
-                            survivalRate = 95.0f,
-                            safetyScore = 6.8,
-                            fuelTypes = listOfNotNull(first.fuelType).distinct().ifEmpty { listOf("חשמלי / בנזין") },
+                            totalInactive = (totalActive * 0.02).toInt(),
+                            survivalRate = 98.0f,
+                            safetyScore = 7.0,
+                            fuelTypes = fuelDisplay,
                             enginePowerHp = first.horsepower,
                             transmission = null,
-                            yearDistribution = listOf(
-                                ModelYearCount(2025, (totalActive * 0.35).toInt(), 0),
-                                ModelYearCount(2024, (totalActive * 0.30).toInt(), (totalActive * 0.01).toInt()),
-                                ModelYearCount(2023, (totalActive * 0.20).toInt(), (totalActive * 0.02).toInt()),
-                                ModelYearCount(2022, (totalActive * 0.15).toInt(), (totalActive * 0.02).toInt())
-                            )
+                            yearDistribution = yearDist
                         )
                     } else {
-                        _modelSearchError.value = "לא נמצאו נתוני דגם עבור \"$q\" במאגר משרד התחבורה"
+                        // Check if query matches a popular model suggestion to give a helpful explanation
+                        val matchedSuggestion = VehicleModelCatalog.allModels.firstOrNull {
+                            it.modelHebrew.equals(q, ignoreCase = true) ||
+                            it.modelEnglish.equals(q, ignoreCase = true) ||
+                            it.searchQuery.equals(q, ignoreCase = true) ||
+                            "${it.brandHebrew} ${it.modelHebrew}".equals(q, ignoreCase = true) ||
+                            "${it.brandEnglish} ${it.modelEnglish}".equals(q, ignoreCase = true)
+                        }
+                        if (matchedSuggestion != null) {
+                            _selectedModelDetail.value = ModelStatisticsDetail(
+                                makeHe = matchedSuggestion.brandHebrew,
+                                makeEn = matchedSuggestion.brandEnglish,
+                                modelName = matchedSuggestion.modelEnglish,
+                                commercialName = matchedSuggestion.modelHebrew,
+                                vehicleType = "טרם נרשמו פעילים ברישוי",
+                                classification = "דגם בקטלוג",
+                                totalActive = 0,
+                                totalInactive = 0,
+                                survivalRate = 100.0f,
+                                safetyScore = 0.0,
+                                fuelTypes = listOf("חשמלי / בנזין"),
+                                enginePowerHp = null,
+                                transmission = null,
+                                yearDistribution = emptyList()
+                            )
+                        } else {
+                            _modelSearchError.value = "לא נמצאו נתוני דגם עבור \"$q\" במאגר משרד התחבורה"
+                        }
                     }
                 }
             } catch (e: Exception) {
-                _modelSearchError.value = "שגיאה בטעינת נתוני הדגם: ${e.localizedMessage}"
+                val errorMsg = if (e is java.net.UnknownHostException || e is java.net.SocketTimeoutException) {
+                    "אין חיבור לאינטרנט. אנא בדוק את החיבור ונסה שוב."
+                } else {
+                    "לא נמצאו נתוני דגם עבור \"$q\" במאגר משרד התחבורה"
+                }
+                _modelSearchError.value = errorMsg
             } finally {
                 _isSearchingModel.value = false
             }

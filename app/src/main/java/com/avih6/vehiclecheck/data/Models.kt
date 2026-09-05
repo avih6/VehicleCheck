@@ -145,13 +145,51 @@ data class VehicleRecord(
     @SerialName("mispar_manoa") val engineNumber: String? = null,
     @SerialName("bitul_dt") val cancellationDate: String? = null
 ) {
-    val effectiveModel: String? get() = if (!model.isNullOrBlank()) model else if (!modelCode.isNullOrBlank()) modelCode else null
+    val effectiveModel: String? get() {
+        val known = VehicleUtils.resolveKnownModelName(make, modelCode, model, vin)
+        if (known != null) {
+            val raw = if (!model.isNullOrBlank()) model else modelCode
+            return if (!raw.isNullOrBlank() && !raw.contains(known, ignoreCase = true)) {
+                "$known ($raw)"
+            } else {
+                known
+            }
+        }
+        return if (!model.isNullOrBlank()) model else if (!modelCode.isNullOrBlank()) modelCode else null
+    }
     val effectiveVin: String? get() = if (!vin.isNullOrBlank()) vin else if (!vinAlt.isNullOrBlank()) vinAlt else vinHeavy
     val effectiveStandardType: String? get() = if (!standardType.isNullOrBlank()) standardType else standardTypeHeavy
     val effectiveVehicleCategory: String? get() = if (!vehicleCategory.isNullOrBlank()) vehicleCategory else vehicleCategoryHeavy
     val effectiveSeats: Int? get() = seats ?: seatsHeavy
     val effectiveSeatsNextToDriver: Int? get() = seatsNextToDriver ?: seatsNextToDriverHeavy
     val effectiveCargoWeight: Int? get() = cargoWeight ?: cargoWeightHeavy ?: if (totalWeight != null && curbWeight != null && totalWeight > curbWeight) totalWeight - curbWeight else null
+
+    val isOfficiallyCollector: Boolean get() {
+        val s = listOfNotNull(
+            effectiveVehicleCategory,
+            trimLevel,
+            model,
+            modelCode,
+            modelType,
+            bodyTypeName
+        ).joinToString(" ")
+        return s.contains("אספנות")
+    }
+
+    val isAgeCollectorEligible: Boolean get() {
+        if (isOfficiallyCollector) return false
+        val y = year ?: return false
+        val currentYear = java.time.LocalDate.now().year
+        return y > 1900 && (currentYear - y >= 30)
+    }
+
+    val collectorBadgeText: String? get() {
+        return when {
+            isOfficiallyCollector -> "🏆 רכב אספנות רשמי"
+            isAgeCollectorEligible -> "⏳ רכב ותיק (מעל 30 שנה) • ייתכן וזכאי לסטטוס אספנות"
+            else -> null
+        }
+    }
 }
 
 @Serializable
@@ -199,7 +237,11 @@ data class PersonalImportRecord(
             safetyRating = null,
             emissionGroup = null,
             vin = vin,
-            registrationDirective = null
+            registrationDirective = null,
+            vehicleCategory = vehicleType,
+            countryOfOrigin = countryOfOrigin,
+            totalWeight = totalWeight,
+            engineDisplacement = engineDisplacement
         )
     }
 }
@@ -584,7 +626,134 @@ sealed interface SearchState {
     data class Error(val message: String) : SearchState
 }
 
+data class BaseModelInfo(
+    val baseModel: String,
+    val searchTerms: List<String> = listOf(baseModel),
+    val exactKinuyFilter: String? = null
+)
+
 object VehicleUtils {
+    fun resolveKnownModelName(make: String?, modelCode: String?, modelName: String?, vin: String?): String? {
+        val mk = make.orEmpty()
+        val mc = modelCode.orEmpty().uppercase()
+        val mn = modelName.orEmpty().uppercase()
+        val v = vin.orEmpty().uppercase()
+
+        // Ford / פורד
+        if (mk.contains("פורד") || mk.contains("FORD", ignoreCase = true)) {
+            if (mc == "P44" || mc.contains("P44") || mc.contains("MUSTANG") || mn.contains("MUSTANG") || mn.contains("מוסטנג") || v.startsWith("1FA")) {
+                return "מוסטנג"
+            }
+            if (mc.contains("FOCUS") || mn.contains("FOCUS") || mn.contains("פוקוס")) return "פוקוס"
+            if (mc.contains("FIESTA") || mn.contains("FIESTA") || mn.contains("פיאסטה")) return "פיאסטה"
+            if (mc.contains("MONDEO") || mn.contains("MONDEO") || mn.contains("מונדיאו") || mn.contains("מונדאו")) return "מונדאו"
+            if (mc.contains("KUGA") || mn.contains("KUGA") || mn.contains("קוגה")) return "קוגה"
+            if (mc.contains("EXPLORER") || mn.contains("EXPLORER") || mn.contains("אקספלורר")) return "אקספלורר"
+            if (mc.contains("BRONCO") || mn.contains("BRONCO") || mn.contains("ברונקו")) return "ברונקו"
+            if (mc.contains("TRANSIT") || mn.contains("TRANSIT") || mn.contains("טרנזיט")) return "טרנזיט"
+            if (mc.contains("F-150") || mc.contains("F150") || mn.contains("F-150") || mn.contains("F150")) return "F-150"
+            if (mc.contains("F-250") || mc.contains("F250") || mn.contains("F-250") || mn.contains("F250")) return "F-250"
+            if (mc.contains("F-350") || mc.contains("F350") || mn.contains("F-350") || mn.contains("F350")) return "F-350"
+        }
+
+        // Chevrolet / שברולט
+        if (mk.contains("שברולט") || mk.contains("CHEVROLET", ignoreCase = true) || mk.contains("CHEVY", ignoreCase = true)) {
+            if (mc.contains("CORVETTE") || mn.contains("CORVETTE") || mn.contains("קורבט") || v.startsWith("1G1YY")) return "קורבט"
+            if (mc.contains("CAMARO") || mn.contains("CAMARO") || mn.contains("קמארו")) return "קמארו"
+            if (mc.contains("MALIBU") || mn.contains("MALIBU") || mn.contains("מליבו")) return "מליבו"
+            if (mc.contains("CRUZE") || mn.contains("CRUZE") || mn.contains("קרוז")) return "קרוז"
+            if (mc.contains("SPARK") || mn.contains("SPARK") || mn.contains("ספארק")) return "ספארק"
+            if (mc.contains("SILVERADO") || mn.contains("SILVERADO") || mn.contains("סילברדו")) return "סילברדו"
+            if (mc.contains("TAHOE") || mn.contains("TAHOE") || mn.contains("טאהו")) return "טאהו"
+            if (mc.contains("SUBURBAN") || mn.contains("SUBURBAN") || mn.contains("סוברבן")) return "סוברבן"
+        }
+
+        // Dodge / דודג'
+        if (mk.contains("דודג") || mk.contains("DODGE", ignoreCase = true)) {
+            if (mc.contains("CHALLENGER") || mn.contains("CHALLENGER") || mn.contains("צ'אלנג'ר")) return "צ'אלנג'ר"
+            if (mc.contains("CHARGER") || mn.contains("CHARGER") || mn.contains("צ'ארג'ר")) return "צ'ארג'ר"
+            if (mc.contains("RAM") || mn.contains("RAM") || mn.contains("ראם")) return "ראם"
+            if (mc.contains("DURANGO") || mn.contains("DURANGO") || mn.contains("דורנגו")) return "דורנגו"
+        }
+
+        // Jeep / ג'יפ
+        if (mk.contains("ג'יפ") || mk.contains("גיפ") || mk.contains("JEEP", ignoreCase = true)) {
+            if (mc.contains("WRANGLER") || mn.contains("WRANGLER") || mn.contains("רנגלר")) return "רנגלר"
+            if (mc.contains("CHEROKEE") || mn.contains("CHEROKEE") || mn.contains("צ'ירוקי")) return "גרנד צ'ירוקי"
+            if (mc.contains("COMPASS") || mn.contains("COMPASS") || mn.contains("קומפאס")) return "קומפאס"
+            if (mc.contains("RENEGADE") || mn.contains("RENEGADE") || mn.contains("ר Renegade")) return "רנגייד"
+        }
+
+        // Yamaha
+        if (mk.contains("ימאהה") || mk.contains("ימהה") || mk.contains("YAMAHA", ignoreCase = true)) {
+            if (mc.contains("XP 500") || mc.contains("TMAX") || mn.contains("TMAX") || mn.contains("טימקס")) return "TMAX"
+        }
+
+        return null
+    }
+
+    fun extractBaseModel(make: String?, model: String?, modelCode: String?, vin: String? = null): BaseModelInfo {
+        val known = resolveKnownModelName(make, modelCode, model, vin)
+        val rawModel = model?.trim().orEmpty()
+        val rawCode = modelCode?.trim().orEmpty()
+
+        if (known != null) {
+            val terms = mutableListOf<String>()
+            when (known) {
+                "מוסטנג" -> { terms.addAll(listOf("MUSTANG", "מוסטנג")); if (rawCode.isNotBlank()) terms.add(rawCode) }
+                "פוקוס" -> terms.addAll(listOf("FOCUS", "פוקוס"))
+                "פיאסטה" -> terms.addAll(listOf("FIESTA", "פיאסטה"))
+                "מונדאו" -> terms.addAll(listOf("MONDEO", "מונדאו", "מונדיאו"))
+                "קורבט" -> terms.addAll(listOf("CORVETTE", "קורבט"))
+                "קמארו" -> terms.addAll(listOf("CAMARO", "קמארו"))
+                "TMAX" -> terms.addAll(listOf("TMAX", "XP 500", "טימקס"))
+                else -> {
+                    terms.add(known)
+                    if (rawModel.isNotBlank()) terms.add(rawModel.split(" ").first())
+                }
+            }
+            return BaseModelInfo(
+                baseModel = known,
+                searchTerms = terms.distinct(),
+                exactKinuyFilter = rawModel.ifBlank { null }
+            )
+        }
+
+        val primary = if (rawModel.isNotBlank()) rawModel else rawCode
+        if (primary.isBlank()) {
+            return BaseModelInfo(baseModel = "", searchTerms = emptyList())
+        }
+
+        val clean = primary
+            .replace("4X4", "", ignoreCase = true)
+            .replace("2X4", "", ignoreCase = true)
+            .replace("AWD", "", ignoreCase = true)
+            .replace("4WD", "", ignoreCase = true)
+            .replace("HYBRID", "", ignoreCase = true)
+            .replace("היבריד", "")
+            .replace("אוטו'", "")
+            .replace("אוטומט", "")
+            .trim()
+
+        val tokens = clean.split(" ", "-", "_").filter { it.isNotBlank() }
+        val firstToken = tokens.firstOrNull() ?: primary
+
+        val terms = mutableListOf<String>()
+        terms.add(firstToken)
+        if (tokens.size >= 2 && (firstToken.equals("LAND", ignoreCase = true) || firstToken.equals("GRAND", ignoreCase = true) || firstToken.equals("CX", ignoreCase = true))) {
+            terms.add("${tokens[0]} ${tokens[1]}")
+            terms.add("${tokens[0]}-${tokens[1]}")
+        }
+        if (rawModel.isNotBlank() && rawModel != firstToken) {
+            terms.add(rawModel)
+        }
+
+        return BaseModelInfo(
+            baseModel = firstToken,
+            searchTerms = terms.distinct(),
+            exactKinuyFilter = rawModel.ifBlank { null }
+        )
+    }
     fun parseTestStatus(testExpiryDateStr: String?, isOffRoad: Boolean = false, offRoadDate: String? = null): TestStatus {
         if (isOffRoad) {
             return TestStatus.OffRoad(offRoadDate ?: "בוטל")
@@ -806,7 +975,7 @@ object VehicleUtils {
         var str = raw.trim()
         val countrySuffixes = listOf(
             " גרמנ", " גרמניה", " יפן", " צרפת", " איטליה", " איטלי",
-            " ארה\"ב", " ארהב\"", " ארהב", " שוודיה", " שוודי",
+            " ארה\"ב", " ארה''ב", " ארה'ב", " ארהב\"", " ארהב", " שוודיה", " שוודי",
             " בריטניה", " אנגליה", " סין", " הודו", " טורקיה", " תורכיה",
             " דרום קוריאה", " קוריאה", " צ'כיה", " ספרד", " רומניה",
             " הונגריה", " פולין", " מקסיקו", " קנדה", " תאילנד", " אוסטריה", " בלגיה"
@@ -1173,6 +1342,17 @@ object VehicleUtils {
             .trim()
             .split(" ", "-", "_")
             .firstOrNull { it.isNotBlank() && !it.contains("גרמנ") } ?: ""
+
+        when {
+            mod.contains("mustang") || mod.contains("מוסטנג") || trim.contains("mustang") || mod == "p44" -> modelClean = "Mustang"
+            mod.contains("cybertruck") || mod.contains("סייברטראק") || trim.contains("cybertruck") -> modelClean = "Cybertruck"
+            mod.contains("silverado") || mod.contains("סילברדו") || trim.contains("silverado") -> modelClean = "Silverado"
+            mod.contains("ram") || mod.contains("ראם") || trim.contains("ram") -> modelClean = "RAM"
+            mod.contains("f-350") || mod.contains("f350") -> modelClean = "F-350"
+            mod.contains("f-150") || mod.contains("f150") -> modelClean = "F-150"
+            mod.contains("tmax") || mod.contains("טימקס") -> modelClean = "TMAX"
+            mod.contains("d-max") || mod.contains("דימקס") || mod.contains("די מקס") -> modelClean = "D-MAX"
+        }
 
         if (modelClean.isBlank() || modelClean == "car") {
             // Extract from trimLevel or category
@@ -1587,25 +1767,30 @@ object VehicleUtils {
             m.contains("proace") || m.contains("nv200") || m.contains("nv400") || m.contains("vivaro") || m.contains("sprinter") ||
             m.contains("ספרינטר") || t.contains("משא אחוד") || t.contains("מסחרי") || t.contains("n1") || cat.contains("משא אחוד") -> "🚐 מסחרית / ואן"
 
-            // 4. Heavy Trucks (משאית / משא כבד)
+            // 4. Pickups (טנדר) - Checked before generic heavy trucks because American pickups (Cybertruck, Silverado, Ram, F-350) have MOT category "משא"
+            m.contains("cybertruck") || m.contains("סייברטראק") ||
+            m.contains("hilux") || m.contains("היילקס") || m.contains("d-max") || m.contains("דימקס") || m.contains("די מקס") ||
+            m.contains("navara") || m.contains("נבארה") || m.contains("triton") || m.contains("טרייטון") || m.contains("l200") ||
+            m.contains("amarok") || m.contains("אמארוק") || m.contains("f-150") || m.contains("f-250") || m.contains("f-350") ||
+            m.contains("silverado") || m.contains("סילברדו") || m.contains("ram 1500") || m.contains("ram 2500") || m.contains("ram 3500") ||
+            (mk.contains("דודג") && m.contains("ראם")) || (mk.contains("dodge") && m.contains("ram")) || m.contains("טנדר") -> "🛻 טנדר"
+
+            // 5. Heavy Trucks (משאית / משא כבד)
             combined.contains("משאית") || combined.contains("משא כבד") || t.contains("משא") || cat.contains("משא") || 
             m.contains("משא") || m.contains("actros") || m.contains("atego") || m.contains("axor") || m.contains("fh") || 
             m.contains("fm") || m.contains("tgx") || m.contains("tgs") || m.contains("tgl") || m.contains("stralis") || 
             m.contains("eurocargo") || m.contains("scania") || m.contains("man ") || mk.contains("סקניה") ||
             mk.contains("דאף") || mk.contains("daf") || mk.contains("מאק") || mk.contains("mack") -> "🚚 משא / מסחרי"
 
-            // 5. Motorcycles & Scooters (אופנוע / קטנוע)
+            // 6. Motorcycles & Scooters (אופנוע / קטנוע)
             combined.contains("אופנוע") || combined.contains("קטנוע") || combined.contains("scooter") || combined.contains("motorcycle") ||
+            m.contains("tmax") || m.contains("xmax") || m.contains("טימקס") || m.contains("איקסמקס") ||
+            m.contains("forza") || m.contains("פורזה") || m.contains("joymax") || m.contains("ג'וימקס") ||
+            m.contains("downtown") || m.contains("דאונטאון") ||
             mk.contains("ימאהה") || mk.contains("yamaha") || mk.contains("סאנגיאנג") || mk.contains("sym") || mk.contains("קימקו") ||
             mk.contains("kymco") || mk.contains("הארלי") || mk.contains("harley") || mk.contains("דוקאטי") || mk.contains("ducati") ||
             mk.contains("ק.ט.מ") || mk.contains("ktm") || mk.contains("קוואסאקי") || mk.contains("kawasaki") || mk.contains("פיאג'ו") ||
             mk.contains("piaggio") || mk.contains("vespa") || mk.contains("וספה") || t.contains("אופנוע") || cat.contains("אופנוע") -> "🏍️ אופנוע"
-
-            // 6. Pickups (טנדר)
-            m.contains("hilux") || m.contains("היילקס") || m.contains("d-max") || m.contains("דימקס") || m.contains("די מקס") ||
-            m.contains("navara") || m.contains("נבארה") || m.contains("triton") || m.contains("טרייטון") || m.contains("l200") ||
-            m.contains("amarok") || m.contains("אמארוק") || m.contains("f-150") || m.contains("f-250") || m.contains("f-350") ||
-            m.contains("silverado") || m.contains("סילברדו") || m.contains("ram 1500") || m.contains("ram 2500") || m.contains("טנדר") -> "🛻 טנדר"
 
             // 7. Minivans / MPV (מיניוואן משפחתי)
             m.contains("carnival") || m.contains("קרניבל") || m.contains("sienna") || m.contains("סיינה") || m.contains("voyager") ||

@@ -147,8 +147,8 @@ fun AnimatedModelDistributionChart(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(160.dp)
-                        .padding(horizontal = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                        .padding(horizontal = 8.dp),
+                    horizontalArrangement = if (yearCounts.size <= 3) Arrangement.spacedBy(32.dp, Alignment.CenterHorizontally) else Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Bottom
                 ) {
                     yearCounts.forEach { item ->
@@ -158,11 +158,14 @@ fun AnimatedModelDistributionChart(
 
                         val activeRatio = if (item.totalCount > 0) item.activeCount.toFloat() / item.totalCount else 0f
 
+                        val colModifier = if (yearCounts.size <= 3) {
+                            Modifier.width(52.dp).fillMaxHeight()
+                        } else {
+                            Modifier.weight(1f).fillMaxHeight().padding(horizontal = 3.dp)
+                        }
+
                         Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .padding(horizontal = 3.dp),
+                            modifier = colModifier,
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             // 1. Count Label on top of bar (shows active count)
@@ -177,7 +180,7 @@ fun AnimatedModelDistributionChart(
 
                             Spacer(Modifier.height(4.dp))
 
-                            // 2. Stacked Bar (Active Blue + Inactive Red) - Flexible within weight(1f)
+                            // 2. Stacked Bar (Active Blue + Inactive Red)
                             val isAllInactive = item.activeCount == 0 && item.inactiveCount > 0
                             val isAllActive = item.activeCount > 0 && item.inactiveCount == 0
                             val barColor = when {
@@ -194,7 +197,8 @@ fun AnimatedModelDistributionChart(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .fillMaxWidth(0.75f)
+                                        .widthIn(max = 40.dp)
+                                        .fillMaxWidth(0.85f)
                                         .fillMaxHeight(barHeightFraction)
                                         .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
                                         .background(barColor),
@@ -214,22 +218,22 @@ fun AnimatedModelDistributionChart(
 
                             Spacer(Modifier.height(6.dp))
 
-                            // 3. Year Label (Guaranteed fixed height, never squished!)
+                            // 3. Year Label with high contrast
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
-                                color = if (isCurrent) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                color = if (isCurrent) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
                                 border = if (isCurrent) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null
                             ) {
                                 Text(
                                     text = "${item.year}",
                                     fontSize = 11.sp,
-                                    fontWeight = if (isCurrent) FontWeight.Black else FontWeight.Normal,
-                                    color = if (isCurrent) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    fontWeight = if (isCurrent) FontWeight.Black else FontWeight.Bold,
+                                    color = if (isCurrent) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                             }
 
-                            // 4. "הרכב הזה" indicator or aligned spacer
+                            // 4. "הרכב הזה" indicator
                             if (isCurrent) {
                                 Text(
                                     text = "הרכב הזה",

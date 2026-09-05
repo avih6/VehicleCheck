@@ -33,7 +33,7 @@ import com.google.android.gms.ads.nativead.NativeAdView
 @Composable
 fun AdBanner(modifier: Modifier = Modifier) {
     var isAdLoaded by remember { mutableStateOf(false) }
-    val adUnitId = if (com.avih6.vehiclecheck.BuildConfig.DEBUG) "ca-app-pub-3940256099942544/6300978111" else "ca-app-pub-2696004741445434/8977286943"
+    val adUnitId = "ca-app-pub-2696004741445434/8977286943"
 
     Box(
         modifier = if (isAdLoaded) modifier.fillMaxWidth().height(50.dp) else Modifier.size(0.dp)

@@ -512,6 +512,46 @@ fun ResultCard(
                             }
                         }
                     }
+
+                    if (!isOffRoad && !isEngineeringEquipment) {
+                        if (vehicle.isOfficiallyCollector) {
+                            Surface(
+                                color = Color(0xFFFFD700).copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(20.dp),
+                                border = BorderStroke(1.dp, Color(0xFFFFB300))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "🏆 רכב אספנות רשמי",
+                                        color = Color(0xFFFFB300),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                            }
+                        } else if (vehicle.isAgeCollectorEligible) {
+                            Surface(
+                                color = Color(0xFFFF9800).copy(alpha = 0.12f),
+                                shape = RoundedCornerShape(20.dp),
+                                border = BorderStroke(1.dp, Color(0xFFF57C00))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "⏳ רכב ותיק (מעל 30 שנה) • ייתכן וזכאי לסטטוס אספנות",
+                                        color = Color(0xFFFFB74D),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
                 vehicle.trimLevel?.let { trim ->
@@ -1029,48 +1069,78 @@ private fun GeneralTabContent(
         }
 
         // Collector Vehicle Official Notice (רכב אספנות)
-        // Engineering equipment cannot be a road collector vehicle, and cancelled/off-road vehicles have cancelled registration.
-        val currentYear = java.time.LocalDate.now().year
-        val isCollector = !isEngineeringEquipment && ((vehicle.year != null && vehicle.year > 1900 && currentYear - vehicle.year >= 30) ||
-                vehicle.effectiveVehicleCategory?.contains("אספנות") == true ||
-                vehicle.trimLevel?.contains("אספנות") == true)
+        // Only show if not engineering equipment. Differentiate between official collector and merely age-eligible.
+        val showCollectorCard = !isEngineeringEquipment && (vehicle.isOfficiallyCollector || vehicle.isAgeCollectorEligible)
 
-        if (isCollector) {
+        if (showCollectorCard) {
+            val isOfficialCollector = vehicle.isOfficiallyCollector
+            val cardColor = when {
+                isOffRoad -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                isOfficialCollector -> Color(0xFFFFB300).copy(alpha = 0.12f)
+                else -> Color(0xFFFF9800).copy(alpha = 0.08f)
+            }
+            val borderColor = when {
+                isOffRoad -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                isOfficialCollector -> Color(0xFFFFB300).copy(alpha = 0.5f)
+                else -> Color(0xFFF57C00).copy(alpha = 0.5f)
+            }
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = if (isOffRoad) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f) else Color(0xFFFFB300).copy(alpha = 0.12f)),
-                border = BorderStroke(1.dp, if (isOffRoad) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f) else Color(0xFFFFB300).copy(alpha = 0.5f))
+                colors = CardDefaults.cardColors(containerColor = cardColor),
+                border = BorderStroke(1.dp, borderColor)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(text = if (isOffRoad) "⏳" else "🏆", fontSize = 22.sp)
                         Text(
-                            text = if (isOffRoad) "רכב בגיל אספנות (רישום מבוטל)" else "רכב אספנות רשמי (מעל 30 שנה)",
+                            text = when {
+                                isOffRoad -> "⏳"
+                                isOfficialCollector -> "🏆"
+                                else -> "⏳"
+                            },
+                            fontSize = 22.sp
+                        )
+                        Text(
+                            text = when {
+                                isOffRoad -> "רכב בגיל אספנות (רישום מבוטל)"
+                                isOfficialCollector -> "רכב אספנות רשמי"
+                                else -> "רכב ותיק (מעל 30 שנה)"
+                            },
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleMedium,
-                            color = if (isOffRoad) MaterialTheme.colorScheme.onSurface else Color(0xFFFFC107)
+                            color = when {
+                                isOffRoad -> MaterialTheme.colorScheme.onSurface
+                                isOfficialCollector -> Color(0xFFFFC107)
+                                else -> Color(0xFFFFB74D)
+                            }
                         )
                     }
                     Spacer(Modifier.height(8.dp))
-                    if (isOffRoad) {
-                        Text(
+                    when {
+                        isOffRoad -> Text(
                             text = "רכב זה עומד בקריטריון הגיל לרכב אספנות (מעל 30 שנה), אך מאחר שרישומו בוטל והוא נגרע מהמצבה (טוטאל לוס / פירוק / גריטה), לא חלים עליו הסדרי תנועה וביטוח של רכב אספנות פעיל.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             lineHeight = 18.sp
                         )
-                    } else {
-                        Text(
+                        isOfficialCollector -> Text(
                             text = "• איסור נסיעה בימי חול (א'-ה') בין השעות 07:00 עד 09:00 בבוקר.\n" +
                                     "• חובת מבחן רישוי (טסט) חצי-שנתי פעמיים בשנה.\n" +
                                     "• פטור מבדיקת מעבדה מוסמכת לרכב מיושן.\n" +
                                     "• זכאות לתעריפי ביטוח חובה מופחתים בהתאם לחוק.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface,
+                            lineHeight = 18.sp
+                        )
+                        else -> Text(
+                            text = "רכב זה עבר את גיל 30 שנה ועשוי להיות זכאי לסטטוס \"רכב אספנות\" (תקנה 281א לתקנות התעבורה).\n\n" +
+                                    "ייתכן וזכאי לסטטוס אספנות — הסטטוס אינו ניתן אוטומטית; על הבעלים להגיש בקשה ייעודית ברשות הרישוי. " +
+                                    "רכב שלא הוסב רשמית לאספנות אינו כפוף לאיסור הנסיעה בשעות הבוקר.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             lineHeight = 18.sp
                         )
                     }
@@ -1202,6 +1272,7 @@ private fun GeneralTabContent(
         // 2. Mileage & Odometer Analysis Card (ניתוח קילומטראז' ונסועה שנתית)
         val lastMileage = extraHistory?.lastTestMileage
         val vehicleYear = vehicle.year
+        val currentYear = java.time.LocalDate.now().year
         val isFirstYearOnRoad = vehicleYear != null && (vehicleYear >= currentYear - 1 || (lastMileage != null && lastMileage < 1000L))
         val isExemptNewVehicle = (lastMileage == null || lastMileage == 0L) && vehicleYear != null && (currentYear - vehicleYear) <= 3
         val vehicleAge = if (vehicleYear != null && vehicleYear > 1900) (currentYear - vehicleYear).coerceAtLeast(1) else 1
@@ -1307,22 +1378,22 @@ private fun GeneralTabContent(
                 SpecRow("האם הותקנה מערכת גפ\"מ (גז):", when (extraHistory?.lpgInstalled) {
                     1 -> "כן (מותקנת)"
                     0 -> "לא"
-                    else -> "אין מידע במאגר"
+                    else -> "אין מידע"
                 })
                 SpecRow("האם בוצע שינוי צבע:", when (extraHistory?.colorChange) {
                     1 -> "כן (שינוי רשום)"
                     0 -> "לא"
-                    else -> "אין מידע במאגר"
+                    else -> "אין מידע"
                 })
                 SpecRow("האם בוצע שינוי במידת צמיג:", when (extraHistory?.tireChange) {
                     1 -> "כן (מאושר ברישיון)"
                     0 -> "לא"
-                    else -> "אין מידע במאגר"
+                    else -> "אין מידע"
                 })
                 val towHook = when {
                     (techSpec?.towingCapacityWithBrakes ?: vehicle.towingCapacity ?: 0) > 0 -> "מורשה לגרירה (עד ${techSpec?.towingCapacityWithBrakes ?: vehicle.towingCapacity} ק\"ג)"
                     techSpec != null || vehicle.towingCapacity != null -> "ללא רישום וו גרירה"
-                    else -> "אין מידע במאגר"
+                    else -> "אין מידע"
                 }
                 SpecRow("וו גרירה:", towHook)
 
@@ -1330,7 +1401,7 @@ private fun GeneralTabContent(
                     !vehicle.cargoBoxType.isNullOrBlank() -> "כן (${vehicle.cargoBoxType})"
                     techSpec?.cargoBox == 1 || vehicle.cargoBoxInd == 1 -> "כן (מותקן)"
                     techSpec?.cargoBox == 0 || vehicle.cargoBoxInd == 0 -> "לא"
-                    else -> "אין מידע במאגר"
+                    else -> "אין מידע"
                 }
                 SpecRow("האם יש ארגז (משא / טנדר):", cargoBoxText)
             }
@@ -1420,29 +1491,57 @@ private fun GeneralTabContent(
                 if (hasDisabledPermit) Color(0xFF00629E).copy(alpha = 0.4f) else Color.Transparent
             )
         ) {
-            Row(
-                modifier = Modifier.padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Accessible,
-                    contentDescription = if (hasDisabledPermit) "תו נכה פעיל" else "אין תו נכה",
-                    tint = if (hasDisabledPermit) Color(0xFF00629E) else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(30.dp)
-                )
-                Spacer(Modifier.width(12.dp))
-                Column {
-                    val dateFormatted = VehicleUtils.formatPermitDate(permitIssueDate)
-                    Text(
-                        text = if (hasDisabledPermit) "נמצא תו נכה פעיל במאגר" else "אין תו נכה רשום במאגר",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (hasDisabledPermit) Color(0xFF00629E) else MaterialTheme.colorScheme.onSurface
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Accessible,
+                        contentDescription = if (hasDisabledPermit) "תו נכה פעיל" else "אין תו נכה",
+                        tint = if (hasDisabledPermit) Color(0xFF00629E) else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(30.dp)
                     )
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        val dateFormatted = VehicleUtils.formatPermitDate(permitIssueDate)
+                        Text(
+                            text = if (hasDisabledPermit) "נמצא תו נכה פעיל במאגר" else "אין תו נכה רשום במאגר",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (hasDisabledPermit) Color(0xFF00629E) else MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = if (hasDisabledPermit && dateFormatted.isNotBlank()) "תאריך הפקת תג: $dateFormatted" else if (hasDisabledPermit) "רכב זה מופיע במאגר תגי הנכה של משרד התחבורה" else "לפי בדיקה צולבת במאגר תגי הנכה",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(top = 10.dp, bottom = 8.dp),
+                    color = (if (hasDisabledPermit) Color(0xFF00629E) else MaterialTheme.colorScheme.outlineVariant).copy(alpha = 0.25f)
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { com.avih6.vehiclecheck.util.ExternalAppUtils.openDisabledPermitApp(context) }
+                        .padding(vertical = 4.dp, horizontal = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     Text(
-                        text = if (hasDisabledPermit && dateFormatted.isNotBlank()) "תאריך הפקת תג: $dateFormatted" else if (hasDisabledPermit) "רכב זה מופיע במאגר תגי הנכה של משרד התחבורה" else "לפי בדיקה צולבת במאגר תגי הנכה",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "לבדיקה מהירה וממוקדת: אפליקציית תו נכה",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (hasDisabledPermit) Color(0xFF00629E) else MaterialTheme.colorScheme.primary
+                    )
+                    Icon(
+                        imageVector = Icons.Outlined.OpenInNew,
+                        contentDescription = "פתח אפליקציית תו נכה",
+                        tint = if (hasDisabledPermit) Color(0xFF00629E) else MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }

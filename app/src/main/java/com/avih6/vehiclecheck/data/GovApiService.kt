@@ -66,12 +66,28 @@ interface GovApiService {
         @Query("limit") limit: Int = 1
     ): GovApiResponse<VehicleRecord>
 
+    // 5b. Search Heavy Vehicles / Trucks / Buses by Text Query
+    @GET("api/3/action/datastore_search")
+    suspend fun searchHeavyVehicleByQuery(
+        @Query("resource_id") resourceId: String = "cd3acc5c-03c3-4c89-9c54-d40f93c0d790",
+        @Query("q") query: String,
+        @Query("limit") limit: Int = 10
+    ): GovApiResponse<VehicleRecord>
+
     // 6. Two-Wheelers / Motorcycles
     @GET("api/3/action/datastore_search")
     suspend fun getTwoWheeler(
         @Query("resource_id") resourceId: String = "bf9df4e2-d90d-4c0a-a400-19e15af8e95f",
         @Query("filters") filters: String,
         @Query("limit") limit: Int = 1
+    ): GovApiResponse<VehicleRecord>
+
+    // 6b. Search Two-Wheelers / Motorcycles by Text Query
+    @GET("api/3/action/datastore_search")
+    suspend fun searchTwoWheelerByQuery(
+        @Query("resource_id") resourceId: String = "bf9df4e2-d90d-4c0a-a400-19e15af8e95f",
+        @Query("q") query: String,
+        @Query("limit") limit: Int = 10
     ): GovApiResponse<VehicleRecord>
 
     // 7. Cross-Check Disabled Permit
@@ -101,7 +117,8 @@ interface GovApiService {
     @GET("api/3/action/datastore_search")
     suspend fun getSameModelActiveCount(
         @Query("resource_id") resourceId: String = "053cea08-09bc-40ec-8f7a-156f0677aff3",
-        @Query("filters") filters: String,
+        @Query("filters") filters: String? = null,
+        @Query("q") query: String? = null,
         @Query("limit") limit: Int = 0
     ): GovCountResponse
 
@@ -178,7 +195,8 @@ interface GovApiService {
     @GET("api/3/action/datastore_search")
     suspend fun getDeregisteredCount(
         @Query("resource_id") resourceId: String,
-        @Query("filters") filters: String,
+        @Query("filters") filters: String? = null,
+        @Query("q") query: String? = null,
         @Query("limit") limit: Int = 0
     ): GovCountResponse
 
@@ -215,6 +233,14 @@ interface GovApiService {
         @Query("resource_id") resourceId: String = "03adc637-b6fe-402b-9937-7c3d3afc9140",
         @Query("filters") filters: String,
         @Query("limit") limit: Int = 1
+    ): GovApiResponse<PersonalImportRecord>
+
+    // 16b. Search Personal Import Vehicles by Text Query
+    @GET("api/3/action/datastore_search")
+    suspend fun searchPersonalImportByQuery(
+        @Query("resource_id") resourceId: String = "03adc637-b6fe-402b-9937-7c3d3afc9140",
+        @Query("q") query: String,
+        @Query("limit") limit: Int = 10
     ): GovApiResponse<PersonalImportRecord>
 
     // 17. Public Transport Vehicles (מוניות, רכב סיור, אוטובוסים)
