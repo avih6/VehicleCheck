@@ -17,7 +17,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
-import coil.compose.AsyncImage
+import androidx.compose.material.icons.automirrored.filled.Accessible
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -192,6 +192,18 @@ fun MainAppShell(viewModel: MainViewModel) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                 NavigationDrawerItem(
+                    label = { Text(stringResource(R.string.menu_disabled_permit), fontWeight = FontWeight.SemiBold) },
+                    selected = false,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        com.avih6.vehiclecheck.util.ExternalAppUtils.openDisabledPermitApp(context)
+                    },
+                    icon = { Icon(Icons.AutoMirrored.Filled.Accessible, null, tint = MaterialTheme.colorScheme.primary) }
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                NavigationDrawerItem(
                     label = { Text(stringResource(R.string.menu_share)) },
                     selected = false,
                     onClick = {
@@ -277,6 +289,48 @@ fun MainAppShell(viewModel: MainViewModel) {
                             tooltipText = stringResource(R.string.btn_menu)
                         ) {
                             Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.btn_menu))
+                        }
+                    },
+                    actions = {
+                        var menuExpanded by remember { mutableStateOf(false) }
+                        IconButton(onClick = { menuExpanded = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.btn_menu))
+                        }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.menu_disabled_permit), fontWeight = FontWeight.SemiBold) },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.Accessible,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                onClick = {
+                                    menuExpanded = false
+                                    com.avih6.vehiclecheck.util.ExternalAppUtils.openDisabledPermitApp(context)
+                                }
+                            )
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.menu_settings)) },
+                                leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                                onClick = {
+                                    menuExpanded = false
+                                    showSettingsDialog = true
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.menu_share)) },
+                                leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
+                                onClick = {
+                                    menuExpanded = false
+                                    shareApp(context)
+                                }
+                            )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(

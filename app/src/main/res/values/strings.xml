@@ -145,4 +145,5 @@ https://play.google.com/store/apps/details?id=com.avih6.vehiclecheck"</string>
     <string name="info_disabled_app_title">אפליקציית בדיקת תו נכה</string>
     <string name="info_disabled_app_desc">אפליקציה ייעודית וקלת משקל לבדיקה ממוקדת של תווי חניית נכים בזמן אמת. אידיאלית לבדיקות שטח מהירות בחניונים ובדרכים.</string>
     <string name="info_disabled_app_btn">פתיחה / הורדה של האפליקציה</string>
+    <string name="menu_disabled_permit">בדיקת תו נכה (זכאות ותווי חניה)</string>
 </resources>

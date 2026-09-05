@@ -145,4 +145,5 @@ https://play.google.com/store/apps/details?id=com.avih6.vehiclecheck"</string>
     <string name="info_disabled_app_title">Disabled Parking Permit Check App</string>
     <string name="info_disabled_app_desc">A dedicated lightweight app for real-time verification of disabled parking permits. Ideal for quick on-site checks in parking lots and streets.</string>
     <string name="info_disabled_app_btn">Open / Download the App</string>
+    <string name="menu_disabled_permit">Disabled Permit Check (Parking Badges)</string>
 </resources>
