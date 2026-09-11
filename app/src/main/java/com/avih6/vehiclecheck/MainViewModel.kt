@@ -475,11 +475,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun search() {
         val plate = _query.value.trim()
-        if (plate.isEmpty() || plate.length > 8) {
+        val clean = plate.filter { it.isDigit() }.take(8)
+        if (clean.isEmpty() || clean.length > 8) {
             _searchState.value = SearchState.Error("מספר הרכב או כלי הצמ\"ה חייב להכיל עד 8 ספרות")
             return
         }
-        performSearch(plate)
+        val current = _searchState.value
+        if (current is SearchState.Success &&
+            (current.vehicle.licensePlate.toString() == clean || current.formattedPlate.filter { it.isDigit() } == clean) &&
+            !current.isEngineeringEquipment) {
+            return
+        }
+        performSearch(clean)
     }
 
     fun searchPlateDirect(plate: String, preferEngineeringEquipment: Boolean = false) {
@@ -487,6 +494,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _query.value = clean
         _selectedTab.value = 0
         if (clean.isNotEmpty() && clean.length <= 8) {
+            val current = _searchState.value
+            if (current is SearchState.Success &&
+                (current.vehicle.licensePlate.toString() == clean || current.formattedPlate.filter { it.isDigit() } == clean)) {
+                if (current.isEngineeringEquipment == preferEngineeringEquipment) {
+                    // Already loaded in the exact requested mode - nothing to reload
+                    return
+                } else if (preferEngineeringEquipment && current.alternateEquipment != null) {
+                    toggleEquipmentView()
+                    return
+                } else if (!preferEngineeringEquipment && current.alternateVehicle != null) {
+                    toggleEquipmentView()
+                    return
+                }
+            }
             performSearch(clean, preferEngineeringEquipment)
         }
     }
