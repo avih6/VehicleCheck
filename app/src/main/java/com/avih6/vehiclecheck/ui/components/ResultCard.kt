@@ -1162,8 +1162,8 @@ private fun GeneralTabContent(
         }
 
         // Collector Vehicle Official Notice or Eligibility Notice (רכב אספנות / זכאות לאספנות)
-        // Collector Vehicle Notice (רכב אספנות)
         val showCollectorCard = !isEngineeringEquipment && vehicle.isOfficiallyCollector
+        val showCollectorEligibleCard = !isEngineeringEquipment && !vehicle.isOfficiallyCollector && vehicle.isCollectorEligible
 
         if (showCollectorCard) {
             val cardColor = if (isOffRoad) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f) else Color(0xFFFFD700).copy(alpha = 0.12f)
@@ -1184,7 +1184,7 @@ private fun GeneralTabContent(
                             fontSize = 22.sp
                         )
                         Text(
-                            text = if (isOffRoad) "רכב אספנות (רישום מבוטל)" else "רכב אספנות",
+                            text = if (isOffRoad) "רכב אספנות (רישום מבוטל)" else "רכב אספנות רשמי",
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleMedium,
                             color = if (isOffRoad) MaterialTheme.colorScheme.onSurface else Color(0xFFFFC107)
@@ -1209,6 +1209,37 @@ private fun GeneralTabContent(
                             lineHeight = 18.sp
                         )
                     }
+                }
+            }
+        } else if (showCollectorEligibleCard) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(text = "ℹ️", fontSize = 20.sp)
+                        Text(
+                            text = "זכאות להסבה לרכב אספנות",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "• רכב זה הינו בן 30 שנה ומעלה. במאגר משרד התחבורה הוא רשום כרכב מיושן רגיל ולא כרכב אספנות רשמי.\n" +
+                                "• כרכב מיושן: חלה חובת 2 מבחני רישוי בשנה (כל 6 חודשים) ואישור תקינות/בלמים ממוסך לפני כל טסט.\n" +
+                                "• זכאות: בעל הרכב רשאי לפנות למשרד הרישוי ולהמירו ל'רכב אספנות' רשמי (טסט פעם בשנה בלבד, ביטוח מוזל, ואיסור נסיעה בימי חול בין 07:00-09:00).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        lineHeight = 18.sp
+                    )
                 }
             }
         }
@@ -1290,7 +1321,9 @@ private fun GeneralTabContent(
                 SpecRow("סוג בעלות רשומה:", ownershipStr)
 
                 if (vehicle.isOfficiallyCollector) {
-                    SpecRow("מעמד אספנות:", "רכב אספנות 🏆", isHighlighted = true)
+                    SpecRow("מעמד אספנות:", "רכב אספנות רשמי 🏆", isHighlighted = true)
+                } else if (vehicle.isCollectorEligible) {
+                    SpecRow("מעמד אספנות:", "זכאי להסבה לאספנות (רשום כרכב מיושן)")
                 }
 
                 // Annual licensing fee

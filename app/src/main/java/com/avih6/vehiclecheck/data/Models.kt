@@ -181,18 +181,18 @@ data class VehicleRecord(
             standardType,
             effectiveStandardType
         ).joinToString(" ")
-        if (s.contains("אספנות")) return true
+        return s.contains("אספנות")
+    }
+
+    val isCollectorEligible: Boolean get() {
+        if (isOfficiallyCollector) return false
         val y = year ?: return false
         val currentYear = java.time.LocalDate.now().year
         return (currentYear - y) >= 30
     }
 
-    val isCollectorEligible: Boolean get() {
-        return false // Any 30+ year vehicle is considered a collector vehicle
-    }
-
     val collectorBadgeText: String? get() {
-        return if (isOfficiallyCollector) "🏆 רכב אספנות" else null
+        return if (isOfficiallyCollector) "🏆 רכב אספנות רשמי" else null
     }
 
     val effectiveOwnership: String? get() {
@@ -1976,8 +1976,7 @@ object VehicleUtils {
         val cat = category.orEmpty().lowercase()
         val combined = "$m $mk $t $o $tl $cat"
 
-        val isOldVehicle = year != null && year > 1900 && ((LocalDate.now().year - year) >= 30)
-        val isOfficialCollector = combined.contains("אספנות") || t.contains("רכב אספנות") || o.contains("אספנות") || isOldVehicle
+        val isOfficialCollector = combined.contains("אספנות") || t.contains("רכב אספנות") || o.contains("אספנות")
 
         return when {
             // 0. Taxis & Public Transport Passenger Vehicles (מוניות)
