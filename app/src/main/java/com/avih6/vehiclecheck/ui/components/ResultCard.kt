@@ -680,7 +680,7 @@ fun ResultCard(
 
         // 3. Quick Status Cards Row (Disabled Permit, Ownership, Test, Recall)
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Disabled Permit
@@ -689,10 +689,9 @@ fun ResultCard(
                 value = if (hasDisabledPermit) "פעיל" else "ללא",
                 isPositive = hasDisabledPermit,
                 icon = Icons.Default.Accessible,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f).fillMaxHeight()
             )
 
-            // Ownership
             // Ownership
             val stdPill = (vehicle.effectiveStandardType ?: vehicle.standardType).orEmpty().trim().uppercase()
             val catPill = (vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory).orEmpty().trim().lowercase()
@@ -704,24 +703,25 @@ fun ResultCard(
             val busOperator = busFleet?.operatorName?.trim()?.ifBlank { null }
             val isBus = catPill.contains("אוטובוס") || stdPill.startsWith("M3") || busOperator != null
             val isAmbulance = quickClassification.contains("אמבולנס") || catPill.contains("אמבולנס") || catPill.contains("רפואי") || catPill.contains("הצלה")
+            val derivedOwner = vehicle.effectiveOwnership ?: vehicle.ownership
 
             val ownerStr = when {
                 isEngineeringEquipment -> "ציוד עבודה"
-                isTaxi -> if (!vehicle.ownership.isNullOrBlank()) "מונית (${vehicle.ownership})" else "מונית (ציבורי)"
+                isTaxi -> if (!derivedOwner.isNullOrBlank()) "מונית ($derivedOwner)" else "מונית (ציבורי)"
                 busOperator != null -> "ציבורי ($busOperator)"
-                isBus -> if (!vehicle.ownership.isNullOrBlank()) vehicle.ownership else "תחבורה ציבורית"
-                isAmbulance -> if (!vehicle.ownership.isNullOrBlank()) "ביטחון (${vehicle.ownership})" else "רכב ביטחון"
-                !vehicle.ownership.isNullOrBlank() -> vehicle.ownership
+                isBus -> if (!derivedOwner.isNullOrBlank()) derivedOwner else "תחבורה ציבורית"
+                isAmbulance -> if (!derivedOwner.isNullOrBlank()) "ביטחון ($derivedOwner)" else "רכב ביטחון"
+                !derivedOwner.isNullOrBlank() -> derivedOwner
                 else -> "אין מידע"
             }
             val isCompany = isEngineeringEquipment || ownerStr.contains("חברה") || ownerStr.contains("ליסינג") || ownerStr.contains("השכרה") || ownerStr.contains("עבודה")
-            val hasOwnership = !vehicle.ownership.isNullOrBlank() || isEngineeringEquipment || isTaxi || isBus || isAmbulance
+            val hasOwnership = !derivedOwner.isNullOrBlank() || isEngineeringEquipment || isTaxi || isBus || isAmbulance
             StatusPill(
                 title = "בעלות",
                 value = ownerStr,
                 isPositive = if (hasOwnership) (!isCompany || isEngineeringEquipment || isTaxi || isBus || isAmbulance) else false,
                 icon = if (isEngineeringEquipment) Icons.Default.Construction else if (!hasOwnership) Icons.Default.HelpOutline else if (isTaxi) Icons.Default.DirectionsCar else if (isBus) Icons.Default.DirectionsBus else if (isAmbulance) Icons.Default.LocalHospital else if (isCompany) Icons.Default.Business else Icons.Default.Person,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f).fillMaxHeight()
             )
 
             // Test Status
@@ -732,8 +732,6 @@ fun ResultCard(
                 is TestStatus.OffRoad -> Triple(StatusPillType.NEGATIVE, "לא בתוקף", Icons.Default.Cancel)
                 TestStatus.Unknown -> if (isOffRoad) {
                     Triple(StatusPillType.NEGATIVE, "לא בתוקף", Icons.Default.Cancel)
-                } else if (vehicle.testExpiryDate.isNullOrBlank()) {
-                    Triple(StatusPillType.POSITIVE, "פעיל (ללא תאריך)", Icons.Default.CheckCircle)
                 } else {
                     Triple(StatusPillType.WARNING, "אין מידע", Icons.Default.HelpOutline)
                 }
@@ -743,7 +741,7 @@ fun ResultCard(
                 value = testTitle,
                 statusType = testStatusType,
                 icon = testIcon,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f).fillMaxHeight()
             )
 
             // Recall Pill
@@ -753,7 +751,7 @@ fun ResultCard(
                 value = if (hasRecall) "פתוח ⚠️" else "תקין",
                 isPositive = !hasRecall,
                 icon = if (hasRecall) Icons.Default.Warning else Icons.Default.CheckCircle,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f).fillMaxHeight()
             )
         }
 
@@ -1164,8 +1162,8 @@ private fun GeneralTabContent(
         }
 
         // Collector Vehicle Official Notice or Eligibility Notice (רכב אספנות / זכאות לאספנות)
+        // Collector Vehicle Notice (רכב אספנות)
         val showCollectorCard = !isEngineeringEquipment && vehicle.isOfficiallyCollector
-        val showCollectorEligibleCard = !isEngineeringEquipment && !vehicle.isOfficiallyCollector && vehicle.isCollectorEligible
 
         if (showCollectorCard) {
             val cardColor = if (isOffRoad) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f) else Color(0xFFFFD700).copy(alpha = 0.12f)
@@ -1186,7 +1184,7 @@ private fun GeneralTabContent(
                             fontSize = 22.sp
                         )
                         Text(
-                            text = if (isOffRoad) "רכב אספנות (רישום מבוטל)" else "רכב אספנות רשמי",
+                            text = if (isOffRoad) "רכב אספנות (רישום מבוטל)" else "רכב אספנות",
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleMedium,
                             color = if (isOffRoad) MaterialTheme.colorScheme.onSurface else Color(0xFFFFC107)
@@ -1211,37 +1209,6 @@ private fun GeneralTabContent(
                             lineHeight = 18.sp
                         )
                     }
-                }
-            }
-        } else if (showCollectorEligibleCard) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(text = "ℹ️", fontSize = 20.sp)
-                        Text(
-                            text = "זכאות להסבה לרכב אספנות",
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = "• רכב זה הינו בן 30 שנה ומעלה. במאגר משרד התחבורה הוא רשום כרכב מיושן רגיל ולא כרכב אספנות רשמי.\n" +
-                                "• כרכב מיושן: חלה חובת 2 מבחני רישוי בשנה (כל 6 חודשים) ואישור תקינות/בלמים ממוסך לפני כל טסט.\n" +
-                                "• זכאות: בעל הרכב רשאי לפנות למשרד הרישוי ולהמירו ל'רכב אספנות' רשמי (טסט פעם בשנה בלבד, ביטוח מוזל, ואיסור נסיעה בימי חול בין 07:00-09:00).",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        lineHeight = 18.sp
-                    )
                 }
             }
         }
@@ -1310,21 +1277,20 @@ private fun GeneralTabContent(
                         catLegal.contains("משאית") || catLegal.contains("משא כבד") || catLegal.contains("אוטובוס")
                 val isTaxiLegal = catLegal.contains("מונית")
                 val isAmbulanceLegal = catLegal.contains("אמבולנס") || catLegal.contains("רפואי") || catLegal.contains("הצלה") || (vehicle.model.orEmpty() + " " + vehicle.trimLevel.orEmpty()).contains("אמבולנס")
+                val derivedOwner = vehicle.effectiveOwnership ?: vehicle.ownership
                 val ownershipStr = when {
                     isEngineeringEquipment -> "ציוד הנדסי / עבודה"
                     busFleet?.operatorName?.isNotBlank() == true -> "תחבורה ציבורית (${busFleet.operatorName})"
-                    isTaxiLegal && vehicle.ownership?.contains("פרטי") == true -> "פרטי (ברישוי מונית)"
-                    isAmbulanceLegal && !vehicle.ownership.isNullOrBlank() -> "רכב ביטחון והצלה (${vehicle.ownership})"
+                    isTaxiLegal && derivedOwner?.contains("פרטי") == true -> "פרטי (ברישוי מונית)"
+                    isAmbulanceLegal && !derivedOwner.isNullOrBlank() -> "רכב ביטחון והצלה ($derivedOwner)"
                     isAmbulanceLegal -> "רכב ביטחון והצלה"
-                    !vehicle.ownership.isNullOrBlank() -> vehicle.ownership
+                    !derivedOwner.isNullOrBlank() -> derivedOwner
                     else -> "אין מידע"
                 }
                 SpecRow("סוג בעלות רשומה:", ownershipStr)
 
                 if (vehicle.isOfficiallyCollector) {
-                    SpecRow("מעמד אספנות:", "רכב אספנות רשמי 🏆", isHighlighted = true)
-                } else if (vehicle.isCollectorEligible) {
-                    SpecRow("מעמד אספנות:", "זכאי להסבה לאספנות (רשום כרכב מיושן)")
+                    SpecRow("מעמד אספנות:", "רכב אספנות 🏆", isHighlighted = true)
                 }
 
                 // Annual licensing fee
@@ -2175,7 +2141,7 @@ private fun TechSpecTabContent(
 
                 val seatsNext = vehicle.seatsNextToDriver ?: vehicle.seatsNextToDriverHeavy
                 if (seats != null || doors != null || seatsNext != null) {
-                    val seatsStr = if (seatsNext != null) "$seats מושבים ($seatsNext ליד הנהג)" else if (seats != null) "$seats מושבים" else ""
+                    val seatsStr = if (seatsNext != null && seatsNext > 1) "$seats מושבים ($seatsNext ליד הנהג)" else if (seats != null && seats > 0) "$seats מושבים" else ""
                     val doorsStr = if (doors != null) " • $doors דלתות" else ""
                     SpecRow("מושבים ודלתות:", "$seatsStr$doorsStr".trimStart(' ', '•', ' '))
                 }
@@ -2648,8 +2614,12 @@ private fun StatusPill(
         colors = CardDefaults.cardColors(containerColor = containerColor)
     ) {
         Column(
-            modifier = Modifier.padding(8.dp).fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier
+                .padding(horizontal = 4.dp, vertical = 8.dp)
+                .fillMaxWidth()
+                .fillMaxHeight(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Icon(
                 imageVector = icon,
@@ -2662,14 +2632,18 @@ private fun StatusPill(
                 text = title,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 11.sp
+                fontSize = 11.sp,
+                maxLines = 1
             )
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Bold,
                 color = contentColor,
-                fontSize = 11.sp
+                fontSize = 11.sp,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
         }
     }

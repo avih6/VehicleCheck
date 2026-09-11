@@ -181,18 +181,26 @@ data class VehicleRecord(
             standardType,
             effectiveStandardType
         ).joinToString(" ")
-        return s.contains("אספנות")
-    }
-
-    val isCollectorEligible: Boolean get() {
-        if (isOfficiallyCollector) return false
+        if (s.contains("אספנות")) return true
         val y = year ?: return false
         val currentYear = java.time.LocalDate.now().year
         return (currentYear - y) >= 30
     }
 
+    val isCollectorEligible: Boolean get() {
+        return false // Any 30+ year vehicle is considered a collector vehicle
+    }
+
     val collectorBadgeText: String? get() {
-        return if (isOfficiallyCollector) "🏆 רכב אספנות רשמי" else null
+        return if (isOfficiallyCollector) "🏆 רכב אספנות" else null
+    }
+
+    val effectiveOwnership: String? get() {
+        if (!ownership.isNullOrBlank()) return ownership
+        if (vehicleCategoryHeavy == "פרטי" || vehicleCategory?.contains("פרטי") == true || effectiveVehicleCategory?.contains("פרטי") == true || (effectiveStandardType ?: standardType).orEmpty().startsWith("M1")) {
+            return "פרטי"
+        }
+        return null
     }
 
     fun mergeWith(other: VehicleRecord?): VehicleRecord {
@@ -1969,7 +1977,7 @@ object VehicleUtils {
         val combined = "$m $mk $t $o $tl $cat"
 
         val isOldVehicle = year != null && year > 1900 && ((LocalDate.now().year - year) >= 30)
-        val isOfficialCollector = combined.contains("אספנות") || t.contains("רכב אספנות") || o.contains("אספנות")
+        val isOfficialCollector = combined.contains("אספנות") || t.contains("רכב אספנות") || o.contains("אספנות") || isOldVehicle
 
         return when {
             // 0. Taxis & Public Transport Passenger Vehicles (מוניות)
@@ -2079,8 +2087,8 @@ object VehicleUtils {
             m.contains("סוויפט") || m.contains("ignis") || m.contains("איגניס") || m.contains("aygo") || m.contains("אייגו") ||
             m.contains("leaf") || m.contains("ליף") || m.contains("zoe") || m.contains("dolphin") || m.contains("דולפין") -> "🚗 הצ'בק"
 
-            // 10. Vintage / Collector (רק אם רשום רשמית כאספנות במאגר!)
-            isOfficialCollector -> "🏆 אספנות"
+            // 10. Vintage / Collector
+            isOfficialCollector -> "🏆 רכב אספנות"
 
             // 11. Default Passenger Car (פרטי / סדאן / מנהלים)
             else -> "🚗 רכב פרטי"
