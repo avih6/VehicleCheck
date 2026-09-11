@@ -705,7 +705,7 @@ fun GalleryScreen(
             )
             if (images.isNotEmpty()) {
                 Text(
-                    text = "מוצגות ${images.size} תמונות",
+                    text = "מוצגות %,d תמונות".format(images.size),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

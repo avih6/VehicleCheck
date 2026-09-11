@@ -129,7 +129,7 @@ class HistoryRepository(private val dao: VehicleDao) {
             else -> 0L
         }
 
-        val isReallyValid = isTestValid || (record != null && record.testExpiryDate == null && testStatus !is TestStatus.Expired && !isOffRoad)
+        val isReallyValid = isTestValid
         val isTaxi = record?.vehicleCategory?.contains("מונית") == true || record?.modelType?.contains("מונית") == true
         val savedCategory = when {
             isTaxi -> "מונית"

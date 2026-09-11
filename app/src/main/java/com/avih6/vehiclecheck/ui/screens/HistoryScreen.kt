@@ -78,12 +78,12 @@ fun HistoryScreen(
                 FilterChip(
                     selected = !showOnlyFavorites,
                     onClick = { showOnlyFavorites = false },
-                    label = { Text("${stringResource(R.string.filter_all)} (${history.size})") }
+                    label = { Text("${stringResource(R.string.filter_all)} (%,d)".format(history.size)) }
                 )
                 FilterChip(
                     selected = showOnlyFavorites,
                     onClick = { showOnlyFavorites = true },
-                    label = { Text("${stringResource(R.string.filter_favorites)} (${favorites.size})") },
+                    label = { Text("${stringResource(R.string.filter_favorites)} (%,d)".format(favorites.size)) },
                     leadingIcon = {
                         Icon(
                             Icons.Filled.Star,
@@ -172,10 +172,10 @@ private fun HistoryItemCard(
                 Color(0xFFFF9800)
             } else if (item.isOffRoad) {
                 TestExpiredRed
+            } else if (item.testExpiryDate.isNullOrBlank()) {
+                Color(0xFF0091EA)
             } else if (item.isTestValid) {
-                if (item.testExpiryDate == null) {
-                    TestValidGreen
-                } else if (item.daysUntilTest in 0..30) {
+                if (item.daysUntilTest in 0..30) {
                     TestExpiringSoonAmber
                 } else {
                     TestValidGreen
@@ -297,7 +297,7 @@ private fun HistoryItemCard(
                             stringResource(R.string.test_status_off_road_deregistered)
                         }
                     }
-                    item.isTestValid && item.testExpiryDate.isNullOrBlank() -> stringResource(R.string.test_status_active_no_data)
+                    item.testExpiryDate.isNullOrBlank() -> stringResource(R.string.test_status_active_no_data)
                     item.isTestValid -> {
                         val diff = VehicleUtils.calculateDateDifferenceHebrew(item.testExpiryDate)
                         if (diff != null) stringResource(R.string.test_status_valid_diff, diff) else stringResource(R.string.test_status_valid_days, item.daysUntilTest)

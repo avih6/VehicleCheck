@@ -143,7 +143,9 @@ data class VehicleRecord(
     @Serializable(with = FlexibleIntSerializer::class) @SerialName("mishkal_mitan_harama") val cargoWeightHeavy: Int? = null,
     @SerialName("grira_nm") val towingCapacityHeavy: String? = null,
     @SerialName("mispar_manoa") val engineNumber: String? = null,
-    @SerialName("bitul_dt") val cancellationDate: String? = null
+    @SerialName("bitul_dt") val cancellationDate: String? = null,
+    @SerialName("bitul_nm") val cancellationReason: String? = null,
+    @SerialName("bitul_cd") val cancellationCode: String? = null
 ) {
     val effectiveModel: String? get() {
         val known = VehicleUtils.resolveKnownModelName(make, modelCode, model, vin)
@@ -252,7 +254,9 @@ data class VehicleRecord(
             cargoWeightHeavy = this.cargoWeightHeavy ?: other.cargoWeightHeavy,
             towingCapacityHeavy = if (!this.towingCapacityHeavy.isNullOrBlank()) this.towingCapacityHeavy else other.towingCapacityHeavy,
             engineNumber = if (!this.engineNumber.isNullOrBlank()) this.engineNumber else other.engineNumber,
-            cancellationDate = if (!this.cancellationDate.isNullOrBlank()) this.cancellationDate else other.cancellationDate
+            cancellationDate = if (!this.cancellationDate.isNullOrBlank()) this.cancellationDate else other.cancellationDate,
+            cancellationReason = if (!this.cancellationReason.isNullOrBlank()) this.cancellationReason else other.cancellationReason,
+            cancellationCode = if (!this.cancellationCode.isNullOrBlank()) this.cancellationCode else other.cancellationCode
         )
     }
 }
@@ -347,7 +351,9 @@ data class DeregisteredVehicleRecord(
     @Serializable(with = FlexibleStringSerializer::class) @SerialName("kinuy_mishari") val model: String? = null,
     @Serializable(with = FlexibleStringSerializer::class) @SerialName("mivchan_acharon_dt") val lastTestDate: String? = null,
     @Serializable(with = FlexibleStringSerializer::class) @SerialName("mivchan_aharon_dt") val lastTestDateAlt: String? = null,
-    @Serializable(with = FlexibleStringSerializer::class) @SerialName("tokef_dt") val testExpiryDate: String? = null
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("tokef_dt") val testExpiryDate: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("bitul_nm") val cancellationReason: String? = null,
+    @Serializable(with = FlexibleStringSerializer::class) @SerialName("bitul_cd") val cancellationCode: String? = null
 ) {
     fun toVehicleRecord(): VehicleRecord {
         val plate = licensePlateRaw?.filter { it.isDigit() }?.toLongOrNull()
@@ -415,6 +421,8 @@ data class DeregisteredVehicleRecord(
                 standardTypeHeavy = standardType,
                 vehicleCategory = derivedCategory,
                 cancellationDate = cancellationDate,
+                cancellationReason = cancellationReason,
+                cancellationCode = cancellationCode,
                 frontTire = frontTire,
                 rearTire = rearTire,
                 safetyRating = null,
@@ -453,10 +461,10 @@ data class EngineeringEquipmentRecord(
             year = year ?: 0,
             onRoadDate = registrationDate,
             testExpiryDate = expirationDate,
-            ownership = "ציוד עבודה / חברה",
+            ownership = null,
             modelType = vehicleType ?: "ציוד מכני הנדסי (צמ\"ה)",
-            fuelType = "דיזל / מנוע תעשייתי",
-            color = "צהוב / תעשייתי",
+            fuelType = null,
+            color = null,
             vin = vin
         )
     }
@@ -737,7 +745,7 @@ sealed interface SearchState {
         val permitIssueDate: Long? = null,
         val isOffRoad: Boolean = false,
         val offRoadDate: String? = null,
-        val stats: ModelStatistics = ModelStatistics(0, 0),
+        val stats: ModelStatistics? = null,
         val recalls: List<VehicleRecallRestrictionRecord> = emptyList(),
         val recallDetail: RecallDetailRecord? = null,
         val isEngineeringEquipment: Boolean = false,
@@ -2065,7 +2073,7 @@ object VehicleUtils {
 
             // 1. Firefighting & Rescue Vehicles (כיבוי אש / כבאית)
             combined.contains("כיבוי") || combined.contains("כבאית") || combined.contains("fire") ||
-            combined.contains("אש די") || combined.contains("חילוץ") -> "🚒 כבאית / כיבוי אש"
+            combined.contains("חילוץ") -> "🚒 כבאית / כיבוי אש"
 
             // 2. Bus & Minibus (אוטובוס / אוטובוס זעיר) - Evaluated before Ambulance so buses aren't misclassified
             combined.contains("זעיר") && (combined.contains("אוטובוס") || t.contains("m2") || cat.contains("m2")) -> "🚐 אוטובוס זעיר"

@@ -293,10 +293,11 @@ fun ServicesScreen(
                                 contentPadding = PaddingValues(bottom = 90.dp)
                             ) {
                                 item {
+                                    val entityName = if (category == ServicesCategory.TEST_STATIONS) "מכוני רישוי" else "מוסכים מורשים"
                                     val headerText = if (totalCount != null && totalCount!! > filteredGarages.size) {
-                                        "מציג ${filteredGarages.size} מתוך %,d תוצאות במאגר משרד התחבורה".format(totalCount)
+                                        "מציג %,d מתוך %,d %s במאגר משרד התחבורה".format(filteredGarages.size, totalCount, entityName)
                                     } else {
-                                        "נמצאו ${filteredGarages.size} תוצאות במאגר משרד התחבורה"
+                                        "נמצאו %,d %s ברישיון משרד התחבורה".format(filteredGarages.size, entityName)
                                     }
                                     Text(
                                         text = headerText,
@@ -325,9 +326,9 @@ fun ServicesScreen(
                             ) {
                                 item {
                                     val headerText = if (totalCount != null && totalCount!! > filteredStations.size) {
-                                        "מציג ${filteredStations.size} מתוך %,d עמדות טעינה במאגר משרד התחבורה".format(totalCount)
+                                        "מציג %,d מתוך %,d עמדות טעינה במאגר משרד התחבורה".format(filteredStations.size, totalCount)
                                     } else {
-                                        "נמצאו ${filteredStations.size} עמדות טעינה ציבוריות (מאגר ארצי מלא)"
+                                        "נמצאו %,d עמדות טעינה ציבוריות (מאגר ארצי מלא)".format(filteredStations.size)
                                     }
                                     Text(
                                         text = headerText,
@@ -356,9 +357,9 @@ fun ServicesScreen(
                             ) {
                                 item {
                                     val headerText = if (totalCount != null && totalCount!! > carDealers.size) {
-                                        "מציג ${carDealers.size} מתוך %,d סוחרי רכב מורשים במאגר משרד התחבורה".format(totalCount)
+                                        "מציג %,d מתוך %,d סוחרי רכב מורשים במאגר משרד התחבורה".format(carDealers.size, totalCount)
                                     } else {
-                                        "נמצאו ${carDealers.size} סוחרי רכב מורשים ברישיון משרד התחבורה"
+                                        "נמצאו %,d סוחרי רכב מורשים ברישיון משרד התחבורה".format(carDealers.size)
                                     }
                                     Text(
                                         text = headerText,
@@ -387,9 +388,9 @@ fun ServicesScreen(
                             ) {
                                 item {
                                     val headerText = if (totalCount != null && totalCount!! > appraisers.size) {
-                                        "מציג ${appraisers.size} מתוך %,d שמאי רכב במאגר משרד התחבורה".format(totalCount)
+                                        "מציג %,d מתוך %,d שמאי רכב במאגר משרד התחבורה".format(appraisers.size, totalCount)
                                     } else {
-                                        "נמצאו ${appraisers.size} שמאי רכב מוסמכים (מאגר ארצי מלא)"
+                                        "נמצאו %,d שמאי רכב מוסמכים (מאגר ארצי מלא)".format(appraisers.size)
                                     }
                                     Text(
                                         text = headerText,
@@ -418,9 +419,9 @@ fun ServicesScreen(
                             ) {
                                 item {
                                     val headerText = if (totalCount != null && totalCount!! > partsTrade.size) {
-                                        "מציג ${partsTrade.size} מתוך %,d עסקי תעבורה במאגר משרד התחבורה".format(totalCount)
+                                        "מציג %,d מתוך %,d עסקי תעבורה במאגר משרד התחבורה".format(partsTrade.size, totalCount)
                                     } else {
-                                        "נמצאו ${partsTrade.size} עסקי סחר ויבוא מוצרי תעבורה מורשים"
+                                        "נמצאו %,d עסקי סחר ויבוא מוצרי תעבורה מורשים".format(partsTrade.size)
                                     }
                                     Text(
                                         text = headerText,

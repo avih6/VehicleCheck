@@ -249,8 +249,9 @@ fun RecallsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                val nf = java.text.NumberFormat.getIntegerInstance(java.util.Locale.US)
                 Text(
-                    text = if (filteredRecalls.size == allRecalls.size) "סה\"כ ${allRecalls.size} קריאות חוזרות (כל המאגר)" else "מוצגות ${filteredRecalls.size} מתוך ${allRecalls.size} קריאות",
+                    text = if (filteredRecalls.size == allRecalls.size) "סה\"כ ${nf.format(allRecalls.size)} קריאות חוזרות (כל המאגר)" else "מוצגות ${nf.format(filteredRecalls.size)} מתוך ${nf.format(allRecalls.size)} קריאות",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
