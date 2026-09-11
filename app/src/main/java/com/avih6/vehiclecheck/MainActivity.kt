@@ -430,7 +430,7 @@ fun MainAppShell(viewModel: MainViewModel) {
                     actions = {
                         var menuExpanded by remember { mutableStateOf(false) }
                         IconButton(onClick = { menuExpanded = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.btn_menu))
+                            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.btn_more_options))
                         }
                         DropdownMenu(
                             expanded = menuExpanded,
@@ -493,7 +493,7 @@ fun MainAppShell(viewModel: MainViewModel) {
                             icon = {
                                 Icon(
                                     if (selectedTab == 0) Icons.Filled.Search else Icons.Outlined.Search,
-                                    contentDescription = stringResource(R.string.tab_search)
+                                    contentDescription = null
                                 )
                             },
                             label = { Text(stringResource(R.string.tab_search), fontSize = 10.sp) },
@@ -505,7 +505,7 @@ fun MainAppShell(viewModel: MainViewModel) {
                             icon = {
                                 Icon(
                                     if (selectedTab == 1) Icons.Filled.History else Icons.Outlined.History,
-                                    contentDescription = stringResource(R.string.tab_history)
+                                    contentDescription = null
                                 )
                             },
                             label = { Text(stringResource(R.string.tab_history), fontSize = 10.sp) },
@@ -517,7 +517,7 @@ fun MainAppShell(viewModel: MainViewModel) {
                             icon = {
                                 Icon(
                                     if (selectedTab == 2) Icons.Filled.BarChart else Icons.Outlined.BarChart,
-                                    contentDescription = stringResource(R.string.tab_statistics_short)
+                                    contentDescription = null
                                 )
                             },
                             label = { Text(stringResource(R.string.tab_statistics_short), fontSize = 10.sp) },
@@ -529,7 +529,7 @@ fun MainAppShell(viewModel: MainViewModel) {
                             icon = {
                                 Icon(
                                     if (selectedTab == 3) Icons.Filled.Warning else Icons.Outlined.WarningAmber,
-                                    contentDescription = stringResource(R.string.tab_recalls_short)
+                                    contentDescription = null
                                 )
                             },
                             label = { Text(stringResource(R.string.tab_recalls_short), fontSize = 10.sp) },
@@ -541,7 +541,7 @@ fun MainAppShell(viewModel: MainViewModel) {
                             icon = {
                                 Icon(
                                     if (selectedTab == 4) Icons.Filled.Build else Icons.Outlined.Build,
-                                    contentDescription = stringResource(R.string.tab_dtc_short)
+                                    contentDescription = null
                                 )
                             },
                             label = { Text(stringResource(R.string.tab_dtc_short), fontSize = 10.sp) },
@@ -553,7 +553,7 @@ fun MainAppShell(viewModel: MainViewModel) {
                             icon = {
                                 Icon(
                                     if (selectedTab == 5) Icons.Filled.Collections else Icons.Outlined.Collections,
-                                    contentDescription = stringResource(R.string.tab_gallery_short)
+                                    contentDescription = null
                                 )
                             },
                             label = { Text(stringResource(R.string.tab_gallery_short), fontSize = 10.sp) },

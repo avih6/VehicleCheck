@@ -44,6 +44,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import android.content.pm.PackageManager
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.*
 import java.util.Locale
 
 @Composable
@@ -135,7 +136,10 @@ fun SearchScreen(
     ) {
         // Government Source Info Header
         Card(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 20.dp)
+                .semantics(mergeDescendants = true) {},
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
             shape = RoundedCornerShape(14.dp)
         ) {
@@ -185,7 +189,9 @@ fun SearchScreen(
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(bottom = 12.dp)
+            modifier = Modifier
+                .padding(bottom = 12.dp)
+                .semantics { heading() }
         )
 
         // License Plate Input Field (matching DisabledPermitCheck design)
@@ -267,7 +273,10 @@ fun SearchScreen(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 12.dp),
+                            .padding(vertical = 12.dp)
+                            .semantics {
+                                liveRegion = LiveRegionMode.Polite
+                            },
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
@@ -332,7 +341,11 @@ fun SearchScreen(
                         viewModel.loadNativeAd(context)
                     }
                     val isFav = favorites.any { it.licensePlate == query }
-                    Column {
+                    Column(
+                        modifier = Modifier.semantics {
+                            liveRegion = LiveRegionMode.Polite
+                        }
+                    ) {
                         nativeAd?.let { ad ->
                             NativeAdView(nativeAd = ad)
                             Spacer(Modifier.height(12.dp))
@@ -370,7 +383,11 @@ fun SearchScreen(
                 }
                 is SearchState.NotFound -> {
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics(mergeDescendants = true) {
+                                liveRegion = LiveRegionMode.Assertive
+                            },
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f))
                     ) {
@@ -397,7 +414,11 @@ fun SearchScreen(
                 }
                 is SearchState.Error -> {
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .semantics(mergeDescendants = true) {
+                                liveRegion = LiveRegionMode.Assertive
+                            },
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f))
                     ) {
@@ -421,7 +442,8 @@ fun SearchScreen(
                                     text = stringResource(R.string.quick_tips_title),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.semantics { heading() }
                                 )
                                 Spacer(Modifier.height(8.dp))
                                 BulletPoint(stringResource(R.string.tip_mot))

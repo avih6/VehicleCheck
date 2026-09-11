@@ -24,6 +24,7 @@ import com.avih6.vehiclecheck.MainViewModel
 import com.avih6.vehiclecheck.R
 import com.avih6.vehiclecheck.data.VehicleHistoryEntity
 import com.avih6.vehiclecheck.data.VehicleUtils
+import androidx.compose.ui.semantics.*
 import com.avih6.vehiclecheck.ui.theme.*
 import com.avih6.vehiclecheck.ui.components.tvFocusable
 
@@ -153,7 +154,10 @@ private fun HistoryItemCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(
+                onClick = onClick,
+                onClickLabel = "הצג פרטי רכב"
+            )
             .tvFocusable(shape = RoundedCornerShape(14.dp)),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
@@ -319,26 +323,26 @@ private fun HistoryItemCard(
             // Favorite button
             IconButton(
                 onClick = onToggleFavorite,
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(44.dp)
             ) {
                 Icon(
                     imageVector = if (item.isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
                     contentDescription = if (item.isFavorite) stringResource(R.string.fav_remove_desc) else stringResource(R.string.fav_add_desc),
                     tint = if (item.isFavorite) Color(0xFFFFB300) else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(22.dp)
                 )
             }
 
             // Delete button
             IconButton(
                 onClick = onDelete,
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(44.dp)
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Close,
                     contentDescription = stringResource(R.string.delete_history_item),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }

@@ -25,6 +25,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -353,7 +354,20 @@ fun ResultCard(
                         color = Color(0xFFFFD54F),
                         shape = RoundedCornerShape(8.dp),
                         border = BorderStroke(2.dp, Color.Black),
-                        modifier = Modifier.padding(vertical = 4.dp)
+                        modifier = Modifier
+                            .padding(vertical = 4.dp)
+                            .clickable(
+                                onClickLabel = "העתק מספר רכב",
+                                role = Role.Button
+                            ) {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                val cleanDigits = (vehicle.licensePlate?.toString() ?: formattedPlate).filter { it.isDigit() }
+                                clipboard.setPrimaryClip(ClipData.newPlainText("Plate", cleanDigits))
+                                Toast.makeText(context, "מספר רכב הועתק ללוח", Toast.LENGTH_SHORT).show()
+                            }
+                            .semantics(mergeDescendants = true) {
+                                contentDescription = "לוחית רישוי: $formattedPlate. לחץ פעמיים כדי להעתיק ללוח"
+                            }
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -379,7 +393,7 @@ fun ResultCard(
                             ) {
                                 Icon(
                                     Icons.Outlined.ContentCopy,
-                                    contentDescription = "העתק מספר רכב",
+                                    contentDescription = null,
                                     tint = Color.Black,
                                     modifier = Modifier.size(16.dp)
                                 )
@@ -414,7 +428,11 @@ fun ResultCard(
                         }
                         HoverTooltipIconButton(
                             onClick = onToggleFavorite,
-                            tooltipText = if (isFavorite) "הסר ממועדפים" else "הוסף למועדפים"
+                            tooltipText = if (isFavorite) "הסר ממועדפים" else "הוסף למועדפים",
+                            modifier = Modifier.semantics {
+                                role = Role.Checkbox
+                                stateDescription = if (isFavorite) "נמצא במועדפים" else "לא במועדפים"
+                            }
                         ) {
                             Icon(
                                 imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
@@ -444,7 +462,8 @@ fun ResultCard(
                     fontWeight = FontWeight.Black,
                     fontSize = 22.sp,
                     textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.semantics { heading() }
                 )
 
                 vehicle.effectiveModel?.let { mod ->
@@ -492,7 +511,8 @@ fun ResultCard(
                     Surface(
                         color = (badgeColor as Color).copy(alpha = 0.18f),
                         shape = RoundedCornerShape(20.dp),
-                        border = BorderStroke(1.dp, badgeBorder as Color)
+                        border = BorderStroke(1.dp, badgeBorder as Color),
+                        modifier = Modifier.semantics(mergeDescendants = true) {}
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp),
@@ -531,7 +551,8 @@ fun ResultCard(
                         Surface(
                             color = eqColor.copy(alpha = 0.15f),
                             shape = RoundedCornerShape(20.dp),
-                            border = BorderStroke(1.dp, eqColor.copy(alpha = 0.5f))
+                            border = BorderStroke(1.dp, eqColor.copy(alpha = 0.5f)),
+                            modifier = Modifier.semantics(mergeDescendants = true) {}
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
@@ -558,7 +579,8 @@ fun ResultCard(
                         Surface(
                             color = chipColor.copy(alpha = 0.15f),
                             shape = RoundedCornerShape(20.dp),
-                            border = BorderStroke(1.dp, chipColor.copy(alpha = 0.45f))
+                            border = BorderStroke(1.dp, chipColor.copy(alpha = 0.45f)),
+                            modifier = Modifier.semantics(mergeDescendants = true) {}
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
@@ -579,7 +601,8 @@ fun ResultCard(
                         Surface(
                             color = Color(0xFF0D47A1).copy(alpha = 0.18f),
                             shape = RoundedCornerShape(20.dp),
-                            border = BorderStroke(1.dp, Color(0xFF1976D2))
+                            border = BorderStroke(1.dp, Color(0xFF1976D2)),
+                            modifier = Modifier.semantics(mergeDescendants = true) {}
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
@@ -601,7 +624,8 @@ fun ResultCard(
                         Surface(
                             color = Color(0xFFFFD54F).copy(alpha = 0.25f),
                             shape = RoundedCornerShape(20.dp),
-                            border = BorderStroke(1.dp, Color(0xFFFFB300))
+                            border = BorderStroke(1.dp, Color(0xFFFFB300)),
+                            modifier = Modifier.semantics(mergeDescendants = true) {}
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
@@ -622,7 +646,8 @@ fun ResultCard(
                             Surface(
                                 color = Color(0xFFFFD700).copy(alpha = 0.15f),
                                 shape = RoundedCornerShape(20.dp),
-                                border = BorderStroke(1.dp, Color(0xFFFFB300))
+                                border = BorderStroke(1.dp, Color(0xFFFFB300)),
+                                modifier = Modifier.semantics(mergeDescendants = true) {}
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
@@ -855,6 +880,10 @@ fun ResultCard(
                 Tab(
                     selected = selectedTab == index,
                     onClick = { selectedTab = index },
+                    modifier = Modifier.semantics {
+                        role = Role.Tab
+                        stateDescription = if (selectedTab == index) "נבחר, לשונית ${index + 1} מתוך ${tabs.size}" else "לשונית ${index + 1} מתוך ${tabs.size}"
+                    },
                     text = {
                         Text(
                             text = title,
@@ -1072,7 +1101,8 @@ private fun GeneralTabContent(
                     Text(
                         text = "מועדי רישוי ומבחני טסט",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.semantics { heading() }
                     )
                     Icon(
                         Icons.Default.DateRange,
@@ -2133,7 +2163,7 @@ private fun TechSpecTabContent(
                     text = "מנוע, ביצועים והנעה",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 12.dp)
+                    modifier = Modifier.padding(bottom = 12.dp).semantics { heading() }
                 )
 
                 val hp = techSpec?.horsepower ?: vehicle.horsepower
@@ -2202,7 +2232,7 @@ private fun TechSpecTabContent(
                     text = "מידות, משקלים וקיבולת",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 12.dp)
+                    modifier = Modifier.padding(bottom = 12.dp).semantics { heading() }
                 )
 
                 if (totalWeight != null && totalWeight > 0) {
@@ -2252,7 +2282,7 @@ private fun TechSpecTabContent(
                     text = "מספרי זיהוי וסיווג רשמי",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 12.dp)
+                    modifier = Modifier.padding(bottom = 12.dp).semantics { heading() }
                 )
 
                 val cleanVin = vehicle.cleanVin ?: VehicleUtils.cleanIdentificationCode(vehicle.effectiveVin)
@@ -2287,7 +2317,7 @@ private fun TechSpecTabContent(
                         text = "אבזור נוחות ומרכב",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 12.dp)
+                        modifier = Modifier.padding(bottom = 12.dp).semantics { heading() }
                     )
 
                     SafetySystemRow("מזגן מקורי", isPresent = techSpec.airConditioning == 1)
@@ -2333,7 +2363,8 @@ private fun SafetyTabContent(
                         text = "רמת אבזור בטיחותי מהיצרן: $score מתוך 8",
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.semantics { heading() }
                     )
                     if (detailedScore != null) {
                         Text(
@@ -2351,6 +2382,9 @@ private fun SafetyTabContent(
                             .fillMaxWidth()
                             .height(28.dp)
                             .clip(RoundedCornerShape(8.dp))
+                            .semantics(mergeDescendants = true) {
+                                contentDescription = "דירוג בטיחות: $score מתוך 8"
+                            }
                     ) {
                         val colors = listOf(
                             Color(0xFFD32F2F), // 0 Red
@@ -2398,7 +2432,8 @@ private fun SafetyTabContent(
                             text = "בטיחות לרכב מיושן / אספנות",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.semantics { heading() }
                         )
                     }
                     Spacer(Modifier.height(8.dp))
@@ -2443,7 +2478,7 @@ private fun SafetyTabContent(
                     text = "מערכות בטיחות אקטיביות (מקוריות מהיצרן)",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 12.dp)
+                    modifier = Modifier.padding(bottom = 12.dp).semantics { heading() }
                 )
 
                 val hasAftermarketLane = safetyDiscount != null && techSpec?.laneDepartureWarning != 1
@@ -2511,7 +2546,8 @@ private fun EnvironmentTabContent(
                         text = "קבוצת זיהום אוויר: $group מתוך 15",
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.semantics { heading() }
                     )
                     techSpec?.greenIndex?.let {
                         Text(
@@ -2530,6 +2566,9 @@ private fun EnvironmentTabContent(
                             .fillMaxWidth()
                             .height(26.dp)
                             .clip(RoundedCornerShape(8.dp))
+                            .semantics(mergeDescendants = true) {
+                                contentDescription = "קבוצת זיהום אוויר: $group מתוך 15"
+                            }
                     ) {
                         (1..15).forEach { index ->
                             val color = when (index) {
@@ -2594,7 +2633,7 @@ private fun EnvironmentTabContent(
                         text = "תקינה וממיר",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 10.dp)
+                        modifier = Modifier.padding(bottom = 10.dp).semantics { heading() }
                     )
 
                     standardType?.let { if (it.isNotBlank()) SpecRow("סוג תקינה:", it) }
@@ -2623,7 +2662,7 @@ private fun EnvironmentTabContent(
                         text = "טבלת כמויות פליטה מהרכב",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 10.dp)
+                        modifier = Modifier.padding(bottom = 10.dp).semantics { heading() }
                     )
 
                     // Table Header
@@ -2656,7 +2695,10 @@ private fun EmissionRow(label: String, city: String?, hway: String?, wltp: Strin
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 6.dp),
+            .padding(horizontal = 8.dp, vertical = 6.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = "$label: עירוני ${city ?: "אין מידע"}, בין-עירוני ${hway ?: "אין מידע"}, WLTP ${wltp ?: "אין מידע"}"
+            },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -2693,7 +2735,9 @@ private fun StatusPill(
     }
 
     Card(
-        modifier = modifier,
+        modifier = modifier.semantics(mergeDescendants = true) {
+            contentDescription = "$title: $value"
+        },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor)
     ) {
@@ -2753,7 +2797,12 @@ private fun StatusPill(
 @Composable
 private fun SpecRow(label: String, value: String, isHighlighted: Boolean = false) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = "$label $value"
+            },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -2771,7 +2820,12 @@ private fun CountrySpecRow(label: String, country: String) {
     val isIsrael = country.contains("ישראל")
     val flagUrl = VehicleUtils.getCountryFlagUrl(country)
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = "$label $country"
+            },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -2786,7 +2840,7 @@ private fun CountrySpecRow(label: String, country: String) {
                         .data(flagUrl)
                         .crossfade(true)
                         .build(),
-                    contentDescription = country,
+                    contentDescription = null,
                     modifier = Modifier
                         .size(width = 26.dp, height = 18.dp)
                         .clip(RoundedCornerShape(3.dp)),
@@ -2806,7 +2860,12 @@ private fun CountrySpecRow(label: String, country: String) {
 private fun ColorSpecRow(label: String, colorName: String) {
     val (colorLong, borderLong) = VehicleUtils.getColorVisual(colorName)
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = "$label $colorName"
+            },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -2842,7 +2901,12 @@ private fun FuelSpecRow(label: String, fuelType: String) {
     }
 
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = "$label $fuelType"
+            },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -2853,7 +2917,7 @@ private fun FuelSpecRow(label: String, fuelType: String) {
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = fuelType,
+                contentDescription = null,
                 tint = tint,
                 modifier = Modifier.size(18.dp)
             )
@@ -2872,8 +2936,15 @@ private fun SafetySystemRow(
     isPresent: Boolean,
     note: String? = null
 ) {
+    val statusText = if (isPresent) "קיים" else "לא קיים"
+    val fullDesc = if (note.isNullOrBlank()) "$title: $statusText" else "$title: $statusText ($note)"
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 3.5.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.5.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = fullDesc
+            },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -2890,9 +2961,9 @@ private fun SafetySystemRow(
         }
         Spacer(Modifier.width(8.dp))
         if (isPresent) {
-            Icon(Icons.Default.CheckCircle, contentDescription = "קיים", tint = Color(0xFF2E7D32), modifier = Modifier.size(20.dp))
+            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(20.dp))
         } else {
-            Icon(Icons.Default.Cancel, contentDescription = "לא קיים", tint = Color(0xFFC62828), modifier = Modifier.size(20.dp))
+            Icon(Icons.Default.Cancel, contentDescription = null, tint = Color(0xFFC62828), modifier = Modifier.size(20.dp))
         }
     }
 }
@@ -3006,7 +3077,8 @@ private fun StatisticsTabContent(
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.semantics { heading() }
                 )
                 Spacer(Modifier.height(14.dp))
 
@@ -3083,7 +3155,7 @@ private fun StatisticsTabContent(
                         text = "התפלגות כלי רכב פעילים לפי שנתוני ייצור",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 12.dp)
+                        modifier = Modifier.padding(bottom = 12.dp).semantics { heading() }
                     )
 
                     stats.breakdownByYear.forEach { yearItem ->
@@ -3165,7 +3237,8 @@ private fun StatisticsTabContent(
                         Text(
                             text = "נתוני מסירות רכב חודשיות בישראל",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.semantics { heading() }
                         )
                     }
                     Spacer(Modifier.height(6.dp))

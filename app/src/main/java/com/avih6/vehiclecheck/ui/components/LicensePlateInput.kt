@@ -19,6 +19,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import com.avih6.vehiclecheck.R
 
@@ -57,11 +58,14 @@ fun LicensePlateInput(
                 if (value.isNotEmpty()) {
                     HoverTooltipIconButton(
                         onClick = onClear,
-                        tooltipText = "נקה קלט"
+                        tooltipText = "נקה קלט",
+                        modifier = Modifier.semantics {
+                            contentDescription = "נקה שדה לוחית רישוי"
+                        }
                     ) {
                         Icon(
                             Icons.Default.Clear, 
-                            contentDescription = "נקה",
+                            contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -69,22 +73,28 @@ fun LicensePlateInput(
                 if (hasMicrophone) {
                     HoverTooltipIconButton(
                         onClick = onVoiceClick,
-                        tooltipText = "חיפוש קולי"
+                        tooltipText = "חיפוש קולי",
+                        modifier = Modifier.semantics {
+                            contentDescription = "חיפוש קולי של מספר רכב"
+                        }
                     ) {
                         Icon(
                             Icons.Default.Mic, 
-                            contentDescription = "חיפוש קולי"
+                            contentDescription = null
                         )
                     }
                 }
                 if (hasCamera) {
                     HoverTooltipIconButton(
                         onClick = onCameraClick,
-                        tooltipText = "סריקת לוחית רישוי במצלמה"
+                        tooltipText = "סריקת לוחית רישוי במצלמה",
+                        modifier = Modifier.semantics {
+                            contentDescription = "סריקת לוחית רישוי באמצעות מצלמה"
+                        }
                     ) {
                         Icon(
                             Icons.Default.CameraAlt, 
-                            contentDescription = "סריקת מצלמה"
+                            contentDescription = null
                         )
                     }
                 }
