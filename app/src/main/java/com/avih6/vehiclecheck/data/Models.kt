@@ -181,26 +181,24 @@ data class VehicleRecord(
             standardType,
             effectiveStandardType
         ).joinToString(" ")
-        return s.contains("אספנות")
-    }
-
-    val isCollectorEligible: Boolean get() {
-        if (isOfficiallyCollector) return false
+        if (s.contains("אספנות")) return true
         val y = year ?: return false
         val currentYear = java.time.LocalDate.now().year
-        return (currentYear - y) >= 30
+        val isPassengerOrMotorcycle = (effectiveStandardType ?: standardType).orEmpty().startsWith("M1") ||
+                (effectiveStandardType ?: standardType).orEmpty().startsWith("L") ||
+                (effectiveVehicleCategory ?: vehicleCategoryHeavy ?: vehicleCategory).orEmpty().contains("פרטי") ||
+                (effectiveVehicleCategory ?: vehicleCategoryHeavy ?: vehicleCategory).orEmpty().contains("אופנוע")
+        return (currentYear - y) >= 30 && isPassengerOrMotorcycle
     }
 
+    val isCollectorEligible: Boolean get() = false
+
     val collectorBadgeText: String? get() {
-        return if (isOfficiallyCollector) "🏆 רכב אספנות רשמי" else null
+        return if (isOfficiallyCollector) "🏆 רכב אספנות" else null
     }
 
     val effectiveOwnership: String? get() {
-        if (!ownership.isNullOrBlank()) return ownership
-        if (vehicleCategoryHeavy == "פרטי" || vehicleCategory?.contains("פרטי") == true || effectiveVehicleCategory?.contains("פרטי") == true || (effectiveStandardType ?: standardType).orEmpty().startsWith("M1")) {
-            return "פרטי"
-        }
-        return null
+        return ownership?.trim()?.ifBlank { null }
     }
 
     fun mergeWith(other: VehicleRecord?): VehicleRecord {
@@ -2045,7 +2043,9 @@ object VehicleUtils {
         val cat = category.orEmpty().lowercase()
         val combined = "$m $mk $t $o $tl $cat"
 
-        val isOfficialCollector = combined.contains("אספנות") || t.contains("רכב אספנות") || o.contains("אספנות")
+        val currentYear = java.time.LocalDate.now().year
+        val isPassengerOrMotorcycle = t.startsWith("m1") || t.startsWith("l") || cat.contains("פרטי") || cat.contains("אופנוע") || mk.contains("סימקה") || mk.contains("simca")
+        val isOfficialCollector = combined.contains("אספנות") || t.contains("רכב אספנות") || o.contains("אספנות") || (year != null && (currentYear - year) >= 30 && isPassengerOrMotorcycle)
 
         return when {
             // 0. Taxis & Public Transport Passenger Vehicles (מוניות)
@@ -2055,16 +2055,13 @@ object VehicleUtils {
             // 0a. Trailers & Semi-trailers (גרורים ונתמכים - נצר סירני וכו')
             combined.contains("סירני") || combined.contains("נתמך") || combined.contains("גרור") || 
             combined.contains("נגרר") || combined.contains("trailer") || combined.contains("o4") || 
-            combined.contains("o3") || combined.contains("o2") || combined.contains("o1") -> {
-                if (combined.contains("כיבוי") || combined.contains("כבאית")) "🚒 גרור כיבוי והצלה"
-                else "🚛 נתמך / גרור"
-            }
+            combined.contains("o3") || combined.contains("o2") || combined.contains("o1") -> "🚛 נגרר / גרור"
 
             // 0b. Heavy Machinery / Construction (צמ"ה)
             combined.contains("הנדסי") || combined.contains("צמ\"ה") || combined.contains("צמה") || 
             combined.contains("מלגזה") || combined.contains("מחפר") || combined.contains("טרקטור") ||
             mk.contains("קטרפילר") || mk.contains("komatsu") || mk.contains("caterpillar") || mk.contains("jcb") ||
-            mk.contains("bobcat") || mk.contains("maxilift") || mk.contains("מקסיליפט") -> "🚜 ציוד הנדסי"
+            mk.contains("bobcat") || mk.contains("maxilift") || mk.contains("מקסיליפט") -> "🏗️ ציוד הנדסי (צמ\"ה)"
 
             // 1. Firefighting & Rescue Vehicles (כיבוי אש / כבאית)
             combined.contains("כיבוי") || combined.contains("כבאית") || combined.contains("fire") ||

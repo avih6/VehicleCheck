@@ -1060,12 +1060,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 val baseInfo = VehicleUtils.extractBaseModel(vehicle.make, vehicle.model, vehicle.modelCode, vehicle.vin)
-                val statsKey = "${makeCd}_${modelCd}_${year}_${baseInfo.baseModel}"
+                val statsKey = "${makeCd}_${modelCd}_${year}_${baseInfo.baseModel}_v2"
                 val statsDeferred = async {
                     modelStatsCache.get(statsKey)?.let { return@async it }
-                    val computedStats = withTimeoutOrNull(6000L) {
+                    val computedStats = withTimeoutOrNull(10000L) {
                         computeModelStatistics(vehicle, isEngineering, isOffRoad, baseInfo)
-                    } ?: ModelStatistics(if (isOffRoad) 0 else 0, if (isOffRoad) 1 else 0)
+                    } ?: ModelStatistics(if (isOffRoad) 0 else 1, if (isOffRoad) 1 else 0)
                     modelStatsCache.put(statsKey, computedStats)
                     computedStats
                 }
@@ -1193,17 +1193,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val modelCd = vehicle.modelCd
         val year = vehicle.year ?: 2022
 
-        var totalActive = 0
-        var activeYearCount = 0
-        var prevYearCount = 0
-        var nextYearCount = 0
-        var inactCount2017 = 0
-        var inactCountMaster = 0
-        var inactCountVintage = 0
-        var specificYearInactive = 0
-        var prevYearInactive = 0
-        var nextYearInactive = 0
-
         val isTwoWheeler = vehicle.effectiveVehicleCategory?.contains("אופנוע") == true ||
                 vehicle.effectiveVehicleCategory?.contains("קטנוע") == true ||
                 vehicle.effectiveStandardType?.startsWith("L") == true
@@ -1220,173 +1209,81 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             else -> "053cea08-09bc-40ec-8f7a-156f0677aff3"
         }
 
-        suspend fun queryMaxCount(
-            resId: String,
-            terms: List<String>,
-            makeFilter: String,
-            exactKinuy: String? = null,
-            exactDegem: String? = null
-        ): Int {
-            if (!exactKinuy.isNullOrBlank()) {
+        // Ordered candidate filters: exact kinuy_mishari, exact modelCd, exact modelCode, search terms, and makeCd
+        val candidateFilters = mutableListOf<String>()
+        if (!baseInfo.exactKinuyFilter.isNullOrBlank()) {
+            candidateFilters.add("{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"${baseInfo.exactKinuyFilter}\"}")
+        }
+        if (modelCd != null && modelCd > 0) {
+            candidateFilters.add("{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}")
+        }
+        if (!vehicle.modelCode.isNullOrBlank()) {
+            candidateFilters.add("{\"tozeret_cd\":$makeCd,\"degem_nm\":\"${vehicle.modelCode}\"}")
+        }
+        for (t in baseInfo.searchTerms.take(2)) {
+            if (t.isNotBlank() && t != vehicle.make) {
+                candidateFilters.add("{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$t\"}")
+            }
+        }
+        candidateFilters.add("{\"tozeret_cd\":$makeCd}")
+
+        suspend fun fastQueryActive(resId: String): Int {
+            for (f in candidateFilters) {
                 try {
-                    val f = makeFilter.removeSuffix("}") + ",\"kinuy_mishari\":\"$exactKinuy\"}"
-                    val c = NetworkClient.apiService.getSameModelActiveCount(resourceId = resId, filters = f).result?.total ?: 0
+                    val c = NetworkClient.apiService.getSameModelActiveCount(resourceId = resId, filters = f, limit = 0).result?.total ?: 0
                     if (c > 0) return c
                 } catch (_: Exception) {}
             }
-            if (!exactDegem.isNullOrBlank()) {
-                try {
-                    val f = makeFilter.removeSuffix("}") + ",\"degem_nm\":\"$exactDegem\"}"
-                    val c = NetworkClient.apiService.getSameModelActiveCount(resourceId = resId, filters = f).result?.total ?: 0
-                    if (c > 0) return c
-                } catch (_: Exception) {}
-            }
-            for (t in terms.take(2)) {
-                if (t.isNotBlank()) {
-                    try {
-                        val c = NetworkClient.apiService.getSameModelActiveCount(resourceId = resId, filters = makeFilter, query = t).result?.total ?: 0
-                        if (c > 0) return c
-                    } catch (_: Exception) {}
-                }
-            }
-            return try {
-                NetworkClient.apiService.getSameModelActiveCount(resourceId = resId, filters = makeFilter).result?.total ?: 0
-            } catch (_: Exception) { 0 }
+            return 0
         }
 
-        suspend fun queryInactiveMaxCount(
-            resId: String,
-            terms: List<String>,
-            makeFilter: String,
-            exactKinuy: String? = null,
-            exactDegem: String? = null
-        ): Int {
-            if (!exactKinuy.isNullOrBlank()) {
+        suspend fun fastQueryInactive(resId: String): Int {
+            for (f in candidateFilters) {
                 try {
-                    val f = makeFilter.removeSuffix("}") + ",\"kinuy_mishari\":\"$exactKinuy\"}"
-                    val c = NetworkClient.apiService.getDeregisteredCount(resourceId = resId, filters = f).result?.total ?: 0
+                    val c = NetworkClient.apiService.getDeregisteredCount(resourceId = resId, filters = f, limit = 0).result?.total ?: 0
                     if (c > 0) return c
                 } catch (_: Exception) {}
             }
-            if (!exactDegem.isNullOrBlank()) {
-                try {
-                    val f = makeFilter.removeSuffix("}") + ",\"degem_nm\":\"$exactDegem\"}"
-                    val c = NetworkClient.apiService.getDeregisteredCount(resourceId = resId, filters = f).result?.total ?: 0
-                    if (c > 0) return c
-                } catch (_: Exception) {}
-            }
-            for (t in terms.take(2)) {
-                if (t.isNotBlank()) {
-                    try {
-                        val c = NetworkClient.apiService.getDeregisteredCount(resourceId = resId, filters = makeFilter, query = t).result?.total ?: 0
-                        if (c > 0) return c
-                    } catch (_: Exception) {}
-                }
-            }
-            return try {
-                NetworkClient.apiService.getDeregisteredCount(resourceId = resId, filters = makeFilter).result?.total ?: 0
-            } catch (_: Exception) { 0 }
+            return 0
         }
 
-        val makeFilter = "{\"tozeret_cd\":$makeCd}"
+        var totalActive = 0
+        var totalInactive = 0
+        var activeYearCount = 0
+
         coroutineScope {
-            val actDef = async {
-                val mainAct = queryMaxCount(
-                    resId = activeResourceId,
-                    terms = baseInfo.searchTerms,
-                    makeFilter = makeFilter,
-                    exactKinuy = baseInfo.exactKinuyFilter,
-                    exactDegem = vehicle.modelCode
-                )
-                val personalAct = if (!isTwoWheeler && !isHeavyOrCommercial) {
-                    queryMaxCount(
-                        resId = "03adc637-b6fe-402b-9937-7c3d3afc9140",
-                        terms = baseInfo.searchTerms,
-                        makeFilter = makeFilter,
-                        exactDegem = vehicle.modelCode
-                    )
-                } else 0
-                mainAct + personalAct
+            val actDef = async { fastQueryActive(activeResourceId) }
+            val inactDef = async {
+                val c1 = fastQueryInactive("f6efe89a-fb3d-43a4-bb61-9bf12a9b9099")
+                if (c1 > 0) c1
+                else if (year < 2005 || isOffRoad) fastQueryInactive("6f6acd03-f351-4a8f-8ecf-df792f4f573a")
+                else 0
             }
-
-            val yDef = async {
-                val yf = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$year}"
-                queryMaxCount(activeResourceId, baseInfo.searchTerms, yf, exactKinuy = baseInfo.exactKinuyFilter, exactDegem = vehicle.modelCode)
-            }
-            val pDef = async {
-                val pf = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":${year - 1}}"
-                queryMaxCount(activeResourceId, baseInfo.searchTerms, pf, exactKinuy = baseInfo.exactKinuyFilter, exactDegem = vehicle.modelCode)
-            }
-            val nDef = async {
-                val nf = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":${year + 1}}"
-                queryMaxCount(activeResourceId, baseInfo.searchTerms, nf, exactKinuy = baseInfo.exactKinuyFilter, exactDegem = vehicle.modelCode)
-            }
-
-            // Inactive datasets that work reliably without 409 conflict
-            val inact17Def = async {
-                queryInactiveMaxCount("851ecab1-0622-4dbe-a6c7-f950cf82abf9", baseInfo.searchTerms, makeFilter, baseInfo.exactKinuyFilter, vehicle.modelCode)
-            }
-            val inactMasterDef = async {
-                queryInactiveMaxCount("f6efe89a-fb3d-43a4-bb61-9bf12a9b9099", baseInfo.searchTerms, makeFilter, baseInfo.exactKinuyFilter, vehicle.modelCode)
-            }
-            val inactVintageDef = async {
-                if (year < 2005 || isOffRoad) {
-                    queryInactiveMaxCount("6f6acd03-f351-4a8f-8ecf-df792f4f573a", baseInfo.searchTerms, makeFilter, baseInfo.exactKinuyFilter, vehicle.modelCode)
-                } else 0
-            }
-
-            val yearInactDef = async {
-                val targetRes = if (year < 2000) "6f6acd03-f351-4a8f-8ecf-df792f4f573a" else "851ecab1-0622-4dbe-a6c7-f950cf82abf9"
-                val yf = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$year}"
-                queryInactiveMaxCount(targetRes, baseInfo.searchTerms, yf, baseInfo.exactKinuyFilter, vehicle.modelCode)
-            }
-            val prevYearInactDef = async {
-                val prevYear = year - 1
-                val targetRes = if (prevYear < 2000) "6f6acd03-f351-4a8f-8ecf-df792f4f573a" else "851ecab1-0622-4dbe-a6c7-f950cf82abf9"
-                val pf = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$prevYear}"
-                queryInactiveMaxCount(targetRes, baseInfo.searchTerms, pf, baseInfo.exactKinuyFilter, vehicle.modelCode)
-            }
-            val nextYearInactDef = async {
-                val nextYear = year + 1
-                val targetRes = if (nextYear < 2000) "6f6acd03-f351-4a8f-8ecf-df792f4f573a" else "851ecab1-0622-4dbe-a6c7-f950cf82abf9"
-                val nf = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$nextYear}"
-                queryInactiveMaxCount(targetRes, baseInfo.searchTerms, nf, baseInfo.exactKinuyFilter, vehicle.modelCode)
+            val yearDef = async {
+                val yearFilter = if (modelCd != null && modelCd > 0) {
+                    "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd,\"shnat_yitzur\":$year}"
+                } else {
+                    "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$year}"
+                }
+                try {
+                    NetworkClient.apiService.getSameModelActiveCount(resourceId = activeResourceId, filters = yearFilter, limit = 0).result?.total ?: 0
+                } catch (_: Exception) { 0 }
             }
 
             totalActive = actDef.await()
-            if (totalActive == 0 && modelCd != null && modelCd > 0) {
-                val subFilter = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}"
-                try {
-                    totalActive = NetworkClient.apiService.getSameModelActiveCount(resourceId = activeResourceId, filters = subFilter).result?.total ?: 0
-                } catch (_: Exception) {}
-            }
-            activeYearCount = yDef.await()
-            prevYearCount = pDef.await()
-            nextYearCount = nDef.await()
-            inactCount2017 = inact17Def.await()
-            inactCountMaster = inactMasterDef.await()
-            inactCountVintage = inactVintageDef.await()
-            specificYearInactive = yearInactDef.await()
-            prevYearInactive = prevYearInactDef.await()
-            nextYearInactive = nextYearInactDef.await()
+            totalInactive = inactDef.await()
+            activeYearCount = yearDef.await()
         }
 
-        val totalInactive = (inactCount2017 + inactCountMaster + inactCountVintage).coerceAtLeast(if (isOffRoad) 1 else 0)
-        val realTotalActive = if (totalActive > 0) totalActive else if (isOffRoad) 0 else totalActive
+        val finalActive = if (totalActive > 0) totalActive else if (isOffRoad) 0 else 1
+        val finalInactive = if (isOffRoad) totalInactive.coerceAtLeast(1) else totalInactive
 
         val breakdown = mutableListOf<ModelYearCount>()
-        if (prevYearCount > 0 || prevYearInactive > 0) {
-            breakdown.add(ModelYearCount(year - 1, prevYearCount, prevYearInactive))
-        }
-        val inactiveForYear = specificYearInactive.coerceAtLeast(if (isOffRoad) 1 else 0)
-        breakdown.add(ModelYearCount(year, if (activeYearCount > 0) activeYearCount else (if (isOffRoad) 0 else 1), inactiveForYear))
-        if (nextYearCount > 0 || nextYearInactive > 0) {
-            breakdown.add(ModelYearCount(year + 1, nextYearCount, nextYearInactive))
-        }
+        breakdown.add(ModelYearCount(year, if (activeYearCount > 0) activeYearCount else (if (isOffRoad) 0 else 1), if (isOffRoad) 1 else 0))
 
         return ModelStatistics(
-            totalActive = realTotalActive,
-            totalInactive = totalInactive,
+            totalActive = finalActive,
+            totalInactive = finalInactive,
             breakdownByYear = breakdown
         )
     }

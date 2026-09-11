@@ -522,7 +522,9 @@ fun ResultCard(
                             }
                         }
                         isOffRoad -> listOf("רכב לא פעיל (ירד מהכביש)", Color(0xFFFF5252), Color(0xFFD32F2F), Icons.Default.Cancel)
-                        else -> listOf("רכב פעיל ברישיון", Color(0xFF66BB6A), Color(0xFF2E7D32), Icons.Default.CheckCircle)
+                        testStatus is TestStatus.Expired -> listOf("רישיון רכב לא בתוקף", Color(0xFFFF5252), Color(0xFFD32F2F), Icons.Default.Cancel)
+                        testStatus is TestStatus.Valid -> listOf("רכב פעיל ברישיון", Color(0xFF66BB6A), Color(0xFF2E7D32), Icons.Default.CheckCircle)
+                        else -> listOf("רשום במאגר הרישוי", Color(0xFF0288D1), Color(0xFF0277BD), Icons.Default.Info)
                     }
 
                     Surface(
@@ -551,18 +553,18 @@ fun ResultCard(
                         }
                     }
 
-                    // Smart Classification Badge (e.g. 🚜 צמ"ה, 🚑 אמבולנס, 🚒 כבאית, 🚖 מונית, 🏍️ אופנוע, 🚚 משאית, etc.)
+                    // Smart Classification Badge (e.g. 🏗️ צמ"ה, 🚑 אמבולנס, 🚒 כבאית, 🚖 מונית, 🏍️ אופנוע, 🚚 משאית, etc.)
                     if (isEngineeringEquipment) {
                         val catLower = (vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory).orEmpty().lowercase()
                         val modLower = (vehicle.effectiveModel ?: vehicle.model).orEmpty().lowercase()
                         val eqLabel = when {
-                            catLower.contains("דחפור") || modLower.contains("דחפור") -> "🚜 דחפור (צמ\"ה)"
-                            catLower.contains("מחפר") || modLower.contains("מחפר") -> "🚜 מחפר (צמ\"ה)"
+                            catLower.contains("דחפור") || modLower.contains("דחפור") -> "🏗️ דחפור (צמ\"ה)"
+                            catLower.contains("מחפר") || modLower.contains("מחפר") -> "🏗️ מחפר (צמ\"ה)"
                             catLower.contains("טרקטור") || modLower.contains("טרקטור") -> "🚜 טרקטור (צמ\"ה)"
-                            catLower.contains("מלגזה") || modLower.contains("מלגזה") -> "🚜 מלגזה (צמ\"ה)"
-                            catLower.contains("מכבש") || modLower.contains("מכבש") -> "🚜 מכבש (צמ\"ה)"
-                            !vehicle.vehicleCategory.isNullOrBlank() -> "🚜 ${vehicle.vehicleCategory} (צמ\"ה)"
-                            else -> "🚜 ציוד הנדסי (צמ\"ה)"
+                            catLower.contains("מלגזה") || modLower.contains("מלגזה") -> "🏗️ מלגזה (צמ\"ה)"
+                            catLower.contains("מכבש") || modLower.contains("מכבש") -> "🏗️ מכבש (צמ\"ה)"
+                            !vehicle.vehicleCategory.isNullOrBlank() -> "🏗️ ${vehicle.vehicleCategory} (צמ\"ה)"
+                            else -> "🏗️ ציוד הנדסי (צמ\"ה)"
                         }
                         val eqColor = Color(0xFFFF9800)
                         Surface(
@@ -650,7 +652,7 @@ fun ResultCard(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "🏆 רכב אספנות רשמי",
+                                        text = "🏆 רכב אספנות",
                                         color = Color(0xFFFFB300),
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 12.sp
@@ -755,35 +757,26 @@ fun ResultCard(
             val isTaxi = catPill.contains("מונית")
             val busOperator = busFleet?.operatorName?.trim()?.ifBlank { null }
             val isBus = catPill.contains("אוטובוס") || stdPill.startsWith("M3") || busOperator != null || quickClassification.contains("אוטובוס")
-            val isAmbulance = !isBus && (quickClassification.contains("אמבולנס") || catPill.contains("אמבולנס") || catPill.contains("רפואי") || catPill.contains("מד\"א"))
-            val isFireRescue = quickClassification.contains("כיבוי") || quickClassification.contains("כבאית") || catPill.contains("כיבוי") || catPill.contains("כבאית") || (vehicle.modelCode?.contains("כיבוי") == true)
             val derivedOwner = vehicle.effectiveOwnership ?: vehicle.ownership
 
-            val isShuttleOrSpecial = catPill.contains("הסע") || catPill.contains("מיוחד")
             val ownerStr = when {
-                isEngineeringEquipment -> "ציוד עבודה"
-                isTaxi -> if (!derivedOwner.isNullOrBlank()) "מונית ($derivedOwner)" else "מונית (ציבורי)"
-                busOperator != null -> "תחב\"צ ($busOperator)"
-                isBus && isShuttleOrSpecial -> "היסעים"
-                isBus -> if (!derivedOwner.isNullOrBlank()) derivedOwner else "תחב\"צ"
-                isAmbulance -> if (!derivedOwner.isNullOrBlank()) "רפואי ($derivedOwner)" else "רפואי / הצלה"
-                isFireRescue -> if (!derivedOwner.isNullOrBlank()) "כבאות ($derivedOwner)" else "כבאות והצלה"
+                busOperator != null -> "תחבורה ציבורית ($busOperator)"
                 !derivedOwner.isNullOrBlank() -> derivedOwner
                 else -> "אין מידע"
             }
             val isCompany = isEngineeringEquipment || ownerStr.contains("חברה") || ownerStr.contains("ליסינג") || ownerStr.contains("השכרה") || ownerStr.contains("עבודה")
-            val hasOwnership = !derivedOwner.isNullOrBlank() || isEngineeringEquipment || isTaxi || isBus || isAmbulance || isFireRescue
+            val hasOwnership = ownerStr != "אין מידע"
 
             val ownershipStatusType = when {
                 !hasOwnership -> StatusPillType.WARNING
-                isCompany && !isEngineeringEquipment && !isTaxi && !isBus && !isAmbulance && !isFireRescue -> StatusPillType.WARNING
+                isCompany && !isEngineeringEquipment && !isTaxi -> StatusPillType.WARNING
                 else -> StatusPillType.POSITIVE
             }
             StatusPill(
                 title = "בעלות",
                 value = ownerStr,
                 statusType = ownershipStatusType,
-                icon = if (isEngineeringEquipment) Icons.Default.Construction else if (!hasOwnership) Icons.Default.HelpOutline else if (isTaxi) Icons.Default.DirectionsCar else if (isBus) Icons.Default.DirectionsBus else if (isAmbulance) Icons.Default.LocalHospital else if (isFireRescue) Icons.Default.LocalFireDepartment else if (isCompany) Icons.Default.Business else Icons.Default.Person,
+                icon = if (isEngineeringEquipment) Icons.Default.Construction else if (!hasOwnership) Icons.Default.HelpOutline else if (isTaxi) Icons.Default.DirectionsCar else if (isBus) Icons.Default.DirectionsBus else if (isCompany) Icons.Default.Business else Icons.Default.Person,
                 modifier = Modifier.weight(1f).fillMaxHeight()
             )
 
@@ -998,17 +991,6 @@ private fun GeneralTabContent(
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                val isRareCollector = (stats.totalActive in 1..5) && ((vehicle.year ?: 2026) <= 1995 || vehicle.isOfficiallyCollector)
-                if (isRareCollector) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = "✨ דגם נדיר בישראל (רכבים בודדים רשומים במאגר)",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFFFFB300),
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    )
-                }
                 Spacer(Modifier.height(14.dp))
 
                 Row(
@@ -1250,20 +1232,19 @@ private fun GeneralTabContent(
                 // On-road date (מועד עלייה לכביש)
                 SpecRow(
                     label = "מועד עלייה לכביש:",
-                    value = vehicle.onRoadDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע במאגר"
+                    value = vehicle.onRoadDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע"
                 )
 
                 // First registration date (תאריך רישום ראשוני)
                 SpecRow(
                     label = "תאריך רישום ראשוני:",
-                    value = extraHistory?.firstRegistrationDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע במאגר"
+                    value = extraHistory?.firstRegistrationDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע"
                 )
             }
         }
 
-        // Collector Vehicle Official Notice or Eligibility Notice (רכב אספנות / זכאות לאספנות)
+        // Collector Vehicle Official Notice (רכב אספנות)
         val showCollectorCard = !isEngineeringEquipment && vehicle.isOfficiallyCollector
-        val showCollectorEligibleCard = !isEngineeringEquipment && !vehicle.isOfficiallyCollector && vehicle.isCollectorEligible
 
         if (showCollectorCard) {
             val cardColor = if (isOffRoad) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f) else Color(0xFFFFD700).copy(alpha = 0.12f)
@@ -1284,7 +1265,7 @@ private fun GeneralTabContent(
                             fontSize = 22.sp
                         )
                         Text(
-                            text = if (isOffRoad) "רכב אספנות (רישום מבוטל)" else "רכב אספנות רשמי",
+                            text = if (isOffRoad) "רכב אספנות (רישום מבוטל)" else "רכב אספנות",
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleMedium,
                             color = if (isOffRoad) MaterialTheme.colorScheme.onSurface else Color(0xFFFFC107)
@@ -1309,37 +1290,6 @@ private fun GeneralTabContent(
                             lineHeight = 18.sp
                         )
                     }
-                }
-            }
-        } else if (showCollectorEligibleCard) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(text = "ℹ️", fontSize = 20.sp)
-                        Text(
-                            text = "זכאות להסבה לרכב אספנות",
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = "• רכב זה הינו בן 30 שנה ומעלה. במאגר משרד התחבורה הוא רשום כרכב מיושן רגיל ולא כרכב אספנות רשמי.\n" +
-                                "• כרכב מיושן: חלה חובת 2 מבחני רישוי בשנה (כל 6 חודשים) ואישור תקינות/בלמים ממוסך לפני כל טסט.\n" +
-                                "• זכאות: בעל הרכב רשאי לפנות למשרד הרישוי ולהמירו ל'רכב אספנות' רשמי (טסט פעם בשנה בלבד, ביטוח מוזל, ואיסור נסיעה בימי חול בין 07:00-09:00).",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        lineHeight = 18.sp
-                    )
                 }
             }
         }
@@ -1698,16 +1648,16 @@ private fun GeneralTabContent(
                         }
                     }
                 } else {
-                    SpecRow("מספר שלדה (VIN):", "אין מידע במאגר")
+                    SpecRow("מספר שלדה (VIN):", "אין מידע")
                 }
 
                 val engineNum = VehicleUtils.cleanIdentificationCode(extraHistory?.engineNumber ?: vehicle.engineNumber)
-                SpecRow("מספר מנוע:", if (!engineNum.isNullOrBlank()) engineNum else "אין מידע במאגר")
+                SpecRow("מספר מנוע:", if (!engineNum.isNullOrBlank()) engineNum else "אין מידע")
                 val cleanEngModel = VehicleUtils.cleanIdentificationCode(vehicle.engineModel)
-                SpecRow("דגם מנוע:", if (!cleanEngModel.isNullOrBlank()) cleanEngModel else "אין מידע במאגר")
-                SpecRow("מספר הוראת רישום:", vehicle.registrationDirective?.toString() ?: "אין מידע במאגר")
-                SpecRow("קוד תוצרת:", vehicle.makeCode?.toString() ?: "אין מידע במאגר")
-                SpecRow("קוד דגם משרד התחבורה:", vehicle.modelCd?.toString() ?: "אין מידע במאגר")
+                SpecRow("דגם מנוע:", if (!cleanEngModel.isNullOrBlank()) cleanEngModel else "אין מידע")
+                SpecRow("מספר הוראת רישום:", vehicle.registrationDirective?.toString() ?: "אין מידע")
+                SpecRow("קוד תוצרת:", vehicle.makeCode?.toString() ?: "אין מידע")
+                SpecRow("קוד דגם משרד התחבורה:", vehicle.modelCd?.toString() ?: "אין מידע")
             }
         }
 
