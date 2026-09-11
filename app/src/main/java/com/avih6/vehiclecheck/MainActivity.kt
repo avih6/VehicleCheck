@@ -40,7 +40,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import com.avih6.vehiclecheck.data.SearchState
 import com.avih6.vehiclecheck.data.VehicleUtils
 import com.avih6.vehiclecheck.ui.components.AdBanner
 import com.avih6.vehiclecheck.ui.components.MultiplePlatesDialog
@@ -276,7 +275,7 @@ fun MainAppShell(viewModel: MainViewModel) {
             onFeedbackAccepted = {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 viewModel.logEvent("rate_feedback_accepted")
-                sendEmail(context, viewModel)
+                sendEmail(context)
             },
             onCancelled = {
                 viewModel.logEvent("rate_cancelled")
@@ -368,7 +367,7 @@ fun MainAppShell(viewModel: MainViewModel) {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         scope.launch { drawerState.close() }
                         viewModel.logEvent("drawer_contact_clicked")
-                        sendEmail(context, viewModel)
+                        sendEmail(context)
                     },
                     icon = { Icon(Icons.Default.Email, null) }
                 )
@@ -719,34 +718,14 @@ private fun launchCustomTab(context: Context, url: String) {
     }
 }
 
-private fun sendEmail(context: Context, viewModel: MainViewModel? = null) {
+private fun sendEmail(context: Context) {
     val packageInfo = try {
         context.packageManager.getPackageInfo(context.packageName, 0)
     } catch (e: Exception) { null }
     val currentVersion = packageInfo?.versionName ?: BuildConfig.VERSION_NAME
 
-    val tabName = when (viewModel?.selectedTab?.value) {
-        0 -> "Search / חיפוש"
-        1 -> "History / היסטוריה"
-        2 -> "Statistics / סטטיסטיקות"
-        3 -> "Recalls / קריאות שירות"
-        4 -> "DTC / קודי תקלה"
-        5 -> "Gallery / גלריה"
-        6 -> "Services / שירותים"
-        else -> "Search"
-    }
-
-    val activeVehicle = (viewModel?.searchState?.value as? SearchState.Success)?.vehicle
-    val vehicleInfo = if (activeVehicle != null) {
-        val make = activeVehicle.make.orEmpty()
-        val model = activeVehicle.model.orEmpty()
-        val yr = activeVehicle.year?.let { "($it)" }.orEmpty()
-        val plate = activeVehicle.licensePlate?.let { "[$it]" }.orEmpty()
-        listOf(make, model, yr, plate).filter { it.isNotBlank() }.joinToString(" ").ifBlank { "Vehicle loaded" }
-    } else "None / ללא"
-
-    val emailSubject = context.getString(R.string.contact_subject)
-    val emailBody = "\n\n\n---\nSystem Info / מידע טכני:\nApp Version: $currentVersion\nOS: Android ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})\nDevice: ${Build.MANUFACTURER} ${Build.MODEL}\nCurrent Screen: $tabName\nActive Vehicle: $vehicleInfo\n"
+    val emailSubject = context.getString(R.string.app_name)
+    val emailBody = "\n\n\n---\nApp Version: $currentVersion\nOS: Android ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})\nDevice: ${Build.MANUFACTURER} ${Build.MODEL}\n"
 
     val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
         data = Uri.parse("mailto:av6development@gmail.com")
