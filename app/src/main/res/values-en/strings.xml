@@ -108,7 +108,7 @@
     <string name="menu_settings">Display Settings</string>
     <string name="menu_share">Share App</string>
     <string name="menu_rate">Rate App</string>
-    <string name="menu_contact">Contact Us</string>
+    <string name="menu_contact">Contact</string>
     <string name="menu_privacy">Privacy Policy</string>
     <string name="menu_terms">Terms of Service</string>
     <string name="share_app_text">"Check vehicle MOT status, specs, mileage and history with the Vehicle Check app:
