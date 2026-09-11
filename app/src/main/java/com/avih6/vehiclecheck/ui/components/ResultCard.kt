@@ -208,33 +208,41 @@ fun ResultCard(
         if (isTopDealerDeposit && !isOffRoad) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                color = Color(0xFFFF9800).copy(alpha = 0.15f),
-                border = BorderStroke(1.5.dp, Color(0xFFFF9800).copy(alpha = 0.7f))
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                border = BorderStroke(1.5.dp, Color(0xFFF57C00))
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        Icons.Default.HourglassTop,
-                        contentDescription = null,
-                        tint = Color(0xFFE65100),
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(Modifier.width(10.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(Color(0xFFFF9800).copy(alpha = 0.18f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.HourglassTop,
+                            contentDescription = null,
+                            tint = Color(0xFFF57C00),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "הפקדת סוחר (הקפאת רישיון)${if (!vehicle.cancellationDate.isNullOrBlank()) " • מ-${VehicleUtils.formatDate(vehicle.cancellationDate)}" else ""}",
-                            fontWeight = FontWeight.Black,
-                            color = Color(0xFFE65100),
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 15.sp
                         )
-                        Spacer(Modifier.height(2.dp))
+                        Spacer(Modifier.height(3.dp))
                         Text(
                             text = "רישיון הרכב הופקד אצל סוחר רכב מורשה לצורך הקפאת אגרות רישוי. הרכב אינו מורשה לנסיעה שגרתית בכביש אלא לנסיעות מבחן בלבד.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFFE65100).copy(alpha = 0.9f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 18.sp
                         )
                     }
                 }
@@ -557,7 +565,7 @@ fun ResultCard(
                                 listOf("כלי צמ״ה ברישיון", Color(0xFF66BB6A), Color(0xFF2E7D32), Icons.Default.CheckCircle)
                             }
                         }
-                        isDealerDeposit -> listOf("הפקדת סוחר (הקפאת רישיון)", Color(0xFFFF9800), Color(0xFFF57C00), Icons.Default.HourglassTop)
+                        isDealerDeposit -> listOf("הפקדת סוחר (הקפאת רישיון)", Color(0xFFE65100), Color(0xFFF57C00), Icons.Default.HourglassTop)
                         isOffRoad -> listOf("רכב לא פעיל (ירד מהכביש)", Color(0xFFFF5252), Color(0xFFD32F2F), Icons.Default.Cancel)
                         testStatus is TestStatus.Expired -> listOf("רישיון רכב לא בתוקף", Color(0xFFFF5252), Color(0xFFD32F2F), Icons.Default.Cancel)
                         testStatus is TestStatus.ExpiringSoon -> listOf("טסט יפוג בקרוב", Color(0xFFFFB300), Color(0xFFFF8F00), Icons.Default.HourglassBottom)

@@ -264,6 +264,10 @@ fun SearchScreen(
         // Search State Presentation
         AnimatedContent(
             targetState = searchState,
+            transitionSpec = {
+                androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(220)) togetherWith
+                androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(150))
+            },
             label = "SearchStateTransition"
         ) { state ->
             when (state) {
@@ -349,11 +353,6 @@ fun SearchScreen(
                             liveRegion = LiveRegionMode.Polite
                         }
                     ) {
-                        nativeAd?.let { ad ->
-                            NativeAdView(nativeAd = ad)
-                            Spacer(Modifier.height(12.dp))
-                        }
-
                         ResultCard(
                             vehicle = state.vehicle,
                             techSpec = state.techSpec,
@@ -383,6 +382,11 @@ fun SearchScreen(
                             onToggleEquipment = { viewModel.toggleEquipmentView() },
                             onLogEvent = { name, params -> viewModel.logEvent(name, params) }
                         )
+
+                        nativeAd?.let { ad ->
+                            Spacer(Modifier.height(16.dp))
+                            NativeAdView(nativeAd = ad)
+                        }
                     }
                 }
                 is SearchState.NotFound -> {
