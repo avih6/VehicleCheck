@@ -38,6 +38,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.avih6.vehiclecheck.data.SearchState
 import com.avih6.vehiclecheck.data.VehicleUtils
 import com.avih6.vehiclecheck.ui.components.AdBanner
 import com.avih6.vehiclecheck.ui.components.MultiplePlatesDialog
@@ -237,6 +240,7 @@ fun MainAppShell(viewModel: MainViewModel) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     val selectedTab by viewModel.selectedTab.collectAsState()
     val candidatePlates by viewModel.candidatePlates.collectAsState()
     var showRatingDialog by remember { mutableStateOf(false) }
@@ -270,8 +274,9 @@ fun MainAppShell(viewModel: MainViewModel) {
                 }
             },
             onFeedbackAccepted = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 viewModel.logEvent("rate_feedback_accepted")
-                sendEmail(context)
+                sendEmail(context, viewModel)
             },
             onCancelled = {
                 viewModel.logEvent("rate_cancelled")
@@ -338,6 +343,7 @@ fun MainAppShell(viewModel: MainViewModel) {
                     label = { Text(stringResource(R.string.menu_share)) },
                     selected = false,
                     onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         scope.launch { drawerState.close() }
                         viewModel.logEvent("drawer_share_clicked")
                         shareApp(context)
@@ -348,6 +354,7 @@ fun MainAppShell(viewModel: MainViewModel) {
                     label = { Text(stringResource(R.string.menu_rate)) },
                     selected = false,
                     onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         scope.launch { drawerState.close() }
                         viewModel.logEvent("drawer_rate_clicked")
                         showRatingDialog = true
@@ -358,9 +365,10 @@ fun MainAppShell(viewModel: MainViewModel) {
                     label = { Text(stringResource(R.string.menu_contact)) },
                     selected = false,
                     onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         scope.launch { drawerState.close() }
                         viewModel.logEvent("drawer_contact_clicked")
-                        sendEmail(context)
+                        sendEmail(context, viewModel)
                     },
                     icon = { Icon(Icons.Default.Email, null) }
                 )
@@ -371,6 +379,7 @@ fun MainAppShell(viewModel: MainViewModel) {
                     label = { Text(stringResource(R.string.menu_privacy)) },
                     selected = false,
                     onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         scope.launch { drawerState.close() }
                         viewModel.logEvent("drawer_privacy_clicked")
                         launchCustomTab(context, privacyPolicyUrl)
@@ -381,6 +390,7 @@ fun MainAppShell(viewModel: MainViewModel) {
                     label = { Text(stringResource(R.string.menu_terms)) },
                     selected = false,
                     onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         scope.launch { drawerState.close() }
                         viewModel.logEvent("drawer_terms_clicked")
                         launchCustomTab(context, termsUrl)
@@ -709,13 +719,41 @@ private fun launchCustomTab(context: Context, url: String) {
     }
 }
 
-private fun sendEmail(context: Context) {
-    val intent = Intent(Intent.ACTION_SENDTO).apply {
-        data = Uri.parse("mailto:")
-        putExtra(Intent.EXTRA_EMAIL, arrayOf("av6development@gmail.com"))
-        putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.contact_subject))
+private fun sendEmail(context: Context, viewModel: MainViewModel? = null) {
+    val packageInfo = try {
+        context.packageManager.getPackageInfo(context.packageName, 0)
+    } catch (e: Exception) { null }
+    val currentVersion = packageInfo?.versionName ?: BuildConfig.VERSION_NAME
+
+    val tabName = when (viewModel?.selectedTab?.value) {
+        0 -> "Search / חיפוש"
+        1 -> "History / היסטוריה"
+        2 -> "Statistics / סטטיסטיקות"
+        3 -> "Recalls / קריאות שירות"
+        4 -> "DTC / קודי תקלה"
+        5 -> "Gallery / גלריה"
+        6 -> "Services / שירותים"
+        else -> "Search"
+    }
+
+    val activeVehicle = (viewModel?.searchState?.value as? SearchState.Success)?.vehicle
+    val vehicleInfo = if (activeVehicle != null) {
+        val make = activeVehicle.make.orEmpty()
+        val model = activeVehicle.model.orEmpty()
+        val yr = activeVehicle.year?.let { "($it)" }.orEmpty()
+        val plate = activeVehicle.licensePlate?.let { "[$it]" }.orEmpty()
+        listOf(make, model, yr, plate).filter { it.isNotBlank() }.joinToString(" ").ifBlank { "Vehicle loaded" }
+    } else "None / ללא"
+
+    val emailSubject = context.getString(R.string.contact_subject)
+    val emailBody = "\n\n\n---\nSystem Info / מידע טכני:\nApp Version: $currentVersion\nOS: Android ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})\nDevice: ${Build.MANUFACTURER} ${Build.MODEL}\nCurrent Screen: $tabName\nActive Vehicle: $vehicleInfo\n"
+
+    val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+        data = Uri.parse("mailto:av6development@gmail.com")
+        putExtra(Intent.EXTRA_SUBJECT, emailSubject)
+        putExtra(Intent.EXTRA_TEXT, emailBody)
     }
     try {
-        context.startActivity(intent)
+        context.startActivity(emailIntent)
     } catch (e: Exception) {}
 }
