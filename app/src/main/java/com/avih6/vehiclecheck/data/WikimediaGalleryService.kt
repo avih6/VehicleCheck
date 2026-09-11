@@ -265,7 +265,13 @@ object WikimediaGalleryService {
             "attack", "october 7", "terror", "conflict", "protest", "memorial", "cemetery", "grave",
             "concert", "album", "cover", "band", "music", "song", "group", "person", "man", "woman", "people",
             "headshot", "selfie", "bundesarchiv bild", "israeli singer", "portrait of",
-            "pikiwiki", "piki_wiki", "leonard cohen", "cohen", "performance", "recital", "historical photo", "troops", "soldiers"
+            "pikiwiki", "piki_wiki", "leonard cohen", "cohen", "performance", "recital", "historical photo", "troops", "soldiers",
+            // Food, agriculture, plants, fruits, vegetables, animals, nature, markets
+            "peas", "pea", "vegetable", "vegetables", "fruit", "fruits", "food", "dish", "recipe",
+            "cooking", "cuisine", "market stall", "produce", "crop", "crops", "harvest", "agriculture",
+            "plant", "plants", "flower", "flowers", "tree", "trees", "leaf", "leaves", "forest",
+            "animal", "animals", "bird", "birds", "fish", "dog", "dogs", "cat", "cats", "cow", "horse", "sheep",
+            "varanasi", "india", "bazaar", "grocery", "spice", "spices", "kitchen", "meal", "salad"
         )
 
         return blockedKeywords.any { combined.contains(it) }

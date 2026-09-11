@@ -1004,6 +1004,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                     if (c > maxCount) maxCount = c
                                 } catch (_: Exception) {}
                             }
+                            if (maxCount == 0 && terms.none { it.isNotBlank() } && exactKinuy.isNullOrBlank() && exactDegem.isNullOrBlank()) {
+                                try {
+                                    val c = NetworkClient.apiService.getSameModelActiveCount(resourceId = resId, filters = makeFilter).result?.total ?: 0
+                                    if (c > maxCount) maxCount = c
+                                } catch (_: Exception) {}
+                            }
                             return maxCount
                         }
 
@@ -1033,6 +1039,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                 if (t.isBlank()) continue
                                 try {
                                     val c = NetworkClient.apiService.getDeregisteredCount(resourceId = resId, filters = makeFilter, query = t).result?.total ?: 0
+                                    if (c > maxCount) maxCount = c
+                                } catch (_: Exception) {}
+                            }
+                            if (maxCount == 0 && terms.none { it.isNotBlank() } && exactKinuy.isNullOrBlank() && exactDegem.isNullOrBlank()) {
+                                try {
+                                    val c = NetworkClient.apiService.getDeregisteredCount(resourceId = resId, filters = makeFilter).result?.total ?: 0
                                     if (c > maxCount) maxCount = c
                                 } catch (_: Exception) {}
                             }

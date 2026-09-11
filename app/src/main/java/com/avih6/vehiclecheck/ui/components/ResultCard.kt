@@ -603,24 +603,6 @@ fun ResultCard(
                                     )
                                 }
                             }
-                        } else if (vehicle.isAgeCollectorEligible) {
-                            Surface(
-                                color = Color(0xFFFF9800).copy(alpha = 0.12f),
-                                shape = RoundedCornerShape(20.dp),
-                                border = BorderStroke(1.dp, Color(0xFFF57C00))
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "⏳ רכב ותיק (מעל 30 שנה) • ייתכן וזכאי לסטטוס אספנות",
-                                        color = Color(0xFFFFB74D),
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp
-                                    )
-                                }
-                            }
                         }
                     }
                 }
@@ -710,22 +692,32 @@ fun ResultCard(
             )
 
             // Ownership
-            val isHeavy = (vehicle.totalWeight ?: 0) > 3500 || !vehicle.vinHeavy.isNullOrBlank() || vehicle.vehicleCategoryHeavy != null
-            val isTaxi = vehicle.effectiveVehicleCategory?.contains("מונית") == true || vehicle.vehicleCategory?.contains("מונית") == true
+            // Ownership
+            val stdPill = (vehicle.effectiveStandardType ?: vehicle.standardType).orEmpty().trim().uppercase()
+            val catPill = (vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory).orEmpty().trim().lowercase()
+            val isHeavy = (vehicle.totalWeight ?: 0) > 3500 ||
+                    stdPill.startsWith("N2") || stdPill.startsWith("N3") || stdPill.startsWith("M3") ||
+                    catPill.contains("משאית") || catPill.contains("משא כבד") || catPill.contains("אוטובוס")
+
+            val isTaxi = catPill.contains("מונית")
+            val busOperator = busFleet?.operatorName?.trim()?.ifBlank { null }
+            val isBus = catPill.contains("אוטובוס") || stdPill.startsWith("M3") || busOperator != null
+
             val ownerStr = when {
                 isEngineeringEquipment -> "ציוד עבודה"
                 isTaxi -> if (!vehicle.ownership.isNullOrBlank()) "מונית (${vehicle.ownership})" else "מונית (ציבורי)"
+                busOperator != null -> "ציבורי ($busOperator)"
+                isBus -> if (!vehicle.ownership.isNullOrBlank()) vehicle.ownership else "תחבורה ציבורית"
                 !vehicle.ownership.isNullOrBlank() -> vehicle.ownership
-                isHeavy -> "אין במאגר (כבד)"
-                else -> "אין מידע"
+                else -> "לא פורסם במאגר"
             }
             val isCompany = isEngineeringEquipment || ownerStr.contains("חברה") || ownerStr.contains("ליסינג") || ownerStr.contains("השכרה") || ownerStr.contains("עבודה")
-            val hasOwnership = !vehicle.ownership.isNullOrBlank() || isEngineeringEquipment || isTaxi
+            val hasOwnership = !vehicle.ownership.isNullOrBlank() || isEngineeringEquipment || isTaxi || isBus
             StatusPill(
                 title = "בעלות",
                 value = ownerStr,
-                isPositive = if (hasOwnership) (!isCompany || isEngineeringEquipment || isTaxi) else false,
-                icon = if (isEngineeringEquipment) Icons.Default.Construction else if (!hasOwnership) Icons.Default.HelpOutline else if (isTaxi) Icons.Default.DirectionsCar else if (isCompany) Icons.Default.Business else Icons.Default.Person,
+                isPositive = if (hasOwnership) (!isCompany || isEngineeringEquipment || isTaxi || isBus) else false,
+                icon = if (isEngineeringEquipment) Icons.Default.Construction else if (!hasOwnership) Icons.Default.HelpOutline else if (isTaxi) Icons.Default.DirectionsCar else if (isBus) Icons.Default.DirectionsBus else if (isCompany) Icons.Default.Business else Icons.Default.Person,
                 modifier = Modifier.weight(1f)
             )
 
@@ -735,7 +727,13 @@ fun ResultCard(
                 is TestStatus.ExpiringSoon -> Triple(StatusPillType.WARNING, "יפוג בקרוב", Icons.Default.HourglassBottom)
                 is TestStatus.Expired -> Triple(StatusPillType.NEGATIVE, "לא בתוקף", Icons.Default.EventBusy)
                 is TestStatus.OffRoad -> Triple(StatusPillType.NEGATIVE, "לא בתוקף", Icons.Default.Cancel)
-                TestStatus.Unknown -> if (isOffRoad) Triple(StatusPillType.NEGATIVE, "לא בתוקף", Icons.Default.Cancel) else if (isHeavy) Triple(StatusPillType.WARNING, "ללא נתון", Icons.Default.HelpOutline) else Triple(StatusPillType.WARNING, "אין מידע", Icons.Default.HelpOutline)
+                TestStatus.Unknown -> if (isOffRoad) {
+                    Triple(StatusPillType.NEGATIVE, "לא בתוקף", Icons.Default.Cancel)
+                } else if (vehicle.testExpiryDate.isNullOrBlank()) {
+                    Triple(StatusPillType.POSITIVE, "פעיל (ללא תאריך)", Icons.Default.CheckCircle)
+                } else {
+                    Triple(StatusPillType.WARNING, "אין מידע", Icons.Default.HelpOutline)
+                }
             }
             StatusPill(
                 title = "טסט",
@@ -897,8 +895,11 @@ private fun GeneralTabContent(
                 modifier = Modifier.padding(16.dp).fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                val hasSpecificModel = !vehicle.model.isNullOrBlank() || !vehicle.modelCode.isNullOrBlank()
                 Text(
-                    text = if (stats.totalActive == 0 && stats.totalInactive > 0) {
+                    text = if (!hasSpecificModel && !vehicle.make.isNullOrBlank()) {
+                        "כמות כלי רכב מתוצרת ${vehicle.make}${if (vehicle.year != null) " (שנת ${vehicle.year})" else ""} שנרשמו במאגר"
+                    } else if (stats.totalActive == 0 && stats.totalInactive > 0) {
                         "כמות כלי רכב מאותו הדגם שנרשמו במאגר"
                     } else {
                         "כמות כלי רכב הפעילים, הקיימים מאותו סוג הרכב"
@@ -1032,8 +1033,9 @@ private fun GeneralTabContent(
                 Spacer(Modifier.height(12.dp))
 
                 // Last test date (טסט אחרון)
-                val isHeavy = (vehicle.totalWeight ?: 0) > 3500 || !vehicle.vinHeavy.isNullOrBlank() || vehicle.vehicleCategoryHeavy != null
-                val lastTestFormatted = vehicle.lastTestDate?.let { VehicleUtils.formatDate(it) } ?: if (isHeavy) "אין מידע במאגר (רכב כבד מעל 3.5 טון)" else "אין מידע במאגר"
+                val stdTest = (vehicle.effectiveStandardType ?: vehicle.standardType).orEmpty().trim().uppercase()
+                val isHeavy = (vehicle.totalWeight ?: 0) > 3500 || stdTest.startsWith("N2") || stdTest.startsWith("N3") || stdTest.startsWith("M3")
+                val lastTestFormatted = vehicle.lastTestDate?.let { VehicleUtils.formatDate(it) } ?: if (isHeavy) "לא פורסם במאגר (כלי רכב מסחריים)" else "אין מידע במאגר"
                 SpecRow(
                     label = "טסט אחרון (מבחן רישוי אחרון):",
                     value = lastTestFormatted
@@ -1111,7 +1113,7 @@ private fun GeneralTabContent(
                         }
                     }
                 } else {
-                    val expiryFormatted = vehicle.testExpiryDate?.let { VehicleUtils.formatDate(it) } ?: if (isHeavy) "אין מידע במאגר (רכב כבד מעל 3.5 טון)" else "אין מידע במאגר"
+                    val expiryFormatted = vehicle.testExpiryDate?.let { VehicleUtils.formatDate(it) } ?: if (isHeavy) "פעיל ברישיון (לא פורסם תאריך במאגר מסחרי)" else if (isOffRoad) "אין מידע במאגר" else "פעיל ברישיון (ללא תאריך במאגר)"
                     SpecRow(
                         label = "טסט הבא (תוקף רישיון רכב):",
                         value = expiryFormatted,
@@ -1160,21 +1162,12 @@ private fun GeneralTabContent(
         }
 
         // Collector Vehicle Official Notice (רכב אספנות)
-        // Only show if not engineering equipment. Only show if officially collector or active eligible vehicle.
-        val showCollectorCard = !isEngineeringEquipment && (vehicle.isOfficiallyCollector || (!isOffRoad && vehicle.isAgeCollectorEligible))
+        // Only show if officially registered as a collector vehicle.
+        val showCollectorCard = !isEngineeringEquipment && vehicle.isOfficiallyCollector
 
         if (showCollectorCard) {
-            val isOfficialCollector = vehicle.isOfficiallyCollector
-            val cardColor = when {
-                isOffRoad -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                isOfficialCollector -> Color(0xFFFFD700).copy(alpha = 0.12f)
-                else -> Color(0xFFFF9800).copy(alpha = 0.08f)
-            }
-            val borderColor = when {
-                isOffRoad -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-                isOfficialCollector -> Color(0xFFFFB300).copy(alpha = 0.5f)
-                else -> Color(0xFFF57C00).copy(alpha = 0.5f)
-            }
+            val cardColor = if (isOffRoad) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f) else Color(0xFFFFD700).copy(alpha = 0.12f)
+            val borderColor = if (isOffRoad) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f) else Color(0xFFFFB300).copy(alpha = 0.5f)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -1187,51 +1180,32 @@ private fun GeneralTabContent(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = when {
-                                isOffRoad -> "⏳"
-                                isOfficialCollector -> "🏆"
-                                else -> "⏳"
-                            },
+                            text = if (isOffRoad) "⏳" else "🏆",
                             fontSize = 22.sp
                         )
                         Text(
-                            text = when {
-                                isOffRoad -> "רכב אספנות (רישום מבוטל)"
-                                isOfficialCollector -> "רכב אספנות רשמי"
-                                else -> "רכב ותיק (מעל 30 שנה)"
-                            },
+                            text = if (isOffRoad) "רכב אספנות (רישום מבוטל)" else "רכב אספנות רשמי",
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleMedium,
-                            color = when {
-                                isOffRoad -> MaterialTheme.colorScheme.onSurface
-                                isOfficialCollector -> Color(0xFFFFC107)
-                                else -> Color(0xFFFFB74D)
-                            }
+                            color = if (isOffRoad) MaterialTheme.colorScheme.onSurface else Color(0xFFFFC107)
                         )
                     }
                     Spacer(Modifier.height(8.dp))
-                    when {
-                        isOffRoad -> Text(
+                    if (isOffRoad) {
+                        Text(
                             text = "רכב זה היה רשום כרכב אספנות, אך מאחר שרישומו בוטל והוא נגרע מהמצבה (טוטאל לוס / פירוק / גריטה), לא חלים עליו הסדרי תנועה וביטוח של רכב אספנות פעיל.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             lineHeight = 18.sp
                         )
-                        isOfficialCollector -> Text(
+                    } else {
+                        Text(
                             text = "• איסור נסיעה בימי חול (א'-ה') בין השעות 07:00 עד 09:00 בבוקר.\n" +
                                     "• חובת מבחן רישוי (טסט) פעם אחת בשנה בלבד (במקום פעמיים בשנה לרכב מיושן רגיל).\n" +
                                     "• איסור הובלת מטען ושימוש מסחרי (לרכב מסחרי / משאית אספנות).\n" +
                                     "• זכאות לתעריפי ביטוח חובה מופחתים בהתאם לחוק.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface,
-                            lineHeight = 18.sp
-                        )
-                        else -> Text(
-                            text = "רכב זה עבר את גיל 30 שנה ועשוי להיות זכאי לסטטוס \"רכב אספנות\" (תקנה 281א לתקנות התעבורה).\n\n" +
-                                    "ייתכן וזכאי לסטטוס אספנות — הסטטוס אינו ניתן אוטומטית; על הבעלים להגיש בקשה ייעודית ברשות הרישוי. " +
-                                    "רכב שלא הוסב רשמית לאספנות אינו כפוף לאיסור הנסיעה בשעות הבוקר.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             lineHeight = 18.sp
                         )
                     }
@@ -1296,13 +1270,18 @@ private fun GeneralTabContent(
                 SpecRow("קבוצת רישוי ומשקל:", legalClass, isHighlighted = true)
                 SpecRow("דרגת רישיון נדרשת:", legalLicenseNote)
 
-                val isHeavyLegal = (vehicle.totalWeight ?: 0) > 3500 || !vehicle.vinHeavy.isNullOrBlank() || vehicle.vehicleCategoryHeavy != null
-                val isTaxiLegal = vehicle.effectiveVehicleCategory?.contains("מונית") == true || vehicle.vehicleCategory?.contains("מונית") == true
+                val stdLegal = (vehicle.effectiveStandardType ?: vehicle.standardType).orEmpty().trim().uppercase()
+                val catLegal = (vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory).orEmpty().trim()
+                val isHeavyLegal = (vehicle.totalWeight ?: 0) > 3500 ||
+                        stdLegal.startsWith("N2") || stdLegal.startsWith("N3") || stdLegal.startsWith("M3") ||
+                        catLegal.contains("משאית") || catLegal.contains("משא כבד") || catLegal.contains("אוטובוס")
+                val isTaxiLegal = catLegal.contains("מונית")
                 val ownershipStr = when {
+                    isEngineeringEquipment -> "ציוד הנדסי / עבודה"
+                    busFleet?.operatorName?.isNotBlank() == true -> "תחבורה ציבורית (${busFleet.operatorName})"
                     isTaxiLegal && vehicle.ownership?.contains("פרטי") == true -> "פרטי (ברישוי מונית)"
                     !vehicle.ownership.isNullOrBlank() -> vehicle.ownership
-                    isHeavyLegal -> "אין מידע במאגר משרד התחבורה (רכב כבד מעל 3.5 טון)"
-                    else -> "אין מידע במאגר"
+                    else -> "לא פורסם במאגר"
                 }
                 SpecRow("סוג בעלות רשומה:", ownershipStr)
 
@@ -1580,9 +1559,10 @@ private fun GeneralTabContent(
                     SpecRow("מספר שלדה (VIN):", "אין מידע במאגר")
                 }
 
-                val engineNum = extraHistory?.engineNumber ?: vehicle.engineNumber
+                val engineNum = VehicleUtils.cleanIdentificationCode(extraHistory?.engineNumber ?: vehicle.engineNumber)
                 SpecRow("מספר מנוע:", if (!engineNum.isNullOrBlank()) engineNum else "אין מידע במאגר")
-                SpecRow("דגם מנוע:", if (!vehicle.engineModel.isNullOrBlank()) vehicle.engineModel else "אין מידע במאגר")
+                val cleanEngModel = VehicleUtils.cleanIdentificationCode(vehicle.engineModel)
+                SpecRow("דגם מנוע:", if (!cleanEngModel.isNullOrBlank()) cleanEngModel else "אין מידע במאגר")
                 SpecRow("מספר הוראת רישום:", vehicle.registrationDirective?.toString() ?: "אין מידע במאגר")
                 SpecRow("קוד תוצרת:", vehicle.makeCode?.toString() ?: "אין מידע במאגר")
                 SpecRow("קוד דגם משרד התחבורה:", vehicle.modelCd?.toString() ?: "אין מידע במאגר")
@@ -2076,12 +2056,12 @@ private fun TechSpecTabContent(
                     SpecRow("נפח מנוע:", "אין מידע")
                 }
 
-                val engineModel = vehicle.engineModel
+                val engineModel = VehicleUtils.cleanIdentificationCode(vehicle.engineModel)
                 engineModel?.let {
                     if (it.isNotBlank()) SpecRow("דגם מנוע:", it)
                 }
 
-                val engineNumber = vehicle.engineNumber
+                val engineNumber = VehicleUtils.cleanIdentificationCode(vehicle.engineNumber)
                 engineNumber?.let {
                     if (it.isNotBlank()) SpecRow("מספר מנוע:", it)
                 }
@@ -2183,7 +2163,8 @@ private fun TechSpecTabContent(
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
-                (vehicle.cleanVin ?: vehicle.effectiveVin)?.let {
+                val cleanVin = vehicle.cleanVin ?: VehicleUtils.cleanIdentificationCode(vehicle.effectiveVin)
+                cleanVin?.let {
                     if (it.isNotBlank()) SpecRow("מספר שילדה (VIN):", it)
                 }
                 vehicle.effectiveVehicleCategory?.let {
@@ -2195,7 +2176,8 @@ private fun TechSpecTabContent(
                 vehicle.registrationDirective?.let { SpecRow("מספר הוראת רישום:", "$it") }
                 vehicle.makeCode?.let { SpecRow("קוד תוצרת:", "$it") }
                 vehicle.modelCd?.let { SpecRow("קוד דגם משרד התחבורה:", "$it") }
-                vehicle.modelCode?.let {
+                val cleanModel = VehicleUtils.cleanIdentificationCode(vehicle.modelCode)
+                cleanModel?.let {
                     if (it.isNotBlank()) SpecRow("קוד דגם:", it)
                 }
             }
@@ -3453,6 +3435,30 @@ fun OwnershipHistorySection(
                         }
                         if (index < items.size - 1) {
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f), thickness = 0.5.dp)
+                        }
+                    }
+
+                    // Informative Note explaining dates and Hand count
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp)) {
+                            Text(
+                                text = "ℹ️ הסבר על היסטוריית הבעלות:",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = "• יד 1: הרכב נרכש במקור מחברת ליסינג/החכר (תאריך העלייה לכביש המצוין למעלה).\n" +
+                                       "• יד 2+: הרכב נרכש בהמשך בבעלות פרטית (כל מעבר בעלות נספר כיד נוספת). משרד התחבורה אינו מפרסם במאגר הפתוח את התאריך המדויק שבו בוצעה העברת הבעלות בפועל.",
+                                fontSize = 10.5.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                lineHeight = 15.sp
+                            )
                         }
                     }
                 }
