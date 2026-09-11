@@ -108,12 +108,11 @@
     <string name="menu_settings">Display Settings</string>
     <string name="menu_share">Share App</string>
     <string name="menu_rate">Rate App</string>
-    <string name="menu_contact">Contact &amp; Feedback</string>
+    <string name="menu_contact">Contact Us</string>
     <string name="menu_privacy">Privacy Policy</string>
     <string name="menu_terms">Terms of Service</string>
     <string name="share_app_text">"Check vehicle MOT status, specs, mileage and history with the Vehicle Check app:
 https://play.google.com/store/apps/details?id=com.avih6.vehiclecheck"</string>
-    <string name="contact_subject">Inquiry regarding Vehicle Check app</string>
     <string name="rate_title">Enjoying the app?</string>
     <string name="rate_message">Rate us on Google Play and help us keep improving!</string>
     <string name="feedback_title">We\'d love your feedback</string>

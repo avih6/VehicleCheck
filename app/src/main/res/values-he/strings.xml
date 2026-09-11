@@ -104,12 +104,11 @@
     <string name="menu_settings">הגדרות תצוגה</string>
     <string name="menu_share">שיתוף האפליקציה</string>
     <string name="menu_rate">דירוג האפליקציה</string>
-    <string name="menu_contact">יצירת קשר ומשוב</string>
+    <string name="menu_contact">יצירת קשר</string>
     <string name="menu_privacy">מדיניות פרטיות</string>
     <string name="menu_terms">תנאי שימוש</string>
     <string name="share_app_text">"בדוק פרטי רכב, טסט, קילומטראז, מפרט טכני ובטיחות באפליקציית בדיקת רכב:
 https://play.google.com/store/apps/details?id=com.avih6.vehiclecheck"</string>
-    <string name="contact_subject">פנייה בנושא אפליקציית בדיקת רכב</string>
     <string name="rate_title">נהנים מהאפליקציה?</string>
     <string name="rate_message">דרגו אותנו בחנות Play ועזרו לנו להמשיך להשתפר!</string>
     <string name="feedback_title">נשמח לדעת מה לשפר</string>
