@@ -851,6 +851,31 @@ object VehicleUtils {
             if (mc.contains("RENEGADE") || mn.contains("RENEGADE") || mn.contains("ר Renegade")) return "רנגייד"
         }
 
+        // Ford / פורד - E-Series / Econoline (Ambulances & Vans)
+        if (mk.contains("פורד") || mk.contains("FORD", ignoreCase = true)) {
+            if (mc.contains("E 3") || mc.contains("E-3") || mc.contains("E350") || mc.contains("E-350") ||
+                mn.contains("E 3") || mn.contains("E-3") || mn.contains("ECONOLINE") || mn.contains("אקונוליין")) return "אקונוליין (E-Series)"
+        }
+
+        // Honda / הונדה
+        if (mk.contains("הונדה") || mk.contains("HONDA", ignoreCase = true)) {
+            if (mc.contains("CB 500") || mn.contains("CB 500") || mc.contains("CB500") || mn.contains("CB500") || mc.contains("CB-500") || mn.contains("CB-500")) return "CB 500"
+            if (mc.contains("CIVIC") || mn.contains("CIVIC") || mn.contains("סיוויק") || mn.contains("סיויק")) return "סיוויק"
+            if (mc.contains("ACCORD") || mn.contains("ACCORD") || mn.contains("אקורד")) return "אקורד"
+            if (mc.contains("CR-V") || mn.contains("CRV") || mn.contains("סי אר וי")) return "CR-V"
+            if (mc.contains("JAZZ") || mn.contains("JAZZ") || mn.contains("ג'אז") || mn.contains("גאז")) return "ג'אז"
+        }
+
+        // BMW / ב.מ.וו
+        if (mk.contains("ב.מ.וו") || mk.contains("במוו") || mk.contains("BMW", ignoreCase = true)) {
+            if (mc.contains("503") || mn.contains("503")) return "503"
+        }
+
+        // Plymouth / פלימות
+        if (mk.contains("פלימות") || mk.contains("פלימוט") || mn.contains("פלימות") || mn.contains("פלימוט") || mn.contains("PLYMOUTH") || mk.contains("PLYMOUTH", ignoreCase = true)) {
+            return "פלימות"
+        }
+
         // Yamaha
         if (mk.contains("ימאהה") || mk.contains("ימהה") || mk.contains("YAMAHA", ignoreCase = true)) {
             if (mc.contains("XP 500") || mc.contains("TMAX") || mn.contains("TMAX") || mn.contains("טימקס")) return "TMAX"
@@ -874,6 +899,10 @@ object VehicleUtils {
                 "קורבט" -> terms.addAll(listOf("CORVETTE", "קורבט"))
                 "קמארו" -> terms.addAll(listOf("CAMARO", "קמארו"))
                 "TMAX" -> terms.addAll(listOf("TMAX", "XP 500", "טימקס"))
+                "CB 500" -> terms.addAll(listOf("CB 500", "CB-500", "CB500", "CB"))
+                "503" -> terms.addAll(listOf("503"))
+                "פלימות" -> terms.addAll(listOf("פלימות", "פלימוט", "PLYMOUTH"))
+                "אקונוליין (E-Series)" -> terms.addAll(listOf("ECONOLINE", "אקונוליין", "E 3", "E-3", "E350", "E-350"))
                 else -> {
                     terms.add(known)
                     if (rawModel.isNotBlank()) terms.add(rawModel.split(" ").first())
@@ -900,14 +929,25 @@ object VehicleUtils {
             .replace("היבריד", "")
             .replace("אוטו'", "")
             .replace("אוטומט", "")
+            .replace("אוטומטי", "")
+            .replace("ידני", "")
             .trim()
 
-        val tokens = clean.split(" ", "-", "_").filter { it.isNotBlank() }
+        val noisePrefixes = setOf(
+            "אספנות", "אמבולנס", "כיבוי", "כבאית", "משאית", "משא", "גרור", "נתמך",
+            "רכב", "מיוחד", "רפואי", "הצלה", "ביטחון", "בטחון"
+        )
+
+        var tokens = clean.split(" ", "-", "_").filter { it.isNotBlank() }
+        // Strip leading category/status noise words or pure leading numbers (e.g. "12 אספנות פלימוט" -> "פלימוט")
+        while (tokens.size > 1 && (tokens.first() in noisePrefixes || tokens.first().all { it.isDigit() })) {
+            tokens = tokens.drop(1)
+        }
         val firstToken = tokens.firstOrNull() ?: primary
 
         val terms = mutableListOf<String>()
         terms.add(firstToken)
-        if (tokens.size >= 2 && (firstToken.equals("LAND", ignoreCase = true) || firstToken.equals("GRAND", ignoreCase = true) || firstToken.equals("CX", ignoreCase = true))) {
+        if (tokens.size >= 2) {
             terms.add("${tokens[0]} ${tokens[1]}")
             terms.add("${tokens[0]}-${tokens[1]}")
         }
@@ -1353,6 +1393,9 @@ object VehicleUtils {
             "skywell" -> {
                 list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Skywell_logo.svg/500px-Skywell_logo.svg.png")
             }
+            "plymouth" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/en/thumb/e/e0/Plymouth_logo.svg/500px-Plymouth_logo.svg.png")
+            }
             "atlas-copco" -> {
                 list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Atlas_Copco_logo.svg/500px-Atlas_Copco_logo.svg.png")
                 list.add("https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/atlas-copco.png")
@@ -1437,6 +1480,7 @@ object VehicleUtils {
             m.contains("מיני") || m.contains("mini") -> "mini"
             m.contains("דאצ'יה") || m.contains("דאציה") || m.contains("dacia") -> "dacia"
             m.contains("קאדילאק") || m.contains("cadillac") -> "cadillac"
+            m.contains("פלימות") || m.contains("פלימוט") || m.contains("plymouth") -> "plymouth"
             m.contains("קרייזלר") || m.contains("chrysler") -> "chrysler"
             m.contains("דודג'") || m.contains("דודג") || m.contains("dodge") -> "dodge"
             m.contains("ראם") || m.contains("ram") -> "ram"
@@ -1800,16 +1844,25 @@ object VehicleUtils {
         val std = (vehicle.effectiveStandardType ?: vehicle.standardType).orEmpty().trim().uppercase()
         val seats = vehicle.effectiveSeats ?: techSpec?.seats ?: 0
         val trim = vehicle.trimLevel.orEmpty().trim().lowercase()
+        val effMod = (vehicle.effectiveModel ?: vehicle.model ?: vehicle.modelCode).orEmpty().trim().lowercase()
+
+        val isTrailer = cat.contains("גרור") || cat.contains("נתמך") || cat.contains("נגרר") ||
+                bt.contains("גרור") || bt.contains("נתמך") || std.startsWith("O") ||
+                (vehicle.make?.contains("גרור") == true) || (vehicle.make?.contains("נתמך") == true)
+
+        val isFireTruck = cat.contains("כיבוי") || cat.contains("כבאית") || mod.contains("כיבוי") ||
+                mod.contains("כבאית") || mod.contains("אש די") || trim.contains("כיבוי") ||
+                effMod.contains("כיבוי") || effMod.contains("כבאית") || effMod.contains("אש די")
 
         val isBus = cat.contains("אוטובוס") || trim.contains("אוטובוס") ||
                 std.startsWith("M3") || (std.startsWith("M2") && seats > 16)
 
         val isAmbulanceOrRescue = cat.contains("אמבולנס") || mod.contains("ambulance") || trim.contains("אמבולנס") ||
+                effMod.contains("אמבולנס") || effMod.contains("ambulance") ||
                 cat.contains("מיוחד") || cat.contains("הצלה") || cat.contains("ביטחון") ||
-                trim.contains("הצלה") || trim.contains("כיבוי") ||
+                trim.contains("הצלה") ||
                 (std.startsWith("M2") && (mod.contains("sprinter") || mod.contains("savana") || mod.contains("transit") || mod.contains("crafter") || seats in 1..4))
 
-        val effMod = (vehicle.effectiveModel ?: vehicle.model ?: vehicle.modelCode).orEmpty().trim().lowercase()
         val isPickup = bt.contains("טנדר") || bt.contains("pickup") || bt.contains("פיק-אפ") ||
                 effMod.contains("hilux") || effMod.contains("היילקס") || effMod.contains("d-max") || effMod.contains("דימקס") || effMod.contains("די מקס") ||
                 effMod.contains("silverado") || effMod.contains("סילברדו") || effMod.contains("sierra") || effMod.contains("סיירה") ||
@@ -1820,6 +1873,10 @@ object VehicleUtils {
                 effMod.startsWith("ck") || effMod.startsWith("tk")
 
         return when {
+            isTrailer ->
+                BodyTypeInfo("גרור / נתמך (נגרר O1-O4)", "🚛", "גרור / נתמך להובלת משא וציוד ייעודי")
+            isFireTruck ->
+                BodyTypeInfo("רכב כיבוי אש / חילוץ", "🚒", "רכב מבצעי לשירותי כבאות והצלה")
             isBus ->
                 BodyTypeInfo("אוטובוס / היסעים", "🚌", "רכב להסעת נוסעים ציבורי / פרטי")
             isAmbulanceOrRescue ->
@@ -1857,6 +1914,12 @@ object VehicleUtils {
         val seats = vehicle.effectiveSeats ?: techSpec?.seats ?: 0
         val trim = vehicle.trimLevel.orEmpty().trim().lowercase()
 
+        val isTrailer = cat.contains("גרור") || cat.contains("נתמך") || cat.contains("נגרר") ||
+                std.startsWith("O") || (vehicle.make?.contains("גרור") == true) || (vehicle.make?.contains("נתמך") == true)
+
+        val isFireTruck = cat.contains("כיבוי") || cat.contains("כבאית") || mod.contains("כיבוי") ||
+                mod.contains("כבאית") || mod.contains("אש די") || trim.contains("כיבוי")
+
         val isPickup = mod.contains("hilux") || mod.contains("d-max") || mod.contains("silverado") || mod.contains("סילברדו") ||
                 mod.contains("sierra") || mod.contains("סיירה") || mod.contains("ram") || mod.contains("ראם") ||
                 mod.contains("f-150") || mod.contains("f-250") || mod.contains("f-350") || mod.contains("f-450") ||
@@ -1866,11 +1929,16 @@ object VehicleUtils {
                 std.startsWith("M3") || (std.startsWith("M2") && seats > 16)
 
         val isAmbulanceOrSpecial = cat.contains("אמבולנס") || mod.contains("ambulance") || trim.contains("אמבולנס") ||
+                mod.contains("אקונוליין") || mod.contains("econoline") ||
                 cat.contains("מיוחד") || cat.contains("הצלה") || cat.contains("ביטחון") ||
-                trim.contains("הצלה") || trim.contains("כיבוי") ||
-                (std.startsWith("M2") && (mod.contains("sprinter") || mod.contains("savana") || mod.contains("transit") || seats in 1..4))
+                trim.contains("הצלה") ||
+                (std.startsWith("M2") && (mod.contains("sprinter") || mod.contains("savana") || mod.contains("transit") || mod.contains("crafter") || seats in 1..4))
 
         return when {
+            isTrailer ->
+                Pair("גרור / נתמך (${std.ifBlank { "O" }})", "גרור נתמך • דורש רישיון גרירה E במידת הצורך")
+            isFireTruck ->
+                Pair("רכב כיבוי והצלה ($std)", "רכב מבצעי ייעודי לשירותי כבאות")
             isBus ->
                 Pair("אוטובוס / היסעים (${std.ifBlank { "M3" }})", "רכב להסעת נוסעים • דורש רישיון ייעודי D / D1")
             isAmbulanceOrSpecial ->
@@ -1942,7 +2010,7 @@ object VehicleUtils {
             "volvo", "polestar", "scania", "husqvarna" -> "שוודיה"
             "renault", "peugeot", "citroen", "alpine", "bugatti" -> "צרפת"
             "fiat", "alfa-romeo", "ferrari", "maserati", "lamborghini", "abarth", "lancia", "iveco", "ducati", "piaggio", "vespa", "aprilia", "moto-guzzi" -> "איטליה"
-            "ford", "chevrolet", "tesla", "cadillac", "jeep", "dodge", "ram", "chrysler", "gmc", "lincoln", "buick", "pontiac", "oldsmobile", "rivian", "lucid", "harley-davidson", "caterpillar", "john-deere", "bobcat", "mack" -> "ארה\"ב"
+            "ford", "chevrolet", "tesla", "cadillac", "jeep", "dodge", "ram", "chrysler", "plymouth", "gmc", "lincoln", "buick", "pontiac", "oldsmobile", "rivian", "lucid", "harley-davidson", "caterpillar", "john-deere", "bobcat", "mack" -> "ארה\"ב"
             "skoda" -> "צ'כיה"
             "seat", "cupra" -> "ספרד"
             "dacia" -> "רומניה"
@@ -1966,9 +2034,11 @@ object VehicleUtils {
         trimLevel: String? = null,
         fuel: String? = null,
         category: String? = null,
-        year: Int? = null
+        year: Int? = null,
+        modelCode: String? = null,
+        commercialName: String? = null
     ): String {
-        val m = model.orEmpty().lowercase()
+        val m = "${model.orEmpty()} ${modelCode.orEmpty()} ${commercialName.orEmpty()}".lowercase()
         val mk = make.orEmpty().lowercase()
         val t = modelType.orEmpty().lowercase()
         val o = ownership.orEmpty().lowercase()
@@ -1999,6 +2069,10 @@ object VehicleUtils {
             combined.contains("רפואי") || combined.contains("מגן דוד") || combined.contains("מד\"א") ||
             combined.contains("מדא") || (mk.contains("מרצדס") && (m.contains("ספרינטר") || m.contains("sprinter")) && (o.contains("חברה") || o.contains("עירייה") || t.contains("בטחון") || t.contains("מיוחד"))) -> "🚑 אמבולנס"
 
+            // 1a. Firefighting & Rescue Vehicles (כיבוי אש / כבאית)
+            combined.contains("כיבוי") || combined.contains("כבאית") || combined.contains("fire") ||
+            combined.contains("אש די") || combined.contains("חילוץ") -> "🚒 כבאית / כיבוי אש"
+
             // 2. Bus & Minibus (אוטובוס / אוטובוס זעיר)
             combined.contains("זעיר") && (combined.contains("אוטובוס") || t.contains("m2") || cat.contains("m2")) -> "🚐 אוטובוס זעיר"
             combined.contains("אוטובוס") || combined.contains("bus") || t.contains("m2") || t.contains("m3") ||
@@ -2014,7 +2088,7 @@ object VehicleUtils {
             m.contains("transporter") || m.contains("crafter") || m.contains("master") || m.contains("מאסטר") || m.contains("savana") ||
             m.contains("סוואנה") || m.contains("סבאנה") || m.contains("express") || m.contains("אקספרס") || m.contains("expert") ||
             m.contains("proace") || m.contains("nv200") || m.contains("nv400") || m.contains("vivaro") || m.contains("sprinter") ||
-            m.contains("ספרינטר") || t.contains("משא אחוד") || t.contains("מסחרי") || t.contains("n1") || cat.contains("משא אחוד") -> "🚐 מסחרית / ואן"
+            m.contains("ספרינטר") || t.contains("משא אחוד") || t.contains("מסחרי") || t.contains("n1") || cat.contains("משא אחוד") -> "🚐 מסחרית / וואן"
 
             // 4. Pickups (טנדר) - Checked before generic heavy trucks because American pickups (Cybertruck, Silverado, Ram, F-350) have MOT category "משא"
             m.contains("cybertruck") || m.contains("סייברטראק") ||

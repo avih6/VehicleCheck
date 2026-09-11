@@ -309,7 +309,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 list
             }
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val favorites: StateFlow<List<VehicleHistoryEntity>> = repository.favorites
         .map { list ->
@@ -373,7 +373,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 list
             }
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     private val _nationalFleetStats = MutableStateFlow(NationalFleetStats())
     val nationalFleetStats: StateFlow<NationalFleetStats> = _nationalFleetStats.asStateFlow()

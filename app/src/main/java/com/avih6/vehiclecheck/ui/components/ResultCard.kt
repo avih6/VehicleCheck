@@ -81,7 +81,9 @@ fun ResultCard(
             trimLevel = vehicle.trimLevel,
             fuel = vehicle.fuelType,
             category = vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory,
-            year = vehicle.year
+            year = vehicle.year,
+            modelCode = vehicle.modelCode,
+            commercialName = vehicle.effectiveModel
         )
     }
 
@@ -512,9 +514,39 @@ fun ResultCard(
                         }
                     }
 
-                    // Smart Classification Badge (e.g. 🚑 אמבולנס, 🚖 מונית, 🏍️ אופנוע, 🚚 משאית, etc.)
-                    if (quickClassification.isNotBlank() && !isEngineeringEquipment) {
-                        val isEmergency = quickClassification.contains("אמבולנס") || quickClassification.contains("הצלה")
+                    // Smart Classification Badge (e.g. 🚜 צמ"ה, 🚑 אמבולנס, 🚒 כבאית, 🚖 מונית, 🏍️ אופנוע, 🚚 משאית, etc.)
+                    if (isEngineeringEquipment) {
+                        val catLower = (vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory).orEmpty().lowercase()
+                        val modLower = (vehicle.effectiveModel ?: vehicle.model).orEmpty().lowercase()
+                        val eqLabel = when {
+                            catLower.contains("דחפור") || modLower.contains("דחפור") -> "🚜 דחפור (צמ\"ה)"
+                            catLower.contains("מחפר") || modLower.contains("מחפר") -> "🚜 מחפר (צמ\"ה)"
+                            catLower.contains("טרקטור") || modLower.contains("טרקטור") -> "🚜 טרקטור (צמ\"ה)"
+                            catLower.contains("מלגזה") || modLower.contains("מלגזה") -> "🚜 מלגזה (צמ\"ה)"
+                            catLower.contains("מכבש") || modLower.contains("מכבש") -> "🚜 מכבש (צמ\"ה)"
+                            !vehicle.vehicleCategory.isNullOrBlank() -> "🚜 ${vehicle.vehicleCategory} (צמ\"ה)"
+                            else -> "🚜 ציוד הנדסי (צמ\"ה)"
+                        }
+                        val eqColor = Color(0xFFFF9800)
+                        Surface(
+                            color = eqColor.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(20.dp),
+                            border = BorderStroke(1.dp, eqColor.copy(alpha = 0.5f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = eqLabel,
+                                    color = eqColor,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                    } else if (quickClassification.isNotBlank()) {
+                        val isEmergency = quickClassification.contains("אמבולנס") || quickClassification.contains("הצלה") || quickClassification.contains("כיבוי") || quickClassification.contains("כבאית")
                         val isTaxi = quickClassification.contains("מונית")
                         val isCollectorChip = quickClassification.contains("אספנות")
                         val chipColor = when {
@@ -705,21 +737,29 @@ fun ResultCard(
             val isAmbulance = quickClassification.contains("אמבולנס") || catPill.contains("אמבולנס") || catPill.contains("רפואי") || catPill.contains("הצלה")
             val derivedOwner = vehicle.effectiveOwnership ?: vehicle.ownership
 
+            val isShuttleOrSpecial = catPill.contains("הסע") || catPill.contains("מיוחד")
             val ownerStr = when {
                 isEngineeringEquipment -> "ציוד עבודה"
                 isTaxi -> if (!derivedOwner.isNullOrBlank()) "מונית ($derivedOwner)" else "מונית (ציבורי)"
-                busOperator != null -> "ציבורי ($busOperator)"
-                isBus -> if (!derivedOwner.isNullOrBlank()) derivedOwner else "תחבורה ציבורית"
+                busOperator != null -> "תחב\"צ ($busOperator)"
+                isBus && isShuttleOrSpecial -> "היסעים"
+                isBus -> if (!derivedOwner.isNullOrBlank()) derivedOwner else "תחב\"צ"
                 isAmbulance -> if (!derivedOwner.isNullOrBlank()) "ביטחון ($derivedOwner)" else "רכב ביטחון"
                 !derivedOwner.isNullOrBlank() -> derivedOwner
                 else -> "אין מידע"
             }
             val isCompany = isEngineeringEquipment || ownerStr.contains("חברה") || ownerStr.contains("ליסינג") || ownerStr.contains("השכרה") || ownerStr.contains("עבודה")
             val hasOwnership = !derivedOwner.isNullOrBlank() || isEngineeringEquipment || isTaxi || isBus || isAmbulance
+
+            val ownershipStatusType = when {
+                !hasOwnership -> StatusPillType.WARNING
+                isCompany && !isEngineeringEquipment && !isTaxi && !isBus && !isAmbulance -> StatusPillType.WARNING
+                else -> StatusPillType.POSITIVE
+            }
             StatusPill(
                 title = "בעלות",
                 value = ownerStr,
-                isPositive = if (hasOwnership) (!isCompany || isEngineeringEquipment || isTaxi || isBus || isAmbulance) else false,
+                statusType = ownershipStatusType,
                 icon = if (isEngineeringEquipment) Icons.Default.Construction else if (!hasOwnership) Icons.Default.HelpOutline else if (isTaxi) Icons.Default.DirectionsCar else if (isBus) Icons.Default.DirectionsBus else if (isAmbulance) Icons.Default.LocalHospital else if (isCompany) Icons.Default.Business else Icons.Default.Person,
                 modifier = Modifier.weight(1f).fillMaxHeight()
             )
@@ -910,6 +950,17 @@ private fun GeneralTabContent(
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurface
                 )
+                val isRareCollector = (stats.totalActive in 1..5) && ((vehicle.year ?: 2026) <= 1995 || vehicle.isOfficiallyCollector)
+                if (isRareCollector) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "✨ דגם נדיר בישראל (רכבים בודדים רשומים במאגר)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFFFFB300),
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+                }
                 Spacer(Modifier.height(14.dp))
 
                 Row(
