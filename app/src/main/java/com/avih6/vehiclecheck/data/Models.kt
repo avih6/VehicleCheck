@@ -170,13 +170,25 @@ data class VehicleRecord(
     val isOfficiallyCollector: Boolean get() {
         val s = listOfNotNull(
             effectiveVehicleCategory,
+            vehicleCategory,
+            vehicleCategoryHeavy,
             trimLevel,
             model,
             modelCode,
             modelType,
-            bodyTypeName
+            bodyTypeName,
+            ownership,
+            standardType,
+            effectiveStandardType
         ).joinToString(" ")
         return s.contains("אספנות")
+    }
+
+    val isCollectorEligible: Boolean get() {
+        if (isOfficiallyCollector) return false
+        val y = year ?: return false
+        val currentYear = java.time.LocalDate.now().year
+        return (currentYear - y) >= 30
     }
 
     val collectorBadgeText: String? get() {

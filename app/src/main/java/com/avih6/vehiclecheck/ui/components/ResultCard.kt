@@ -709,7 +709,7 @@ fun ResultCard(
                 busOperator != null -> "ציבורי ($busOperator)"
                 isBus -> if (!vehicle.ownership.isNullOrBlank()) vehicle.ownership else "תחבורה ציבורית"
                 !vehicle.ownership.isNullOrBlank() -> vehicle.ownership
-                else -> "לא פורסם במאגר"
+                else -> "אין מידע"
             }
             val isCompany = isEngineeringEquipment || ownerStr.contains("חברה") || ownerStr.contains("ליסינג") || ownerStr.contains("השכרה") || ownerStr.contains("עבודה")
             val hasOwnership = !vehicle.ownership.isNullOrBlank() || isEngineeringEquipment || isTaxi || isBus
@@ -1034,8 +1034,7 @@ private fun GeneralTabContent(
 
                 // Last test date (טסט אחרון)
                 val stdTest = (vehicle.effectiveStandardType ?: vehicle.standardType).orEmpty().trim().uppercase()
-                val isHeavy = (vehicle.totalWeight ?: 0) > 3500 || stdTest.startsWith("N2") || stdTest.startsWith("N3") || stdTest.startsWith("M3")
-                val lastTestFormatted = vehicle.lastTestDate?.let { VehicleUtils.formatDate(it) } ?: if (isHeavy) "לא פורסם במאגר (כלי רכב מסחריים)" else "אין מידע במאגר"
+                val lastTestFormatted = vehicle.lastTestDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע"
                 SpecRow(
                     label = "טסט אחרון (מבחן רישוי אחרון):",
                     value = lastTestFormatted
@@ -1113,7 +1112,7 @@ private fun GeneralTabContent(
                         }
                     }
                 } else {
-                    val expiryFormatted = vehicle.testExpiryDate?.let { VehicleUtils.formatDate(it) } ?: if (isHeavy) "פעיל ברישיון (לא פורסם תאריך במאגר מסחרי)" else if (isOffRoad) "אין מידע במאגר" else "פעיל ברישיון (ללא תאריך במאגר)"
+                    val expiryFormatted = vehicle.testExpiryDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע"
                     SpecRow(
                         label = "טסט הבא (תוקף רישיון רכב):",
                         value = expiryFormatted,
@@ -1161,9 +1160,9 @@ private fun GeneralTabContent(
             }
         }
 
-        // Collector Vehicle Official Notice (רכב אספנות)
-        // Only show if officially registered as a collector vehicle.
+        // Collector Vehicle Official Notice or Eligibility Notice (רכב אספנות / זכאות לאספנות)
         val showCollectorCard = !isEngineeringEquipment && vehicle.isOfficiallyCollector
+        val showCollectorEligibleCard = !isEngineeringEquipment && !vehicle.isOfficiallyCollector && vehicle.isCollectorEligible
 
         if (showCollectorCard) {
             val cardColor = if (isOffRoad) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f) else Color(0xFFFFD700).copy(alpha = 0.12f)
@@ -1209,6 +1208,37 @@ private fun GeneralTabContent(
                             lineHeight = 18.sp
                         )
                     }
+                }
+            }
+        } else if (showCollectorEligibleCard) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(text = "ℹ️", fontSize = 20.sp)
+                        Text(
+                            text = "זכאות להסבה לרכב אספנות",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "• רכב זה הינו בן 30 שנה ומעלה. במאגר משרד התחבורה הוא רשום כרכב מיושן רגיל ולא כרכב אספנות רשמי.\n" +
+                                "• כרכב מיושן: חלה חובת 2 מבחני רישוי בשנה (כל 6 חודשים) ואישור תקינות/בלמים ממוסך לפני כל טסט.\n" +
+                                "• זכאות: בעל הרכב רשאי לפנות למשרד הרישוי ולהמירו ל'רכב אספנות' רשמי (טסט פעם בשנה בלבד, ביטוח מוזל, ואיסור נסיעה בימי חול בין 07:00-09:00).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        lineHeight = 18.sp
+                    )
                 }
             }
         }
@@ -1281,9 +1311,15 @@ private fun GeneralTabContent(
                     busFleet?.operatorName?.isNotBlank() == true -> "תחבורה ציבורית (${busFleet.operatorName})"
                     isTaxiLegal && vehicle.ownership?.contains("פרטי") == true -> "פרטי (ברישוי מונית)"
                     !vehicle.ownership.isNullOrBlank() -> vehicle.ownership
-                    else -> "לא פורסם במאגר"
+                    else -> "אין מידע"
                 }
                 SpecRow("סוג בעלות רשומה:", ownershipStr)
+
+                if (vehicle.isOfficiallyCollector) {
+                    SpecRow("מעמד אספנות:", "רכב אספנות רשמי 🏆", isHighlighted = true)
+                } else if (vehicle.isCollectorEligible) {
+                    SpecRow("מעמד אספנות:", "זכאי להסבה לאספנות (רשום כרכב מיושן)")
+                }
 
                 // Annual licensing fee
                 val feeGroup = techSpec?.feeGroup ?: (vehicle.modelCode?.takeIf { it.length >= 2 }?.takeLast(1)?.toIntOrNull() ?: 4)
