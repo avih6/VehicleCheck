@@ -115,7 +115,12 @@ fun ServicesScreen(
                 }
                 FilterChip(
                     selected = isSelected,
-                    onClick = { viewModel.setServicesCategory(cat) },
+                    onClick = {
+                        viewModel.setServicesCategory(cat)
+                        viewModel.logEvent("services_category_selected", android.os.Bundle().apply {
+                            putString("category", cat.name.lowercase())
+                        })
+                    },
                     label = { Text(cat.titleHe, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, fontSize = 12.sp) },
                     leadingIcon = {
                         Icon(catIcon, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -195,6 +200,10 @@ fun ServicesScreen(
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = {
                 keyboardController?.hide()
+                viewModel.logEvent("services_search_performed", android.os.Bundle().apply {
+                    putString("category", category.name.lowercase())
+                    putInt("query_length", query.length)
+                })
                 viewModel.fetchServices()
             }),
             shape = RoundedCornerShape(16.dp)
@@ -297,7 +306,7 @@ fun ServicesScreen(
                                     )
                                 }
                                 items(filteredGarages, key = { it.id ?: it.garageNumber ?: it.hashCode() }) { garage ->
-                                    GarageCard(garage = garage)
+                                    GarageCard(garage = garage, onLogEvent = { name, b -> viewModel.logEvent(name, b) })
                                 }
                             }
                         }
@@ -328,7 +337,7 @@ fun ServicesScreen(
                                     )
                                 }
                                 items(filteredStations, key = { it.id ?: it.objectId ?: it.hashCode() }) { station ->
-                                    EvStationCard(station = station)
+                                    EvStationCard(station = station, onLogEvent = { name, b -> viewModel.logEvent(name, b) })
                                 }
                             }
                         }
@@ -359,7 +368,7 @@ fun ServicesScreen(
                                     )
                                 }
                                 items(carDealers, key = { it.id ?: it.hashCode() }) { dealer ->
-                                    CarDealerCard(dealer = dealer)
+                                    CarDealerCard(dealer = dealer, onLogEvent = { name, b -> viewModel.logEvent(name, b) })
                                 }
                             }
                         }
@@ -421,7 +430,7 @@ fun ServicesScreen(
                                     )
                                 }
                                 items(partsTrade, key = { it.id ?: it.hashCode() }) { record ->
-                                    PartsTradeCard(record = record)
+                                    PartsTradeCard(record = record, onLogEvent = { name, b -> viewModel.logEvent(name, b) })
                                 }
                             }
                         }
@@ -433,7 +442,10 @@ fun ServicesScreen(
 }
 
 @Composable
-private fun GarageCard(garage: GarageRecord) {
+private fun GarageCard(
+    garage: GarageRecord,
+    onLogEvent: ((String, android.os.Bundle) -> Unit)? = null
+) {
     val context = LocalContext.current
     val isTest = garage.isTestStation
     val badgeColor = MaterialTheme.colorScheme.primary
@@ -511,6 +523,11 @@ private fun GarageCard(garage: GarageRecord) {
                 if (!garage.phone.isNullOrBlank()) {
                     OutlinedButton(
                         onClick = {
+                            onLogEvent?.invoke("service_call_clicked", android.os.Bundle().apply {
+                                putString("category", if (isTest) "test_station" else "garage")
+                                putString("city", (garage.city ?: "").take(30))
+                                putString("provider_name", (garage.garageName ?: "").take(40))
+                            })
                             val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${garage.phone}"))
                             try { context.startActivity(intent) } catch (_: Exception) {}
                         },
@@ -525,6 +542,11 @@ private fun GarageCard(garage: GarageRecord) {
 
                 Button(
                     onClick = {
+                        onLogEvent?.invoke("service_navigate_clicked", android.os.Bundle().apply {
+                            putString("category", if (isTest) "test_station" else "garage")
+                            putString("city", (garage.city ?: "").take(30))
+                            putString("provider_name", (garage.garageName ?: "").take(40))
+                        })
                         val destination = Uri.encode("${garage.garageName ?: ""}, ${garage.address ?: ""}, ${garage.city ?: ""}")
                         val geoUri = Uri.parse("geo:0,0?q=$destination")
                         val navIntent = Intent(Intent.ACTION_VIEW, geoUri)
@@ -548,7 +570,10 @@ private fun GarageCard(garage: GarageRecord) {
 }
 
 @Composable
-private fun EvStationCard(station: EvChargingStationRecord) {
+private fun EvStationCard(
+    station: EvChargingStationRecord,
+    onLogEvent: ((String, android.os.Bundle) -> Unit)? = null
+) {
     val context = LocalContext.current
     val opColor = Color(0xFF00ACC1)
 
@@ -660,6 +685,11 @@ private fun EvStationCard(station: EvChargingStationRecord) {
             // Navigation Button
             Button(
                 onClick = {
+                    onLogEvent?.invoke("service_navigate_clicked", android.os.Bundle().apply {
+                        putString("category", "ev_charging")
+                        putString("operator", (station.operator ?: "").take(30))
+                        putString("provider_name", (station.stationName ?: "").take(40))
+                    })
                     val destination = Uri.encode("${station.stationName ?: ""}, ${station.address ?: ""}")
                     val geoUri = Uri.parse("geo:0,0?q=$destination")
                     val navIntent = Intent(Intent.ACTION_VIEW, geoUri)
@@ -716,7 +746,10 @@ private fun EmptyServicesView(
 }
 
 @Composable
-private fun CarDealerCard(dealer: CarDealerRecord) {
+private fun CarDealerCard(
+    dealer: CarDealerRecord,
+    onLogEvent: ((String, android.os.Bundle) -> Unit)? = null
+) {
     val context = LocalContext.current
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -796,6 +829,11 @@ private fun CarDealerCard(dealer: CarDealerRecord) {
                 Spacer(Modifier.height(10.dp))
                 Button(
                     onClick = {
+                        onLogEvent?.invoke("service_navigate_clicked", android.os.Bundle().apply {
+                            putString("category", "car_dealer")
+                            putString("city", (dealer.city ?: "").take(30))
+                            putString("provider_name", (dealer.name ?: "").take(40))
+                        })
                         val destination = Uri.encode("${dealer.name ?: ""}, $addressStr")
                         val geoUri = Uri.parse("geo:0,0?q=$destination")
                         val navIntent = Intent(Intent.ACTION_VIEW, geoUri)
@@ -879,7 +917,10 @@ private fun CarAppraiserCard(appraiser: CarAppraiserRecord) {
 }
 
 @Composable
-private fun PartsTradeCard(record: PartsTradeRecord) {
+private fun PartsTradeCard(
+    record: PartsTradeRecord,
+    onLogEvent: ((String, android.os.Bundle) -> Unit)? = null
+) {
     val context = LocalContext.current
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -958,6 +999,11 @@ private fun PartsTradeCard(record: PartsTradeRecord) {
                 if (!record.phone.isNullOrBlank()) {
                     OutlinedButton(
                         onClick = {
+                            onLogEvent?.invoke("service_call_clicked", android.os.Bundle().apply {
+                                putString("category", "parts_trade")
+                                putString("city", (record.city ?: "").take(30))
+                                putString("provider_name", (record.businessName ?: "").take(40))
+                            })
                             val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${record.phone}"))
                             try { context.startActivity(intent) } catch (_: Exception) {}
                         },
@@ -973,6 +1019,11 @@ private fun PartsTradeCard(record: PartsTradeRecord) {
                 if (addressStr.isNotBlank()) {
                     Button(
                         onClick = {
+                            onLogEvent?.invoke("service_navigate_clicked", android.os.Bundle().apply {
+                                putString("category", "parts_trade")
+                                putString("city", (record.city ?: "").take(30))
+                                putString("provider_name", (record.businessName ?: "").take(40))
+                            })
                             val destination = Uri.encode("${record.businessName ?: ""}, $addressStr")
                             val geoUri = Uri.parse("geo:0,0?q=$destination")
                             val navIntent = Intent(Intent.ACTION_VIEW, geoUri)

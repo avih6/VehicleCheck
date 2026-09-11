@@ -37,12 +37,14 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.avih6.vehiclecheck.MainViewModel
 import com.avih6.vehiclecheck.data.DtcCodeInfo
 import com.avih6.vehiclecheck.data.DtcRepository
 import com.avih6.vehiclecheck.data.DtcSeverity
 
 @Composable
 fun DtcScreen(
+    viewModel: MainViewModel? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -64,9 +66,17 @@ fun DtcScreen(
     }
 
     fun selectCode(code: String) {
-        selectedResult = DtcRepository.lookupCode(code)
+        val res = DtcRepository.lookupCode(code)
+        selectedResult = res
         query = ""
         keyboardController?.hide()
+        viewModel?.logEvent("dtc_code_viewed", android.os.Bundle().apply {
+            putString("code", code)
+            res?.let {
+                putString("severity", it.severity.titleHe)
+                putString("category", it.categoryHe)
+            }
+        })
     }
 
     fun copyDtcDetails(info: DtcCodeInfo) {
@@ -93,6 +103,9 @@ fun DtcScreen(
         }
         clipboardManager.setText(AnnotatedString(shareText))
         Toast.makeText(context, "קוד התקלה הועתק ללוח", Toast.LENGTH_SHORT).show()
+        viewModel?.logEvent("dtc_copied", android.os.Bundle().apply {
+            putString("code", info.code)
+        })
     }
 
     fun shareDtcDetails(info: DtcCodeInfo) {
@@ -115,14 +128,17 @@ fun DtcScreen(
                 appendLine("\nדרכי טיפול מומלצות:")
                 info.solutionsHe.forEach { appendLine("✔ $it") }
             }
-            appendLine("\nנשלח מ-VehicleCheck")
+            appendLine("\nשותף מאפליקציית בודק רכב (VehicleCheck)")
         }
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_SUBJECT, "פירוט תקלת רכב ${info.code}")
+        val sendIntent = Intent().apply {
+            action = Intent.ACTION_SEND
             putExtra(Intent.EXTRA_TEXT, shareText)
+            type = "text/plain"
         }
-        context.startActivity(Intent.createChooser(intent, "שיתוף תקלת רכב"))
+        context.startActivity(Intent.createChooser(sendIntent, "שתף קוד תקלה"))
+        viewModel?.logEvent("dtc_shared", android.os.Bundle().apply {
+            putString("code", info.code)
+        })
     }
 
     Column(
@@ -206,17 +222,22 @@ fun DtcScreen(
             ),
             keyboardActions = KeyboardActions(onSearch = {
                 keyboardController?.hide()
-                val exact = DtcRepository.lookupCode(query.trim())
-                if (exact != null) {
-                    selectedResult = exact
+                if (query.isNotBlank()) {
+                    val q = query.trim()
+                    val exact = DtcRepository.lookupCode(q)
+                    viewModel?.logEvent("dtc_search_performed", android.os.Bundle().apply {
+                        putString("query", q)
+                        putBoolean("found", exact != null)
+                    })
+                    if (exact != null) {
+                        selectCode(q)
+                    }
                 }
             }),
             shape = RoundedCornerShape(16.dp)
         )
 
         Spacer(Modifier.height(10.dp))
-
-
 
         // Quick Popular Codes Row
         LazyRow(
@@ -254,7 +275,13 @@ fun DtcScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
-                        .clickable { isGuideExpanded = !isGuideExpanded }
+                        .clickable {
+                            val willExpand = !isGuideExpanded
+                            isGuideExpanded = willExpand
+                            viewModel?.logEvent("dtc_guide_toggled", android.os.Bundle().apply {
+                                putBoolean("expanded", willExpand)
+                            })
+                        }
                         .padding(vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween

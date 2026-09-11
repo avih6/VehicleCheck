@@ -71,7 +71,7 @@ fun SearchScreen(
             val spokenText = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
             if (!spokenText.isNullOrBlank()) {
                 val parsedDigits = VehicleUtils.convertSpokenHebrewToDigits(spokenText)
-                viewModel.searchPlateDirect(parsedDigits)
+                viewModel.searchPlateDirect(parsedDigits, source = "voice")
             }
         }
     }
@@ -101,7 +101,7 @@ fun SearchScreen(
             onDismiss = { showCameraScanner = false },
             onResult = { plate ->
                 showCameraScanner = false
-                viewModel.searchPlateDirect(plate)
+                viewModel.searchPlateDirect(plate, source = "camera")
             }
         )
     }
@@ -201,7 +201,7 @@ fun SearchScreen(
             onSearch = {
                 focusManager.clearFocus()
                 keyboardController?.hide()
-                viewModel.search()
+                viewModel.search(source = "manual")
             },
             onVoiceClick = {
                 focusManager.clearFocus()
@@ -230,7 +230,10 @@ fun SearchScreen(
                     }
                 }
             },
-            onClear = { viewModel.onQueryChange("") },
+            onClear = {
+                viewModel.logEvent("search_query_cleared")
+                viewModel.onQueryChange("")
+            },
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
@@ -241,7 +244,7 @@ fun SearchScreen(
             onClick = {
                 focusManager.clearFocus()
                 keyboardController?.hide()
-                viewModel.search()
+                viewModel.search(source = "manual")
             },
             modifier = Modifier.fillMaxWidth().height(52.dp).tvFocusable(shape = RoundedCornerShape(14.dp)),
             shape = RoundedCornerShape(14.dp),
@@ -377,7 +380,8 @@ fun SearchScreen(
                             cargoTieDown = state.cargoTieDown,
                             busFleet = state.busFleet,
                             monthlyDeliveries = state.monthlyDeliveries,
-                            onToggleEquipment = { viewModel.toggleEquipmentView() }
+                            onToggleEquipment = { viewModel.toggleEquipmentView() },
+                            onLogEvent = { name, params -> viewModel.logEvent(name, params) }
                         )
                     }
                 }
@@ -462,7 +466,10 @@ fun SearchScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(16.dp))
-                                    .clickable { onNavigateToServices() },
+                                    .clickable {
+                                        viewModel.logEvent("services_promo_card_clicked")
+                                        onNavigateToServices()
+                                    },
                                 shape = RoundedCornerShape(16.dp),
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)),
                                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))

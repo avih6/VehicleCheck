@@ -153,7 +153,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         logEvent("share_to_app_candidate_selected", Bundle().apply {
             putString("plate_length", plate.length.toString())
         })
-        searchPlateDirect(plate)
+        searchPlateDirect(plate, source = "share_intent")
     }
 
     val searchHistory: StateFlow<List<VehicleHistoryEntity>> = repository.allHistory
@@ -503,7 +503,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _searchState.value = SearchState.Idle
     }
 
-    fun search() {
+    fun search(source: String = "manual") {
         val plate = _query.value.trim()
         val clean = plate.filter { it.isDigit() }.take(8)
         if (clean.isEmpty() || clean.length > 8) {
@@ -516,10 +516,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             !current.isEngineeringEquipment) {
             return
         }
-        performSearch(clean)
+        performSearch(clean, source = source)
     }
 
-    fun searchPlateDirect(plate: String, preferEngineeringEquipment: Boolean = false) {
+    fun searchPlateDirect(plate: String, preferEngineeringEquipment: Boolean = false, source: String = "direct") {
         val clean = plate.filter { it.isDigit() }.take(8)
         _query.value = clean
         _selectedTab.value = 0
@@ -538,16 +538,34 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     return
                 }
             }
-            performSearch(clean, preferEngineeringEquipment)
+            performSearch(clean, preferEngineeringEquipment, source = source)
         }
     }
 
-    private fun performSearch(plateStr: String, preferEngineeringEquipment: Boolean = false) {
+    private fun performSearch(plateStr: String, preferEngineeringEquipment: Boolean = false, source: String = "manual") {
+        val startTimeMs = System.currentTimeMillis()
         val cacheKey = "${plateStr}_$preferEngineeringEquipment"
         val cached = searchResultCache.get(cacheKey)
         if (cached != null) {
             _searchProgress.value = 1.0f
             _searchState.value = cached
+            logEvent("search_result_found", Bundle().apply {
+                putBoolean("found", true)
+                putBoolean("is_cached", true)
+                putLong("latency_ms", 0L)
+                putString("search_source", source)
+                putString("make", cached.vehicle.make ?: "")
+                putInt("year", cached.vehicle.year ?: 0)
+                putString("fuel_type", cached.vehicle.fuelType ?: "")
+                putString("category", cached.vehicle.effectiveVehicleCategory ?: cached.vehicle.vehicleCategory ?: "")
+                putString("ownership", cached.vehicle.effectiveOwnership ?: cached.vehicle.ownership ?: "")
+                putBoolean("is_engineering", cached.isEngineeringEquipment)
+                putBoolean("is_collector", cached.vehicle.isOfficiallyCollector)
+                putBoolean("has_disabled_permit", cached.hasDisabledPermit)
+                putBoolean("is_off_road", cached.isOffRoad)
+                putInt("recalls_count", cached.recalls.size)
+                putInt("safety_rating", cached.vehicle.safetyRating ?: 0)
+            })
             viewModelScope.launch(Dispatchers.IO) {
                 repository.saveSearch(
                     plate = plateStr,
@@ -563,10 +581,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         searchTrace.start()
         searchTrace.putAttribute("query_length", plateStr.length.toString())
         searchTrace.putAttribute("prefer_engineering", preferEngineeringEquipment.toString())
+        searchTrace.putAttribute("source", source)
 
         logEvent("search_performed", Bundle().apply {
             putString("query_length", plateStr.length.toString())
             putBoolean("prefer_engineering", preferEngineeringEquipment)
+            putString("search_source", source)
         })
 
         currentSearchJob?.cancel()
@@ -649,20 +669,38 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             searchTrace.putAttribute("status", "success")
                             searchTrace.putAttribute("make", mockVehicle.make ?: "")
                             searchTrace.stop()
+                            val latencyMs = System.currentTimeMillis() - startTimeMs
                             logEvent("search_result_found", Bundle().apply {
                                 putBoolean("found", true)
+                                putBoolean("is_cached", false)
+                                putLong("latency_ms", latencyMs)
+                                putString("search_source", source)
                                 putString("make", mockVehicle.make ?: "")
                                 putInt("year", mockVehicle.year ?: 0)
+                                putString("fuel_type", mockVehicle.fuelType ?: "")
+                                putString("category", mockVehicle.effectiveVehicleCategory ?: mockVehicle.vehicleCategory ?: "")
+                                putString("ownership", mockVehicle.effectiveOwnership ?: mockVehicle.ownership ?: "")
+                                putString("test_status", "valid")
                                 putBoolean("is_engineering", false)
+                                putBoolean("is_collector", false)
+                                putBoolean("has_disabled_permit", false)
+                                putBoolean("is_off_road", false)
+                                putInt("recalls_count", 0)
+                                putInt("safety_rating", mockVehicle.safetyRating ?: 0)
                             })
                             return@launch
                         }
                         "0000000" -> {
+                            val latencyMs = System.currentTimeMillis() - startTimeMs
                             searchTrace.putAttribute("status", "not_found")
                             searchTrace.stop()
                             logEvent("search_result_found", Bundle().apply {
                                 putBoolean("found", false)
+                                putBoolean("is_cached", false)
+                                putLong("latency_ms", latencyMs)
+                                putString("search_source", source)
                                 putString("plate_length", plateStr.length.toString())
+                                putBoolean("is_engineering", preferEngineeringEquipment)
                             })
                             _searchState.value = SearchState.NotFound(plateStr)
                             return@launch
@@ -835,11 +873,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     } else {
                         // Save to history so user can easily recheck anytime
                         repository.saveNotFoundSearch(plateStr)
+                        val latencyMs = System.currentTimeMillis() - startTimeMs
                         searchTrace.putAttribute("status", "not_found")
                         searchTrace.stop()
                         logEvent("search_result_found", Bundle().apply {
                             putBoolean("found", false)
+                            putBoolean("is_cached", false)
+                            putLong("latency_ms", latencyMs)
+                            putString("search_source", source)
                             putString("plate_length", plateStr.length.toString())
+                            putBoolean("is_engineering", preferEngineeringEquipment)
                         })
                         _searchState.value = SearchState.NotFound(plateStr)
                         return@launch
@@ -1088,24 +1131,45 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 searchTrace.putAttribute("year", vehicle.year?.toString() ?: "unknown")
                 searchTrace.stop()
 
+                val latencyMs = System.currentTimeMillis() - startTimeMs
+                val testStatusStr = when (testStatus) {
+                    is TestStatus.Valid -> "valid"
+                    is TestStatus.ExpiringSoon -> "expiring_soon"
+                    is TestStatus.Expired -> "expired"
+                    is TestStatus.OffRoad -> "off_road"
+                    else -> "unknown"
+                }
+
                 logEvent("search_result_found", Bundle().apply {
                     putBoolean("found", true)
+                    putBoolean("is_cached", false)
+                    putLong("latency_ms", latencyMs)
+                    putString("search_source", source)
                     putString("make", vehicle.make ?: "")
                     putInt("year", vehicle.year ?: 0)
+                    putString("fuel_type", vehicle.fuelType ?: "")
+                    putString("category", vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory ?: "")
+                    putString("ownership", vehicle.effectiveOwnership ?: vehicle.ownership ?: "")
+                    putString("test_status", testStatusStr)
                     putBoolean("is_engineering", isEngineering)
+                    putBoolean("is_collector", vehicle.isOfficiallyCollector)
                     putBoolean("has_disabled_permit", hasDisabledPermit)
                     putBoolean("is_off_road", isOffRoad)
                     putInt("recalls_count", recalls.size)
+                    putInt("safety_rating", vehicle.safetyRating ?: 0)
                 })
 
             } catch (e: Exception) {
+                val latencyMs = System.currentTimeMillis() - startTimeMs
                 searchTrace.putAttribute("status", "error")
                 searchTrace.putAttribute("error_type", e.javaClass.simpleName)
                 searchTrace.stop()
                 recordException(e)
                 logEvent("search_error", Bundle().apply {
                     putString("error_type", e.javaClass.simpleName)
-                    putString("error_msg", e.message ?: "")
+                    putString("error_msg", e.message?.take(100) ?: "")
+                    putLong("latency_ms", latencyMs)
+                    putString("search_source", source)
                 })
 
                 val errorMsg = when (e) {
@@ -1347,6 +1411,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleEquipmentView() {
         val curr = _searchState.value as? SearchState.Success ?: return
+        logEvent("equipment_view_toggled", Bundle().apply {
+            putBoolean("to_engineering", !curr.isEngineeringEquipment)
+        })
         if (curr.isEngineeringEquipment) {
             val altVeh = curr.alternateVehicle ?: return
             val altEq = curr.equipmentDetails
@@ -1498,6 +1565,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun selectModelSuggestion(suggestion: ModelSuggestion) {
+        logEvent("stats_model_suggestion_selected", Bundle().apply {
+            putString("brand", suggestion.brandHebrew)
+            putString("model", suggestion.modelHebrew)
+        })
         _modelSearchQuery.value = suggestion.searchQuery
         searchModelStatistics(suggestion.searchQuery)
     }
@@ -2333,6 +2404,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun searchModelStatistics(query: String? = null) {
         val q = (query ?: _modelSearchQuery.value).trim()
         if (q.isBlank()) return
+        logEvent("stats_model_search_performed", Bundle().apply {
+            putString("query", q)
+        })
         _modelSearchQuery.value = q
         _selectedModelDetail.value = null // Clear previous result immediately
         _isSearchingModel.value = true
@@ -2482,6 +2556,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         transmission = transmission,
                         yearDistribution = distribution
                     )
+                    logEvent("stats_model_search_result", Bundle().apply {
+                        putString("make", makeHe)
+                        putString("model", modelName)
+                        putInt("total_active", activeCount)
+                        putInt("total_inactive", inactiveCount)
+                    })
                 } else {
                     // Fallback to active vehicles query (Private/commercial, Heavy vehicles, Motorcycles, Personal import)
                     var foundActiveRecords = emptyList<VehicleRecord>()
@@ -2615,6 +2695,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             transmission = null,
                             yearDistribution = yearDist
                         )
+                        logEvent("stats_model_search_result", Bundle().apply {
+                            putString("make", makeHe)
+                            putString("model", modelName)
+                            putInt("total_active", totalActive)
+                        })
                     } else {
                         // Check if query matches a popular model suggestion to give a helpful explanation
                         val matchedSuggestion = VehicleModelCatalog.allModels.firstOrNull {
@@ -2642,11 +2727,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                 yearDistribution = emptyList()
                             )
                         } else {
+                            logEvent("stats_model_search_error", Bundle().apply {
+                                putString("query", q)
+                                putString("error", "not_found")
+                            })
                             _modelSearchError.value = "לא נמצאו נתוני דגם עבור \"$q\" במאגר משרד התחבורה"
                         }
                     }
                 }
             } catch (e: Exception) {
+                logEvent("stats_model_search_error", Bundle().apply {
+                    putString("query", q)
+                    putString("error", e.javaClass.simpleName)
+                })
                 val errorMsg = if (e is java.net.UnknownHostException || e is java.net.SocketTimeoutException) {
                     "אין חיבור לאינטרנט. אנא בדוק את החיבור ונסה שוב."
                 } else {

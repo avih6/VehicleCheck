@@ -116,7 +116,7 @@ class MainActivity : AppCompatActivity() {
         if (!plate.isNullOrBlank()) {
             val clean = plate.filter { it.isDigit() }
             if (clean.length in 5..8) {
-                viewModel.searchPlateDirect(clean)
+                viewModel.searchPlateDirect(clean, source = "share_intent")
             }
         }
     }
@@ -195,7 +195,7 @@ class MainActivity : AppCompatActivity() {
                         Toast.LENGTH_SHORT
                     ).show()
                     viewModel.setSelectedTab(0)
-                    viewModel.searchPlateDirect(plate)
+                    viewModel.searchPlateDirect(plate, source = "share_intent")
                 } else {
                     viewModel.logEvent("share_to_app_multiple_plates_shown", Bundle().apply {
                         putInt("candidates_count", detected.size)
@@ -581,7 +581,7 @@ fun MainAppShell(viewModel: MainViewModel) {
                     1 -> HistoryScreen(
                         viewModel = viewModel,
                         onSelectVehicle = { plate, isEngineering ->
-                            viewModel.searchPlateDirect(plate, isEngineering)
+                            viewModel.searchPlateDirect(plate, isEngineering, source = "history")
                             viewModel.setSelectedTab(0)
                         },
                         modifier = Modifier.fillMaxSize()
@@ -595,9 +595,11 @@ fun MainAppShell(viewModel: MainViewModel) {
                         modifier = Modifier.fillMaxSize()
                     )
                     3 -> com.avih6.vehiclecheck.ui.screens.RecallsScreen(
+                        viewModel = viewModel,
                         modifier = Modifier.fillMaxSize()
                     )
                     4 -> com.avih6.vehiclecheck.ui.screens.DtcScreen(
+                        viewModel = viewModel,
                         modifier = Modifier.fillMaxSize()
                     )
                     5 -> {
@@ -610,6 +612,7 @@ fun MainAppShell(viewModel: MainViewModel) {
 
                         com.avih6.vehiclecheck.ui.screens.GalleryScreen(
                             initialQuery = initialQuery,
+                            viewModel = viewModel,
                             modifier = Modifier.fillMaxSize()
                         )
                     }

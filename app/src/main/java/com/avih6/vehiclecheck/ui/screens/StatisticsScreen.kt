@@ -375,7 +375,13 @@ fun StatisticsScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { showFleetBreakdown = !showFleetBreakdown },
+                                .clickable {
+                                    val nextState = !showFleetBreakdown
+                                    showFleetBreakdown = nextState
+                                    viewModel.logEvent("stats_fleet_breakdown_toggled", android.os.Bundle().apply {
+                                        putBoolean("is_expanded", nextState)
+                                    })
+                                },
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
@@ -405,7 +411,13 @@ fun StatisticsScreen(
                                 }
                             }
                             IconButton(
-                                onClick = { showFleetBreakdown = !showFleetBreakdown },
+                                onClick = {
+                                    val nextState = !showFleetBreakdown
+                                    showFleetBreakdown = nextState
+                                    viewModel.logEvent("stats_fleet_breakdown_toggled", android.os.Bundle().apply {
+                                        putBoolean("is_expanded", nextState)
+                                    })
+                                },
                                 modifier = Modifier.size(28.dp)
                             ) {
                                 Icon(
@@ -833,7 +845,12 @@ fun StatisticsScreen(
             item {
                 ModelDetailStatisticsCard(
                     detail = detail,
-                    onNavigateToGallery = onNavigateToGallery,
+                    onNavigateToGallery = { query ->
+                        viewModel.logEvent("stats_navigate_to_gallery", android.os.Bundle().apply {
+                            putString("query", query)
+                        })
+                        onNavigateToGallery?.invoke(query)
+                    },
                     onDismiss = { viewModel.clearModelStatistics() }
                 )
             }
@@ -944,7 +961,15 @@ fun StatisticsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 4.dp)
-                                .clickable { selectedBrandIndex = index }
+                                .clickable {
+                                    selectedBrandIndex = index
+                                    viewModel.logEvent("stats_brand_selected", android.os.Bundle().apply {
+                                        putString("brand_name_he", brand.nameHe)
+                                        putString("brand_name_en", brand.nameEn)
+                                        putInt("rank", index + 1)
+                                        putInt("vehicle_count", brand.count)
+                                    })
+                                }
                                 .handCursor(),
                             shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(

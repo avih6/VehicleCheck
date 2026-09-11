@@ -54,12 +54,23 @@ import kotlinx.coroutines.withContext
 @Composable
 fun GalleryScreen(
     initialQuery: String = "הכל",
+    viewModel: com.avih6.vehiclecheck.MainViewModel? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val scope = rememberCoroutineScope()
     val gridState = rememberLazyGridState()
+
+    val logGalleryEvent: (String, android.os.Bundle) -> Unit = { name, bundle ->
+        try {
+            if (viewModel != null) {
+                viewModel.logEvent(name, bundle)
+            } else {
+                com.google.firebase.analytics.FirebaseAnalytics.getInstance(context).logEvent(name, bundle)
+            }
+        } catch (_: Exception) {}
+    }
 
     var searchQuery by remember { mutableStateOf(if (initialQuery == "הכל") "" else initialQuery) }
     var selectedBrand by remember { mutableStateOf(if (initialQuery.isBlank()) "הכל" else initialQuery) }
@@ -506,8 +517,15 @@ fun GalleryScreen(
                     IconButton(
                         onClick = {
                             keyboardController?.hide()
-                            if (searchQuery.isNotBlank()) {
-                                loadInitialImages(searchQuery)
+                            val q = searchQuery.trim()
+                            if (q.isNotBlank()) {
+                                val isPlate = q.filter { it.isDigit() }.length in 5..8
+                                logGalleryEvent("gallery_search_performed", android.os.Bundle().apply {
+                                    putBoolean("is_plate", isPlate)
+                                    if (!isPlate) putString("query", q.take(40))
+                                    putInt("query_length", q.length)
+                                })
+                                loadInitialImages(q)
                             } else {
                                 loadInitialImages(selectedBrand)
                             }
@@ -522,8 +540,15 @@ fun GalleryScreen(
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = {
                 keyboardController?.hide()
-                if (searchQuery.isNotBlank()) {
-                    loadInitialImages(searchQuery)
+                val q = searchQuery.trim()
+                if (q.isNotBlank()) {
+                    val isPlate = q.filter { it.isDigit() }.length in 5..8
+                    logGalleryEvent("gallery_search_performed", android.os.Bundle().apply {
+                        putBoolean("is_plate", isPlate)
+                        if (!isPlate) putString("query", q.take(40))
+                        putInt("query_length", q.length)
+                    })
+                    loadInitialImages(q)
                 } else {
                     loadInitialImages(selectedBrand)
                 }
@@ -577,6 +602,9 @@ fun GalleryScreen(
                         searchQuery = ""
                         selectedBrand = brand
                         selectedModel = "כל הדגמים"
+                        logGalleryEvent("gallery_brand_filter_selected", android.os.Bundle().apply {
+                            putString("brand_name", brand)
+                        })
                         keyboardController?.hide()
                         loadInitialImages(brand)
                     },
@@ -610,6 +638,10 @@ fun GalleryScreen(
                         onClick = {
                             selectedModel = model
                             searchQuery = ""
+                            logGalleryEvent("gallery_model_filter_selected", android.os.Bundle().apply {
+                                putString("brand_name", selectedBrand)
+                                putString("model_name", model)
+                            })
                             keyboardController?.hide()
                             if (model == "כל הדגמים") {
                                 loadInitialImages(selectedBrand)
@@ -735,7 +767,13 @@ fun GalleryScreen(
                             .fillMaxWidth()
                             .height(150.dp)
                             .clip(RoundedCornerShape(14.dp))
-                            .clickable { selectedImageIndexForViewer = index },
+                            .clickable {
+                                selectedImageIndexForViewer = index
+                                logGalleryEvent("gallery_image_viewed", android.os.Bundle().apply {
+                                    putString("title", item.title.take(40))
+                                    putString("license", item.license.take(30))
+                                })
+                            },
                         shape = RoundedCornerShape(14.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
                     ) {

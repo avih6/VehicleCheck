@@ -61,6 +61,7 @@ fun ResultCard(
     busFleet: BusFleetRecord? = null,
     monthlyDeliveries: List<MonthlyDeliveryRecord> = emptyList(),
     onToggleEquipment: () -> Unit = {},
+    onLogEvent: ((String, android.os.Bundle?) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -68,6 +69,16 @@ fun ResultCard(
     var selectedTab by remember { mutableIntStateOf(0) }
     var showStatsDialog by remember { mutableStateOf(false) }
     val tabs = if (isEngineeringEquipment) listOf("כללי", "מפרט") else listOf("כללי", "מפרט", "בטיחות", "סביבה", "סטטיסטיקה")
+
+    fun logResultCardEvent(name: String, params: android.os.Bundle? = null) {
+        try {
+            if (onLogEvent != null) {
+                onLogEvent(name, params)
+            } else {
+                com.google.firebase.analytics.FirebaseAnalytics.getInstance(context).logEvent(name, params)
+            }
+        } catch (_: Throwable) {}
+    }
 
     val brandLogoUrl = remember(vehicle.make) {
         VehicleUtils.getBrandLogoUrl(vehicle.make)
@@ -364,6 +375,7 @@ fun ResultCard(
                                 val cleanDigits = (vehicle.licensePlate?.toString() ?: formattedPlate).filter { it.isDigit() }
                                 clipboard.setPrimaryClip(ClipData.newPlainText("Plate", cleanDigits))
                                 Toast.makeText(context, "מספר רכב הועתק ללוח", Toast.LENGTH_SHORT).show()
+                                logResultCardEvent("result_copy_plate_clicked")
                             }
                             .semantics(mergeDescendants = true) {
                                 contentDescription = "לוחית רישוי: $formattedPlate. לחץ פעמיים כדי להעתיק ללוח"
@@ -387,6 +399,7 @@ fun ResultCard(
                                     val cleanDigits = (vehicle.licensePlate?.toString() ?: formattedPlate).filter { it.isDigit() }
                                     clipboard.setPrimaryClip(ClipData.newPlainText("Plate", cleanDigits))
                                     Toast.makeText(context, "מספר רכב הועתק ללוח", Toast.LENGTH_SHORT).show()
+                                    logResultCardEvent("result_copy_plate_clicked")
                                 },
                                 tooltipText = "העתק מספר רכב",
                                 modifier = Modifier.size(26.dp)
@@ -408,6 +421,10 @@ fun ResultCard(
                     ) {
                         HoverTooltipIconButton(
                             onClick = {
+                                logResultCardEvent("result_share_clicked", android.os.Bundle().apply {
+                                    putString("make", vehicle.make ?: "")
+                                    putInt("year", vehicle.year ?: 0)
+                                })
                                 val shareText = buildComprehensiveShareText(
                                     vehicle, techSpec, importerInfo, extraHistory, formattedPlate, testStatus, hasDisabledPermit, permitIssueDate, isOffRoad, offRoadDate, recalls
                                 )
@@ -823,7 +840,8 @@ fun ResultCard(
         // 3. Ownership History Timeline (היסטוריית בעלות ומקוריות)
         OwnershipHistorySection(
             vehicle = vehicle,
-            extraHistory = extraHistory
+            extraHistory = extraHistory,
+            onLogEvent = onLogEvent
         )
 
         // 4. Importer & Price Banner
@@ -839,21 +857,20 @@ fun ResultCard(
                     modifier = Modifier.padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .background(MaterialTheme.colorScheme.secondary, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("₪", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Sell,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.size(24.dp)
+                    )
                     Spacer(Modifier.width(12.dp))
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         price?.let {
+                            val formattedPrice = java.text.NumberFormat.getIntegerInstance(java.util.Locale.US).format(it)
                             Text(
-                                text = "מחיר יבואן בעלייה לכביש: ₪%,d".format(it),
+                                text = "מחיר מחירון יבואן בעלייה לכביש: ₪$formattedPrice",
+                                style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                         }
@@ -879,7 +896,20 @@ fun ResultCard(
             tabs.forEachIndexed { index, title ->
                 Tab(
                     selected = selectedTab == index,
-                    onClick = { selectedTab = index },
+                    onClick = {
+                        selectedTab = index
+                        val tabKey = when (index) {
+                            0 -> "general"
+                            1 -> "specs"
+                            2 -> "safety"
+                            3 -> "environment"
+                            4 -> "statistics"
+                            else -> "tab_$index"
+                        }
+                        logResultCardEvent("result_tab_selected", android.os.Bundle().apply {
+                            putString("tab_name", tabKey)
+                        })
+                    },
                     modifier = Modifier.semantics {
                         role = Role.Tab
                         stateDescription = if (selectedTab == index) "נבחר, לשונית ${index + 1} מתוך ${tabs.size}" else "לשונית ${index + 1} מתוך ${tabs.size}"
@@ -920,7 +950,14 @@ fun ResultCard(
                     safetyDiscount = safetyDiscount,
                     cargoTieDown = cargoTieDown,
                     busFleet = busFleet,
-                    onShowAllCounts = { showStatsDialog = true }
+                    onShowAllCounts = {
+                        logResultCardEvent("result_stats_dialog_opened", android.os.Bundle().apply {
+                            putString("make", vehicle.make ?: "")
+                            putInt("year", vehicle.year ?: 0)
+                        })
+                        showStatsDialog = true
+                    },
+                    onLogEvent = onLogEvent
                 )
                 1 -> TechSpecTabContent(vehicle, techSpec)
                 2 -> SafetyTabContent(vehicle, techSpec, safetyDiscount, recalls)
@@ -950,7 +987,8 @@ private fun GeneralTabContent(
     safetyDiscount: SafetyDiscountRecord? = null,
     cargoTieDown: CargoTieDownRecord? = null,
     busFleet: BusFleetRecord? = null,
-    onShowAllCounts: () -> Unit
+    onShowAllCounts: () -> Unit,
+    onLogEvent: ((String, android.os.Bundle?) -> Unit)? = null
 ) {
     val context = LocalContext.current
 
@@ -1670,6 +1708,7 @@ private fun GeneralTabContent(
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                     clipboard.setPrimaryClip(ClipData.newPlainText("VIN", effectiveVin))
                                     Toast.makeText(context, "מספר שלדה הועתק ללוח", Toast.LENGTH_SHORT).show()
+                                    onLogEvent?.invoke("result_copy_vin_clicked", null)
                                 },
                                 modifier = Modifier.size(28.dp).padding(start = 4.dp)
                             ) {
@@ -3398,6 +3437,9 @@ private fun EngineeringGeneralTabContent(
                                     val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                                     clipboard.setPrimaryClip(android.content.ClipData.newPlainText("VIN", it))
                                     android.widget.Toast.makeText(context, "מספר שלדה הועתק ללוח", android.widget.Toast.LENGTH_SHORT).show()
+                                    try {
+                                        com.google.firebase.analytics.FirebaseAnalytics.getInstance(context).logEvent("result_copy_vin_clicked", null)
+                                    } catch (_: Throwable) {}
                                 },
                                 modifier = Modifier.size(28.dp).padding(start = 4.dp)
                             ) {
@@ -3461,6 +3503,7 @@ private fun EngineeringTechSpecContent(
 fun OwnershipHistorySection(
     vehicle: VehicleRecord,
     extraHistory: VehicleExtraHistoryRecord?,
+    onLogEvent: ((String, android.os.Bundle?) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -3505,7 +3548,13 @@ fun OwnershipHistorySection(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         OutlinedButton(
-            onClick = { expanded = !expanded },
+            onClick = {
+                val willExpand = !expanded
+                expanded = willExpand
+                if (willExpand) {
+                    onLogEvent?.invoke("ownership_history_viewed", null)
+                }
+            },
             shape = RoundedCornerShape(20.dp),
             colors = ButtonDefaults.outlinedButtonColors(
                 contentColor = MaterialTheme.colorScheme.primary

@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.avih6.vehiclecheck.MainViewModel
 import com.avih6.vehiclecheck.data.NetworkClient
 import com.avih6.vehiclecheck.data.RecallDetailRecord
 import com.avih6.vehiclecheck.data.VehicleUtils
@@ -44,6 +45,7 @@ import kotlinx.coroutines.withContext
 
 @Composable
 fun RecallsScreen(
+    viewModel: MainViewModel? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -75,11 +77,16 @@ fun RecallsScreen(
                 val resp = withContext(Dispatchers.IO) {
                     NetworkClient.apiService.getAllRecalls(limit = 5000, sort = "_id desc")
                 }
-                allRecalls = resp.result?.records ?: emptyList()
+                val records = resp.result?.records ?: emptyList()
+                allRecalls = records
                 isLoading = false
+                viewModel?.logEvent("recalls_loaded", android.os.Bundle().apply {
+                    putInt("count", records.size)
+                })
             } catch (e: Exception) {
                 isLoading = false
                 errorMessage = "לא ניתן לטעון את מאגר הריקולים כעת. בדוק את החיבור לרשת."
+                viewModel?.logEvent("recalls_load_error")
             }
         }
     }
@@ -144,7 +151,14 @@ fun RecallsScreen(
             },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { keyboardController?.hide() }),
+            keyboardActions = KeyboardActions(onSearch = {
+                keyboardController?.hide()
+                if (searchQuery.isNotBlank()) {
+                    viewModel?.logEvent("recalls_search_performed", android.os.Bundle().apply {
+                        putString("query", searchQuery.take(50))
+                    })
+                }
+            }),
             shape = RoundedCornerShape(16.dp)
         )
 
@@ -159,7 +173,12 @@ fun RecallsScreen(
             items(filterYears) { yr ->
                 FilterChip(
                     selected = selectedFilterYear == yr,
-                    onClick = { selectedFilterYear = yr },
+                    onClick = {
+                        selectedFilterYear = yr
+                        viewModel?.logEvent("recalls_filter_year_changed", android.os.Bundle().apply {
+                            putString("year", yr)
+                        })
+                    },
                     label = { Text(if (yr == "הכל") "כל השנים" else yr, fontWeight = FontWeight.Bold, fontSize = 13.sp) },
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.handCursor()
@@ -171,7 +190,13 @@ fun RecallsScreen(
             items(filterCategories.drop(1)) { cat ->
                 FilterChip(
                     selected = selectedFilterCategory == cat,
-                    onClick = { selectedFilterCategory = if (selectedFilterCategory == cat) "הכל" else cat },
+                    onClick = {
+                        val newCat = if (selectedFilterCategory == cat) "הכל" else cat
+                        selectedFilterCategory = newCat
+                        viewModel?.logEvent("recalls_filter_category_changed", android.os.Bundle().apply {
+                            putString("category", newCat)
+                        })
+                    },
                     label = { Text(cat, fontSize = 12.sp) },
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.handCursor()
@@ -243,7 +268,7 @@ fun RecallsScreen(
                 contentPadding = PaddingValues(top = 8.dp, bottom = 100.dp)
             ) {
                 items(filteredRecalls, key = { it.id ?: it.recallId ?: it.hashCode().toLong() }) { item ->
-                    RecallFeedCard(item = item)
+                    RecallFeedCard(item = item, viewModel = viewModel)
                 }
             }
         }
@@ -251,7 +276,7 @@ fun RecallsScreen(
 }
 
 @Composable
-private fun RecallFeedCard(item: RecallDetailRecord) {
+private fun RecallFeedCard(item: RecallDetailRecord, viewModel: MainViewModel? = null) {
     val context = LocalContext.current
     val brandLogoUrl = VehicleUtils.getBrandLogoUrl(item.makeName)
 
@@ -465,6 +490,10 @@ private fun RecallFeedCard(item: RecallDetailRecord) {
                             item.telephone?.let { phone ->
                                 HoverTooltipIconButton(
                                     onClick = {
+                                        viewModel?.logEvent("recall_importer_dial_clicked", android.os.Bundle().apply {
+                                            putString("importer", item.importerName ?: "")
+                                            putLong("recall_id", item.recallId ?: 0L)
+                                        })
                                         val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))
                                         try { context.startActivity(dialIntent) } catch (e: Exception) {}
                                     },
@@ -494,6 +523,10 @@ private fun RecallFeedCard(item: RecallDetailRecord) {
                                 val fullUrl = if (!site.startsWith("http://") && !site.startsWith("https://")) "https://$site" else site
                                 HoverTooltipIconButton(
                                     onClick = {
+                                        viewModel?.logEvent("recall_importer_web_clicked", android.os.Bundle().apply {
+                                            putString("importer", item.importerName ?: "")
+                                            putLong("recall_id", item.recallId ?: 0L)
+                                        })
                                         val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse(fullUrl))
                                         try { context.startActivity(webIntent) } catch (e: Exception) {}
                                     },
