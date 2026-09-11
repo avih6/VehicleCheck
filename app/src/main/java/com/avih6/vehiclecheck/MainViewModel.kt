@@ -1063,9 +1063,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val statsKey = "${makeCd}_${modelCd}_${year}_${baseInfo.baseModel}"
                 val statsDeferred = async {
                     modelStatsCache.get(statsKey)?.let { return@async it }
-                    val computedStats = withTimeoutOrNull(2500L) {
+                    val computedStats = withTimeoutOrNull(6000L) {
                         computeModelStatistics(vehicle, isEngineering, isOffRoad, baseInfo)
-                    } ?: ModelStatistics(if (isOffRoad) 0 else 1, if (isOffRoad) 1 else 0)
+                    } ?: ModelStatistics(if (isOffRoad) 0 else 0, if (isOffRoad) 1 else 0)
                     modelStatsCache.put(statsKey, computedStats)
                     computedStats
                 }
@@ -1227,40 +1227,31 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             exactKinuy: String? = null,
             exactDegem: String? = null
         ): Int {
-            val jobs = mutableListOf<suspend () -> Int>()
             if (!exactKinuy.isNullOrBlank()) {
-                jobs.add {
-                    try {
-                        val f = makeFilter.removeSuffix("}") + ",\"kinuy_mishari\":\"$exactKinuy\"}"
-                        NetworkClient.apiService.getSameModelActiveCount(resourceId = resId, filters = f).result?.total ?: 0
-                    } catch (_: Exception) { 0 }
-                }
+                try {
+                    val f = makeFilter.removeSuffix("}") + ",\"kinuy_mishari\":\"$exactKinuy\"}"
+                    val c = NetworkClient.apiService.getSameModelActiveCount(resourceId = resId, filters = f).result?.total ?: 0
+                    if (c > 0) return c
+                } catch (_: Exception) {}
             }
             if (!exactDegem.isNullOrBlank()) {
-                jobs.add {
-                    try {
-                        val f = makeFilter.removeSuffix("}") + ",\"degem_nm\":\"$exactDegem\"}"
-                        NetworkClient.apiService.getSameModelActiveCount(resourceId = resId, filters = f).result?.total ?: 0
-                    } catch (_: Exception) { 0 }
-                }
+                try {
+                    val f = makeFilter.removeSuffix("}") + ",\"degem_nm\":\"$exactDegem\"}"
+                    val c = NetworkClient.apiService.getSameModelActiveCount(resourceId = resId, filters = f).result?.total ?: 0
+                    if (c > 0) return c
+                } catch (_: Exception) {}
             }
             for (t in terms.take(2)) {
                 if (t.isNotBlank()) {
-                    jobs.add {
-                        try {
-                            NetworkClient.apiService.getSameModelActiveCount(resourceId = resId, filters = makeFilter, query = t).result?.total ?: 0
-                        } catch (_: Exception) { 0 }
-                    }
+                    try {
+                        val c = NetworkClient.apiService.getSameModelActiveCount(resourceId = resId, filters = makeFilter, query = t).result?.total ?: 0
+                        if (c > 0) return c
+                    } catch (_: Exception) {}
                 }
             }
-            if (jobs.isEmpty()) {
-                try {
-                    return NetworkClient.apiService.getSameModelActiveCount(resourceId = resId, filters = makeFilter).result?.total ?: 0
-                } catch (_: Exception) { return 0 }
-            }
-            return coroutineScope {
-                jobs.map { async { it() } }.awaitAll().maxOrNull() ?: 0
-            }
+            return try {
+                NetworkClient.apiService.getSameModelActiveCount(resourceId = resId, filters = makeFilter).result?.total ?: 0
+            } catch (_: Exception) { 0 }
         }
 
         suspend fun queryInactiveMaxCount(
@@ -1270,40 +1261,31 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             exactKinuy: String? = null,
             exactDegem: String? = null
         ): Int {
-            val jobs = mutableListOf<suspend () -> Int>()
             if (!exactKinuy.isNullOrBlank()) {
-                jobs.add {
-                    try {
-                        val f = makeFilter.removeSuffix("}") + ",\"kinuy_mishari\":\"$exactKinuy\"}"
-                        NetworkClient.apiService.getDeregisteredCount(resourceId = resId, filters = f).result?.total ?: 0
-                    } catch (_: Exception) { 0 }
-                }
+                try {
+                    val f = makeFilter.removeSuffix("}") + ",\"kinuy_mishari\":\"$exactKinuy\"}"
+                    val c = NetworkClient.apiService.getDeregisteredCount(resourceId = resId, filters = f).result?.total ?: 0
+                    if (c > 0) return c
+                } catch (_: Exception) {}
             }
             if (!exactDegem.isNullOrBlank()) {
-                jobs.add {
-                    try {
-                        val f = makeFilter.removeSuffix("}") + ",\"degem_nm\":\"$exactDegem\"}"
-                        NetworkClient.apiService.getDeregisteredCount(resourceId = resId, filters = f).result?.total ?: 0
-                    } catch (_: Exception) { 0 }
-                }
+                try {
+                    val f = makeFilter.removeSuffix("}") + ",\"degem_nm\":\"$exactDegem\"}"
+                    val c = NetworkClient.apiService.getDeregisteredCount(resourceId = resId, filters = f).result?.total ?: 0
+                    if (c > 0) return c
+                } catch (_: Exception) {}
             }
             for (t in terms.take(2)) {
                 if (t.isNotBlank()) {
-                    jobs.add {
-                        try {
-                            NetworkClient.apiService.getDeregisteredCount(resourceId = resId, filters = makeFilter, query = t).result?.total ?: 0
-                        } catch (_: Exception) { 0 }
-                    }
+                    try {
+                        val c = NetworkClient.apiService.getDeregisteredCount(resourceId = resId, filters = makeFilter, query = t).result?.total ?: 0
+                        if (c > 0) return c
+                    } catch (_: Exception) {}
                 }
             }
-            if (jobs.isEmpty()) {
-                try {
-                    return NetworkClient.apiService.getDeregisteredCount(resourceId = resId, filters = makeFilter).result?.total ?: 0
-                } catch (_: Exception) { return 0 }
-            }
-            return coroutineScope {
-                jobs.map { async { it() } }.awaitAll().maxOrNull() ?: 0
-            }
+            return try {
+                NetworkClient.apiService.getDeregisteredCount(resourceId = resId, filters = makeFilter).result?.total ?: 0
+            } catch (_: Exception) { 0 }
         }
 
         val makeFilter = "{\"tozeret_cd\":$makeCd}"
@@ -1390,7 +1372,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val totalInactive = (inactCount2017 + inactCountMaster + inactCountVintage).coerceAtLeast(if (isOffRoad) 1 else 0)
-        val realTotalActive = if (totalActive > 0) totalActive else if (isOffRoad) 0 else 1
+        val realTotalActive = if (totalActive > 0) totalActive else if (isOffRoad) 0 else totalActive
 
         val breakdown = mutableListOf<ModelYearCount>()
         if (prevYearCount > 0 || prevYearInactive > 0) {
@@ -2934,7 +2916,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         val resp = NetworkClient.apiService.getGaragesAndStations(
                             query = if (q.isNotBlank()) q else null,
                             filters = filterJson,
-                            limit = 1000
+                            limit = 20000
                         )
                         _servicesTotalCount.value = resp.result?.total
                         _garagesList.value = (resp.result?.records ?: emptyList()).filter { !it.isTestStation }
@@ -2950,7 +2932,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     ServicesCategory.CAR_DEALERS -> {
                         val resp = NetworkClient.apiService.getCarDealers(
                             query = if (q.isNotBlank()) q else null,
-                            limit = 1000
+                            limit = 20000
                         )
                         _servicesTotalCount.value = resp.result?.total
                         _carDealersList.value = resp.result?.records ?: emptyList()
@@ -2966,7 +2948,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     ServicesCategory.PARTS_TRADE -> {
                         val resp = NetworkClient.apiService.getPartsTrade(
                             query = if (q.isNotBlank()) q else null,
-                            limit = 1000
+                            limit = 20000
                         )
                         _servicesTotalCount.value = resp.result?.total
                         _partsTradeList.value = resp.result?.records ?: emptyList()

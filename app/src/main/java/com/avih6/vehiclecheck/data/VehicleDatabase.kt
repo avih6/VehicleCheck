@@ -145,7 +145,7 @@ class HistoryRepository(private val dao: VehicleDao) {
         val entry = VehicleHistoryEntity(
             licensePlate = cleanPlate,
             make = record?.make,
-            model = record?.model,
+            model = record?.effectiveModel ?: record?.model ?: record?.modelCode,
             year = record?.year,
             color = record?.color,
             fuelType = record?.fuelType,

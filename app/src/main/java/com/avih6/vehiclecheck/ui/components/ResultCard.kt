@@ -613,27 +613,6 @@ fun ResultCard(
                         }
                     }
 
-                    val headerCountry = remember(vehicle, techSpec) { VehicleUtils.resolveCountryOfOrigin(vehicle, techSpec) }
-                    if (headerCountry?.contains("ישראל") == true && !isOffRoad) {
-                        Surface(
-                            color = Color(0xFF0D47A1).copy(alpha = 0.18f),
-                            shape = RoundedCornerShape(20.dp),
-                            border = BorderStroke(1.dp, Color(0xFF1976D2)),
-                            modifier = Modifier.semantics(mergeDescendants = true) {}
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "תוצרת ישראל 🇮🇱",
-                                    color = Color(0xFF42A5F5),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
-                                )
-                            }
-                        }
-                    }
 
                     val isTaxi = (vehicle.effectiveVehicleCategory?.contains("מונית") == true || vehicle.vehicleCategory?.contains("מונית") == true) &&
                             !quickClassification.contains("מונית")
@@ -775,8 +754,9 @@ fun ResultCard(
 
             val isTaxi = catPill.contains("מונית")
             val busOperator = busFleet?.operatorName?.trim()?.ifBlank { null }
-            val isBus = catPill.contains("אוטובוס") || stdPill.startsWith("M3") || busOperator != null
-            val isAmbulance = quickClassification.contains("אמבולנס") || catPill.contains("אמבולנס") || catPill.contains("רפואי") || catPill.contains("הצלה")
+            val isBus = catPill.contains("אוטובוס") || stdPill.startsWith("M3") || busOperator != null || quickClassification.contains("אוטובוס")
+            val isAmbulance = !isBus && (quickClassification.contains("אמבולנס") || catPill.contains("אמבולנס") || catPill.contains("רפואי") || catPill.contains("מד\"א"))
+            val isFireRescue = quickClassification.contains("כיבוי") || quickClassification.contains("כבאית") || catPill.contains("כיבוי") || catPill.contains("כבאית") || (vehicle.modelCode?.contains("כיבוי") == true)
             val derivedOwner = vehicle.effectiveOwnership ?: vehicle.ownership
 
             val isShuttleOrSpecial = catPill.contains("הסע") || catPill.contains("מיוחד")
@@ -786,23 +766,24 @@ fun ResultCard(
                 busOperator != null -> "תחב\"צ ($busOperator)"
                 isBus && isShuttleOrSpecial -> "היסעים"
                 isBus -> if (!derivedOwner.isNullOrBlank()) derivedOwner else "תחב\"צ"
-                isAmbulance -> if (!derivedOwner.isNullOrBlank()) "ביטחון ($derivedOwner)" else "רכב ביטחון"
+                isAmbulance -> if (!derivedOwner.isNullOrBlank()) "רפואי ($derivedOwner)" else "רפואי / הצלה"
+                isFireRescue -> if (!derivedOwner.isNullOrBlank()) "כבאות ($derivedOwner)" else "כבאות והצלה"
                 !derivedOwner.isNullOrBlank() -> derivedOwner
                 else -> "אין מידע"
             }
             val isCompany = isEngineeringEquipment || ownerStr.contains("חברה") || ownerStr.contains("ליסינג") || ownerStr.contains("השכרה") || ownerStr.contains("עבודה")
-            val hasOwnership = !derivedOwner.isNullOrBlank() || isEngineeringEquipment || isTaxi || isBus || isAmbulance
+            val hasOwnership = !derivedOwner.isNullOrBlank() || isEngineeringEquipment || isTaxi || isBus || isAmbulance || isFireRescue
 
             val ownershipStatusType = when {
                 !hasOwnership -> StatusPillType.WARNING
-                isCompany && !isEngineeringEquipment && !isTaxi && !isBus && !isAmbulance -> StatusPillType.WARNING
+                isCompany && !isEngineeringEquipment && !isTaxi && !isBus && !isAmbulance && !isFireRescue -> StatusPillType.WARNING
                 else -> StatusPillType.POSITIVE
             }
             StatusPill(
                 title = "בעלות",
                 value = ownerStr,
                 statusType = ownershipStatusType,
-                icon = if (isEngineeringEquipment) Icons.Default.Construction else if (!hasOwnership) Icons.Default.HelpOutline else if (isTaxi) Icons.Default.DirectionsCar else if (isBus) Icons.Default.DirectionsBus else if (isAmbulance) Icons.Default.LocalHospital else if (isCompany) Icons.Default.Business else Icons.Default.Person,
+                icon = if (isEngineeringEquipment) Icons.Default.Construction else if (!hasOwnership) Icons.Default.HelpOutline else if (isTaxi) Icons.Default.DirectionsCar else if (isBus) Icons.Default.DirectionsBus else if (isAmbulance) Icons.Default.LocalHospital else if (isFireRescue) Icons.Default.LocalFireDepartment else if (isCompany) Icons.Default.Business else Icons.Default.Person,
                 modifier = Modifier.weight(1f).fillMaxHeight()
             )
 

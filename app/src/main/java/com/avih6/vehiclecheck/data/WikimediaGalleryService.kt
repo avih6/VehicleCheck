@@ -266,6 +266,11 @@ object WikimediaGalleryService {
             "concert", "album", "cover", "band", "music", "song", "group", "person", "man", "woman", "people",
             "headshot", "selfie", "bundesarchiv bild", "israeli singer", "portrait of",
             "pikiwiki", "piki_wiki", "leonard cohen", "cohen", "performance", "recital", "historical photo", "troops", "soldiers",
+            // Hebrew entertainment, music, albums, culture, non-vehicle assets
+            "שיר", "סינגל", "אלבום", "מוזיקה", "פזמון", "עטיפה", "להקה", "זמר", "זמרת", "כרזה", "פוסטר",
+            "סרט", "ספר", "חוברת", "קלף", "קלפים", "איור", "ציור", "דיוקן", "חופשי ומאושר", "אתניקס", "אתניx",
+            "הופעה", "קונצרט", "שחקן", "שחקנית", "פוליטיקאי", "ח\"כ", "כנסת", "רב", "חייל", "צבא", "מלחמה",
+            "אנדרטה", "בית קברות", "בניין", "סמל", "לוגו", "מפה", "תרשים", "סדרה", "פרק", "תקליט", "תקליטור",
             // Food, agriculture, plants, fruits, vegetables, animals, nature, markets
             "peas", "pea", "vegetable", "vegetables", "fruit", "fruits", "food", "dish", "recipe",
             "cooking", "cuisine", "market stall", "produce", "crop", "crops", "harvest", "agriculture",
@@ -287,27 +292,24 @@ object WikimediaGalleryService {
         val cleanModel = if (rawModel == "כל הדגמים" || rawModel.equals("all", ignoreCase = true)) "" else rawModel.trim()
 
         if (cleanMake.isBlank() && cleanModel.isBlank()) {
-            val showcaseQueries = listOf(
-                "Toyota Corolla",
-                "Hyundai Ioniq 5",
-                "Tesla Model 3",
-                "Mercedes-Benz",
-                "BMW",
-                "Porsche 911",
-                "Audi",
-                "Volkswagen Golf",
-                "Kia Sportage",
-                "BYD Atto 3"
-            )
-            val parallelImages = coroutineScope {
-                showcaseQueries.map { q ->
-                    async { fetchCommonsSearch("$q car", offset = 0, limit = 5).images }
-                }.awaitAll().flatten().distinctBy { it.imageUrl }.shuffled()
+            // Rich multi-car gallery for "הכל" with full infinite scrolling support
+            val baseResult = fetchCommonsSearch("passenger cars automobiles", offset, limit)
+            if (offset == 0) {
+                // Enrich initial view with iconic popular cars
+                val featured = listOf(
+                    "Toyota Corolla", "Hyundai Ioniq 5", "Tesla Model 3",
+                    "Mercedes-Benz C-Class", "BMW 3 Series", "Porsche 911",
+                    "Audi A4", "Volkswagen Golf", "Kia Sportage", "BYD Atto 3"
+                )
+                val extraImages = coroutineScope {
+                    featured.map { q ->
+                        async { fetchCommonsSearch("$q car", offset = 0, limit = 4).images }
+                    }.awaitAll().flatten()
+                }
+                val merged = (extraImages + baseResult.images).distinctBy { it.imageUrl }.shuffled()
+                return@withContext GalleryPageResult(merged, baseResult.nextOffset ?: 40)
             }
-            if (parallelImages.isNotEmpty()) {
-                return@withContext GalleryPageResult(parallelImages, null)
-            }
-            return@withContext fetchCommonsSearch("automobiles modern passenger cars", offset, limit)
+            return@withContext baseResult
         }
 
         val query = buildSearchQuery(cleanMake, cleanModel)
@@ -445,7 +447,8 @@ object WikimediaGalleryService {
         isHebrew: Boolean = false
     ): List<CarGalleryImage> = withContext(Dispatchers.IO) {
         val qTrimmed = query.trim()
-        if (qTrimmed.isBlank() || qTrimmed == "הכל" || qTrimmed.equals("all", ignoreCase = true)) {
+        val hasHebrewChars = qTrimmed.any { it in '\u0590'..'\u05FF' }
+        if (isHebrew && !hasHebrewChars) {
             return@withContext emptyList()
         }
 
@@ -474,6 +477,8 @@ object WikimediaGalleryService {
                     val page = pagesObj.getJSONObject(key)
                     val rawTitle = page.optString("title", "")
                     val title = cleanImageTitle(rawTitle)
+                    val isJunk = isJunkOrNonVehicle(title, rawTitle)
+                    if (isJunk) continue
                     val thumbObj = page.optJSONObject("thumbnail")
                     if (thumbObj != null) {
                         val thumbUrl = thumbObj.optString("source")

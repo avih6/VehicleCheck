@@ -1857,11 +1857,10 @@ object VehicleUtils {
         val isBus = cat.contains("אוטובוס") || trim.contains("אוטובוס") ||
                 std.startsWith("M3") || (std.startsWith("M2") && seats > 16)
 
-        val isAmbulanceOrRescue = cat.contains("אמבולנס") || mod.contains("ambulance") || trim.contains("אמבולנס") ||
+        val isAmbulanceOrRescue = !isBus && (cat.contains("אמבולנס") || mod.contains("ambulance") || trim.contains("אמבולנס") ||
                 effMod.contains("אמבולנס") || effMod.contains("ambulance") ||
-                cat.contains("מיוחד") || cat.contains("הצלה") || cat.contains("ביטחון") ||
-                trim.contains("הצלה") ||
-                (std.startsWith("M2") && (mod.contains("sprinter") || mod.contains("savana") || mod.contains("transit") || mod.contains("crafter") || seats in 1..4))
+                cat.contains("מד\"א") || effMod.contains("מד\"א") || trim.contains("מד\"א") ||
+                (cat.contains("הצלה") && !cat.contains("כיבוי")))
 
         val isPickup = bt.contains("טנדר") || bt.contains("pickup") || bt.contains("פיק-אפ") ||
                 effMod.contains("hilux") || effMod.contains("היילקס") || effMod.contains("d-max") || effMod.contains("דימקס") || effMod.contains("די מקס") ||
@@ -1880,37 +1879,39 @@ object VehicleUtils {
             isBus ->
                 BodyTypeInfo("אוטובוס / היסעים", "🚌", "רכב להסעת נוסעים ציבורי / פרטי")
             isAmbulanceOrRescue ->
-                BodyTypeInfo("רכב מיוחד (אמבולנס / ביטחון)", "🚑", "רכב רפואי והצלה ייעודי")
-            bt.contains("פנאי") || bt.contains("שטח") || bt.contains("suv") || mod.contains("cross") || mod.contains("suv") ->
-                BodyTypeInfo("פנאי-שטח (SUV / קרוסאובר)", "🚙", "מרכב פנאי מוגבה 5 דלתות")
-            bt.contains("סדאן") || bt.contains("sedan") || bt.contains("4 דלת") ->
-                BodyTypeInfo("סדאן (4 דלתות)", "🚗", "מרכב נוסעים משפחתי קלאסי")
-            bt.contains("הצ'בק") || bt.contains("האצ'בק") || bt.contains("hatchback") || bt.contains("5 דלת") || bt.contains("3 דלת") ->
-                BodyTypeInfo("האצ'בק (5 דלתות / מיני)", "🚗", "מרכב נוסעים קומפקטי עם דלת תא מטען")
-            bt.contains("סטיישן") || bt.contains("wagon") || bt.contains("estate") || mod.contains("combi") || mod.contains("touring") || mod.contains("sw") ->
-                BodyTypeInfo("סטיישן (Wagon / קומבי)", "🚘", "מרכב נוסעים ארוך עם תא מטען מוגדל")
-            bt.contains("קופה") || bt.contains("coupe") || bt.contains("ספורט") ->
-                BodyTypeInfo("קופה / ספורט", "🏎️", "מרכב ספורטיבי 2-3 דלתות")
-            bt.contains("קבריולט") || bt.contains("קבריו") || bt.contains("cabrio") || bt.contains("convertible") || bt.contains("רודסטר") ->
-                BodyTypeInfo("קבריולט (גג פתוח / רודסטר)", "🏎️", "מרכב ספורטיבי פתוח / גג נפתח")
-            std.startsWith("M2") || std.startsWith("M3") || bt.contains("מיניוואן") || bt.contains("מיקרוואן") || bt.contains("mpv") || bt.contains("וואן") || bt.contains("אחוד") || seats >= 7 ->
-                BodyTypeInfo("מיניוואן / היסעים (MPV / M2)", "🚐", "מרכב רב-נוסעים / היסעים מרווח")
+                BodyTypeInfo("אמבולנס / רכב הצלה", "🚑", "רכב מבצעי לשירותי רפואה והצלה")
             isPickup ->
-                BodyTypeInfo("טנדר (Pick-Up)", "🛻", "מרכב מסחרי פתוח להעמסה")
-            vehicle.modelType == "M" || cat.contains("משא") || std.startsWith("N") || (vehicle.totalWeight ?: 0) > 3500 ->
-                BodyTypeInfo("משא / מסחרי", "🚚", "רכב עבודה ומטען")
-            vehicle.modelType == "A" || cat.contains("אופנוע") || cat.contains("קטנוע") ->
-                BodyTypeInfo("דו-גלגלי (אופנוע / קטנוע)", "🏍️", "רכב דו-גלגלי מנועי")
+                BodyTypeInfo("טנדר (פיק-אפ)", "🛻", "רכב משא קל עם ארגז פתוח / סגור")
+            bt.contains("האצ'בק") || bt.contains("hatchback") ->
+                BodyTypeInfo("האצ'בק", "🚗", "רכב קומפקטי עם דלת תא מטען אחורית נפתחת כלפי מעלה")
+            bt.contains("סטיישן") || bt.contains("station") || bt.contains("wagon") || bt.contains("estate") ->
+                BodyTypeInfo("סטיישן (Wagon)", "🚗", "מרכב מוארך עם נפח תא מטען גדול במיוחד")
+            bt.contains("קופה") || bt.contains("coupe") ->
+                BodyTypeInfo("קופה (Coupe)", "🏎️", "רכב ספורטיבי בעל מרכב 2-3 דלתות נמוך ואווירודינמי")
+            bt.contains("קבריולט") || bt.contains("רודסטר") || bt.contains("convertible") || bt.contains("cabriolet") || bt.contains("roadster") ->
+                BodyTypeInfo("קבריולט / גג נפתח", "🏎️", "רכב עם גג בד או קשיח מתקפל")
+            bt.contains("מיניוואן") || bt.contains("minivan") || bt.contains("mpv") || (seats in 7..9 && !bt.contains("שטח") && !bt.contains("suv")) ->
+                BodyTypeInfo("מיניוואן / מוביל נוסעים", "🚐", "רכב משפחתי מרווח להסעת 7-9 נוסעים")
+            bt.contains("מסחרי") || bt.contains("משא אחוד") || bt.contains("van") || bt.contains("ואן") || bt.contains("וואן") || (cat.contains("משא אחוד")) ->
+                BodyTypeInfo("רכב מסחרי / וואן", "🚐", "רכב עבודה להובלת משא וציוד")
+            bt.contains("שטח") || bt.contains("suv") || bt.contains("קרוסאובר") || bt.contains("crossover") ->
+                BodyTypeInfo("רכב פנאי-שטח (SUV)", "🚙", "מרכב מוגבה המשלב נוחות כביש עם יכולת תנועה בשטח")
+            bt.contains("סדאן") || bt.contains("sedan") || bt.contains("saloon") ->
+                BodyTypeInfo("סדאן (Sedan)", "🚗", "מרכב קלאסי בעל 4 דלתות ותא מטען נפרד")
             else ->
-                BodyTypeInfo("רכב נוסעים פרטי (M1)", "🚗", "מרכב נוסעים סטנדרטי")
+                BodyTypeInfo(
+                    title = if (bt.isNotBlank()) bt.replaceFirstChar { it.uppercase() } else "רכב נוסעים",
+                    iconEmoji = "🚗",
+                    subtitle = "מרכב רכב נוסעים סטנדרטי"
+                )
         }
     }
 
     fun resolveLegalLicenseClass(vehicle: VehicleRecord, techSpec: VehicleTechnicalSpecRecord?): Pair<String, String> {
-        val totalWeight = techSpec?.totalWeight ?: vehicle.totalWeight ?: 1600
         val std = (vehicle.effectiveStandardType ?: vehicle.standardType).orEmpty().trim().uppercase()
         val cat = (vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory).orEmpty().trim().lowercase()
         val mod = (vehicle.effectiveModel ?: vehicle.model ?: vehicle.modelCode).orEmpty().trim().lowercase()
+        val totalWeight = vehicle.totalWeight ?: 0
         val seats = vehicle.effectiveSeats ?: techSpec?.seats ?: 0
         val trim = vehicle.trimLevel.orEmpty().trim().lowercase()
 
@@ -1928,11 +1929,9 @@ object VehicleUtils {
         val isBus = cat.contains("אוטובוס") || trim.contains("אוטובוס") ||
                 std.startsWith("M3") || (std.startsWith("M2") && seats > 16)
 
-        val isAmbulanceOrSpecial = cat.contains("אמבולנס") || mod.contains("ambulance") || trim.contains("אמבולנס") ||
+        val isAmbulanceOrSpecial = !isBus && (cat.contains("אמבולנס") || mod.contains("ambulance") || trim.contains("אמבולנס") ||
                 mod.contains("אקונוליין") || mod.contains("econoline") ||
-                cat.contains("מיוחד") || cat.contains("הצלה") || cat.contains("ביטחון") ||
-                trim.contains("הצלה") ||
-                (std.startsWith("M2") && (mod.contains("sprinter") || mod.contains("savana") || mod.contains("transit") || mod.contains("crafter") || seats in 1..4))
+                cat.contains("מד\"א") || cat.contains("הצלה") || trim.contains("הצלה"))
 
         return when {
             isTrailer ->
@@ -1942,7 +1941,7 @@ object VehicleUtils {
             isBus ->
                 Pair("אוטובוס / היסעים (${std.ifBlank { "M3" }})", "רכב להסעת נוסעים • דורש רישיון ייעודי D / D1")
             isAmbulanceOrSpecial ->
-                Pair("רכב ביטחון והצלה (אמבולנס $std)", "רכב ייעודי ברישום מיוחד")
+                Pair("רכב רפואי והצלה (אמבולנס $std)", "רכב ייעודי ברישום מיוחד לשירותי רפואה והצלה")
             cat.contains("אוטובוס") || std.startsWith("M3") || (std.startsWith("M2") && seats > 4) ->
                 Pair("רכב היסעים / אוטובוס זעיר ($std)", "מורשה להסעת נוסעים / דורש רישיון ייעודי")
             isPickup && (totalWeight > 3500 || std.startsWith("N2")) ->
@@ -2056,7 +2055,10 @@ object VehicleUtils {
             // 0a. Trailers & Semi-trailers (גרורים ונתמכים - נצר סירני וכו')
             combined.contains("סירני") || combined.contains("נתמך") || combined.contains("גרור") || 
             combined.contains("נגרר") || combined.contains("trailer") || combined.contains("o4") || 
-            combined.contains("o3") || combined.contains("o2") || combined.contains("o1") -> "🚛 נתמך / גרור"
+            combined.contains("o3") || combined.contains("o2") || combined.contains("o1") -> {
+                if (combined.contains("כיבוי") || combined.contains("כבאית")) "🚒 גרור כיבוי והצלה"
+                else "🚛 נתמך / גרור"
+            }
 
             // 0b. Heavy Machinery / Construction (צמ"ה)
             combined.contains("הנדסי") || combined.contains("צמ\"ה") || combined.contains("צמה") || 
@@ -2064,21 +2066,21 @@ object VehicleUtils {
             mk.contains("קטרפילר") || mk.contains("komatsu") || mk.contains("caterpillar") || mk.contains("jcb") ||
             mk.contains("bobcat") || mk.contains("maxilift") || mk.contains("מקסיליפט") -> "🚜 ציוד הנדסי"
 
-            // 1. Ambulance & Emergency Vehicles (מד"א / איחוד הצלה / אמבולנס / ספרינטר מד"א)
-            combined.contains("אמבולנס") || combined.contains("ambulance") || combined.contains("הצלה") ||
-            combined.contains("רפואי") || combined.contains("מגן דוד") || combined.contains("מד\"א") ||
-            combined.contains("מדא") || (mk.contains("מרצדס") && (m.contains("ספרינטר") || m.contains("sprinter")) && (o.contains("חברה") || o.contains("עירייה") || t.contains("בטחון") || t.contains("מיוחד"))) -> "🚑 אמבולנס"
-
-            // 1a. Firefighting & Rescue Vehicles (כיבוי אש / כבאית)
+            // 1. Firefighting & Rescue Vehicles (כיבוי אש / כבאית)
             combined.contains("כיבוי") || combined.contains("כבאית") || combined.contains("fire") ||
             combined.contains("אש די") || combined.contains("חילוץ") -> "🚒 כבאית / כיבוי אש"
 
-            // 2. Bus & Minibus (אוטובוס / אוטובוס זעיר)
+            // 2. Bus & Minibus (אוטובוס / אוטובוס זעיר) - Evaluated before Ambulance so buses aren't misclassified
             combined.contains("זעיר") && (combined.contains("אוטובוס") || t.contains("m2") || cat.contains("m2")) -> "🚐 אוטובוס זעיר"
             combined.contains("אוטובוס") || combined.contains("bus") || t.contains("m2") || t.contains("m3") ||
             cat.contains("m2") || cat.contains("m3") || combined.contains("o404") || combined.contains("o405") ||
             combined.contains("tourismo") || combined.contains("citaro") || combined.contains("travego") || combined.contains("b12") ||
             combined.contains("b7") || combined.contains("centroliner") || combined.contains("lion") || (mk.contains("מרצדס") && m.contains("o 404")) -> "🚌 אוטובוס"
+
+            // 3. Ambulance & Medical Emergency Vehicles (מד"א / איחוד הצלה / אמבולנס) - Requires explicit medical indicator
+            combined.contains("אמבולנס") || combined.contains("ambulance") || combined.contains("איחוד הצלה") ||
+            combined.contains("מגן דוד") || combined.contains("מד\"א") || combined.contains("מדא") ||
+            (combined.contains("רפואי") && !combined.contains("אוטובוס")) -> "🚑 אמבולנס"
 
             // 3. Commercial Vans & Transporters (הייאס, טרנזיט, קנגו, ברלינגו, דוקאטו, טרנספורטר, ספרינטר, קאדי, סוואנה)
             m.contains("hiace") || m.contains("הייאס") || m.contains("היאס") || m.contains("transit") || m.contains("טרנזיט") ||
