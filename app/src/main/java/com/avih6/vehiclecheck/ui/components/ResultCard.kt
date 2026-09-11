@@ -72,6 +72,19 @@ fun ResultCard(
         VehicleUtils.getBrandLogoUrl(vehicle.make)
     }
 
+    val quickClassification = remember(vehicle) {
+        VehicleUtils.resolveQuickClassification(
+            make = vehicle.make,
+            model = vehicle.model,
+            modelType = vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory,
+            ownership = vehicle.ownership,
+            trimLevel = vehicle.trimLevel,
+            fuel = vehicle.fuelType,
+            category = vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory,
+            year = vehicle.year
+        )
+    }
+
     if (showStatsDialog) {
         VehicleStatsDialog(
             vehicle = vehicle,
@@ -449,18 +462,6 @@ fun ResultCard(
 
                 Spacer(Modifier.height(8.dp))
 
-                val quickClassification = remember(vehicle) {
-                    VehicleUtils.resolveQuickClassification(
-                        make = vehicle.make,
-                        model = vehicle.model,
-                        modelType = vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory,
-                        ownership = vehicle.ownership,
-                        trimLevel = vehicle.trimLevel,
-                        fuel = vehicle.fuelType,
-                        category = vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory,
-                        year = vehicle.year
-                    )
-                }
 
                 // Badges Row (Active status + Smart Classification + Israeli manufacture + Collector)
                 FlowRow(
@@ -702,22 +703,24 @@ fun ResultCard(
             val isTaxi = catPill.contains("מונית")
             val busOperator = busFleet?.operatorName?.trim()?.ifBlank { null }
             val isBus = catPill.contains("אוטובוס") || stdPill.startsWith("M3") || busOperator != null
+            val isAmbulance = quickClassification.contains("אמבולנס") || catPill.contains("אמבולנס") || catPill.contains("רפואי") || catPill.contains("הצלה")
 
             val ownerStr = when {
                 isEngineeringEquipment -> "ציוד עבודה"
                 isTaxi -> if (!vehicle.ownership.isNullOrBlank()) "מונית (${vehicle.ownership})" else "מונית (ציבורי)"
                 busOperator != null -> "ציבורי ($busOperator)"
                 isBus -> if (!vehicle.ownership.isNullOrBlank()) vehicle.ownership else "תחבורה ציבורית"
+                isAmbulance -> if (!vehicle.ownership.isNullOrBlank()) "ביטחון (${vehicle.ownership})" else "רכב ביטחון"
                 !vehicle.ownership.isNullOrBlank() -> vehicle.ownership
                 else -> "אין מידע"
             }
             val isCompany = isEngineeringEquipment || ownerStr.contains("חברה") || ownerStr.contains("ליסינג") || ownerStr.contains("השכרה") || ownerStr.contains("עבודה")
-            val hasOwnership = !vehicle.ownership.isNullOrBlank() || isEngineeringEquipment || isTaxi || isBus
+            val hasOwnership = !vehicle.ownership.isNullOrBlank() || isEngineeringEquipment || isTaxi || isBus || isAmbulance
             StatusPill(
                 title = "בעלות",
                 value = ownerStr,
-                isPositive = if (hasOwnership) (!isCompany || isEngineeringEquipment || isTaxi || isBus) else false,
-                icon = if (isEngineeringEquipment) Icons.Default.Construction else if (!hasOwnership) Icons.Default.HelpOutline else if (isTaxi) Icons.Default.DirectionsCar else if (isBus) Icons.Default.DirectionsBus else if (isCompany) Icons.Default.Business else Icons.Default.Person,
+                isPositive = if (hasOwnership) (!isCompany || isEngineeringEquipment || isTaxi || isBus || isAmbulance) else false,
+                icon = if (isEngineeringEquipment) Icons.Default.Construction else if (!hasOwnership) Icons.Default.HelpOutline else if (isTaxi) Icons.Default.DirectionsCar else if (isBus) Icons.Default.DirectionsBus else if (isAmbulance) Icons.Default.LocalHospital else if (isCompany) Icons.Default.Business else Icons.Default.Person,
                 modifier = Modifier.weight(1f)
             )
 
@@ -1306,10 +1309,13 @@ private fun GeneralTabContent(
                         stdLegal.startsWith("N2") || stdLegal.startsWith("N3") || stdLegal.startsWith("M3") ||
                         catLegal.contains("משאית") || catLegal.contains("משא כבד") || catLegal.contains("אוטובוס")
                 val isTaxiLegal = catLegal.contains("מונית")
+                val isAmbulanceLegal = catLegal.contains("אמבולנס") || catLegal.contains("רפואי") || catLegal.contains("הצלה") || (vehicle.model.orEmpty() + " " + vehicle.trimLevel.orEmpty()).contains("אמבולנס")
                 val ownershipStr = when {
                     isEngineeringEquipment -> "ציוד הנדסי / עבודה"
                     busFleet?.operatorName?.isNotBlank() == true -> "תחבורה ציבורית (${busFleet.operatorName})"
                     isTaxiLegal && vehicle.ownership?.contains("פרטי") == true -> "פרטי (ברישוי מונית)"
+                    isAmbulanceLegal && !vehicle.ownership.isNullOrBlank() -> "רכב ביטחון והצלה (${vehicle.ownership})"
+                    isAmbulanceLegal -> "רכב ביטחון והצלה"
                     !vehicle.ownership.isNullOrBlank() -> vehicle.ownership
                     else -> "אין מידע"
                 }
