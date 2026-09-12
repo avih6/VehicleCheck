@@ -2135,8 +2135,10 @@ private fun PublicSpecialTransitCard(vehicle: VehicleRecord, busFleet: BusFleetR
     val owner = (vehicle.effectiveOwnership ?: vehicle.ownership).orEmpty().trim()
 
     if (cat.contains("מונית")) return
+    if (cat.contains("משא") && !cat.contains("אוטובוס")) return
 
-    val isPublicBus = cat.contains("אוטובוס") || std.startsWith("M3") || std.startsWith("M2") ||
+    val totalSeats = vehicle.effectiveSeats ?: vehicle.seats ?: vehicle.seatsHeavy ?: 0
+    val isPublicBus = cat.contains("אוטובוס") || std.startsWith("M3") || (std.startsWith("M2") && totalSeats > 8) ||
             owner.contains("תחבורה ציבורית") || owner.contains("תחב\"צ")
     if (!isPublicBus) return
 
