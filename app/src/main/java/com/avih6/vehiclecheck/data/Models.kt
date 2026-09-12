@@ -2070,7 +2070,8 @@ object VehicleUtils {
         category: String? = null,
         year: Int? = null,
         modelCode: String? = null,
-        commercialName: String? = null
+        commercialName: String? = null,
+        originalOwnership: String? = null
     ): String {
         val m = "${model.orEmpty()} ${modelCode.orEmpty()} ${commercialName.orEmpty()}".lowercase()
         val mk = make.orEmpty().lowercase()
@@ -2078,7 +2079,8 @@ object VehicleUtils {
         val o = ownership.orEmpty().lowercase()
         val tl = trimLevel.orEmpty().lowercase()
         val cat = category.orEmpty().lowercase()
-        val combined = "$m $mk $t $o $tl $cat"
+        val orig = originalOwnership?.replace("\"", "")?.replace("'", "")?.trim()?.lowercase().orEmpty()
+        val combined = "$m $mk $t $o $tl $cat $orig"
 
         return when {
             // 0. Taxis & Public Transport Passenger Vehicles (מוניות)
@@ -2095,6 +2097,17 @@ object VehicleUtils {
             combined.contains("מלגזה") || combined.contains("מחפר") || combined.contains("טרקטור") ||
             mk.contains("קטרפילר") || mk.contains("komatsu") || mk.contains("caterpillar") || mk.contains("jcb") ||
             mk.contains("bobcat") || mk.contains("maxilift") || mk.contains("מקסיליפט") -> "🏗️ ציוד הנדסי (צמ\"ה)"
+
+            // 0c. Driving School Vehicles (רכבי לימוד נהיגה)
+            orig.contains("ביס לנהיגה") || orig.contains("לימוד") || orig.contains("הוראת נהיגה") ||
+            o.contains("ביס לנהיגה") || o.contains("לימוד נהיגה") || o.contains("הוראת נהיגה") ||
+            cat.contains("לימוד נהיגה") || cat.contains("הוראת נהיגה") || t.contains("לימוד נהיגה") -> {
+                if (o.contains("פרטי") && (orig.contains("ביס לנהיגה") || orig.contains("לימוד") || orig.contains("הוראת"))) {
+                    "🚗 לימוד נהיגה (לשעבר)"
+                } else {
+                    "🚗 לימוד נהיגה"
+                }
+            }
 
             // 1. Firefighting & Rescue Vehicles (כיבוי אש / כבאית)
             combined.contains("כיבוי") || combined.contains("כבאית") || combined.contains("fire") ||

@@ -10,6 +10,7 @@ import com.google.android.gms.ads.AdLoader
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.nativead.NativeAd
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -70,6 +71,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val importerCache = SimpleLruCache<String, VehicleImporterPriceRecord>(100)
 
     private var currentSearchJob: Job? = null
+    @Volatile private var activeSearchingPlate: String? = null
 
     init {
         try {
@@ -493,7 +495,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onQueryChange(newQuery: String) {
         val filtered = newQuery.filter { it.isDigit() }.take(8)
+        val oldQuery = _query.value
         _query.value = filtered
+        if (filtered != oldQuery) {
+            if (currentSearchJob?.isActive == true) {
+                currentSearchJob?.cancel()
+                currentSearchJob = null
+                activeSearchingPlate = null
+                _searchProgress.value = 0f
+                if (_searchState.value is SearchState.Loading) {
+                    _searchState.value = SearchState.Idle
+                }
+            }
+        }
         if (filtered.isEmpty()) {
             _searchState.value = SearchState.Idle
         }
@@ -510,6 +524,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _searchState.value = SearchState.Error("מספר הרכב או כלי הצמ\"ה חייב להכיל עד 8 ספרות")
             return
         }
+        // Block duplicate consecutive requests if already loading the exact same plate
+        if (_searchState.value is SearchState.Loading && activeSearchingPlate == clean) {
+            return
+        }
         val current = _searchState.value
         if (current is SearchState.Success &&
             (current.vehicle.licensePlate.toString() == clean || current.formattedPlate.filter { it.isDigit() } == clean) &&
@@ -524,6 +542,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _query.value = clean
         _selectedTab.value = 0
         if (clean.isNotEmpty() && clean.length <= 8) {
+            if (_searchState.value is SearchState.Loading && activeSearchingPlate == clean) {
+                return
+            }
             val current = _searchState.value
             if (current is SearchState.Success &&
                 (current.vehicle.licensePlate.toString() == clean || current.formattedPlate.filter { it.isDigit() } == clean)) {
@@ -589,6 +610,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             putString("search_source", source)
         })
 
+        activeSearchingPlate = plateStr
         currentSearchJob?.cancel()
         currentSearchJob = viewModelScope.launch(Dispatchers.IO) {
             _searchProgress.value = 0.10f
@@ -1151,6 +1173,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     putInt("safety_rating", vehicle.safetyRating ?: 0)
                 })
 
+            } catch (e: CancellationException) {
+                // Cancelled due to user typing or new search - propagate cleanly without reporting error
+                throw e
             } catch (e: Exception) {
                 val latencyMs = System.currentTimeMillis() - startTimeMs
                 searchTrace.putAttribute("status", "error")
@@ -1171,6 +1196,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     else -> "אירעה שגיאה בבדיקת מספר הרכב: ${e.localizedMessage ?: "לא ידוע"}"
                 }
                 _searchState.value = SearchState.Error(errorMsg)
+            } finally {
+                if (activeSearchingPlate == plateStr) {
+                    activeSearchingPlate = null
+                }
             }
         }
     }

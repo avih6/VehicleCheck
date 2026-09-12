@@ -84,7 +84,7 @@ fun ResultCard(
         VehicleUtils.getBrandLogoUrl(vehicle.make)
     }
 
-    val quickClassification = remember(vehicle) {
+    val quickClassification = remember(vehicle, extraHistory) {
         VehicleUtils.resolveQuickClassification(
             make = vehicle.make,
             model = vehicle.model,
@@ -95,7 +95,8 @@ fun ResultCard(
             category = vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory,
             year = vehicle.year,
             modelCode = vehicle.modelCode,
-            commercialName = vehicle.effectiveModel
+            commercialName = vehicle.effectiveModel,
+            originalOwnership = extraHistory?.originality
         )
     }
 
@@ -658,10 +659,12 @@ fun ResultCard(
                         val isEmergency = quickClassification.contains("אמבולנס") || quickClassification.contains("הצלה") || quickClassification.contains("כיבוי") || quickClassification.contains("כבאית")
                         val isTaxi = quickClassification.contains("מונית")
                         val isCollectorChip = quickClassification.contains("אספנות")
+                        val isDrivingSchool = quickClassification.contains("לימוד נהיגה")
                         val chipColor = when {
                             isEmergency -> Color(0xFFE53935)
                             isTaxi -> Color(0xFFE65100)
                             isCollectorChip -> Color(0xFFFFB300)
+                            isDrivingSchool -> Color(0xFF0284C7)
                             else -> MaterialTheme.colorScheme.primary
                         }
                         Surface(
@@ -1522,7 +1525,17 @@ private fun GeneralTabContent(
                 }
 
                 Spacer(Modifier.height(8.dp))
-                val origVal = extraHistory?.originality?.trim()?.ifBlank { null } ?: "אין מידע"
+                val cleanOrigVal = extraHistory?.originality?.replace("\"", "")?.replace("'", "")?.trim()?.ifBlank { null }
+                val origVal = when {
+                    cleanOrigVal == null || cleanOrigVal == "0" -> "אין מידע"
+                    cleanOrigVal.contains("ביס לנהיגה") || cleanOrigVal.contains("לימוד") -> "בית ספר לנהיגה"
+                    cleanOrigVal == "החכר" -> "החכר (ליסינג)"
+                    cleanOrigVal == "החכר-השכרה" -> "החכר / השכרה"
+                    cleanOrigVal == "מדינת ישראל" -> "מדינת ישראל (ממשלתי)"
+                    cleanOrigVal == "משומש מיבואן" -> "משומש מיבואן (הדגמה)"
+                    cleanOrigVal == "יוש-עזה" -> "יו״ש / עזה"
+                    else -> cleanOrigVal
+                }
                 SpecRow("מקוריות בעלות:", origVal)
             }
         }
@@ -3740,18 +3753,28 @@ fun OwnershipHistorySection(
         val list = mutableListOf<OwnershipHistoryItem>()
         
         val currentOwnership = if (!vehicle.ownership.isNullOrBlank()) vehicle.ownership else "פרטי"
-        val orig = extraHistory?.originality?.trim()
+        val rawOrig = extraHistory?.originality?.trim()
+        val cleanOrig = rawOrig?.replace("\"", "")?.replace("'", "")?.trim()
         val firstRegDate = extraHistory?.firstRegistrationDate ?: vehicle.onRoadDate
 
-        // Only populate history if there is a distinct original ownership (e.g. Leasing/Rental/Company) different from current
-        if (!orig.isNullOrBlank() && !orig.equals(currentOwnership, ignoreCase = true) && orig != "0") {
+        // Only populate history if there is a distinct original ownership (e.g. Leasing/Rental/Company/Driving School) different from current
+        if (!cleanOrig.isNullOrBlank() && !cleanOrig.equals(currentOwnership, ignoreCase = true) && cleanOrig != "0") {
             val origFormattedDate = firstRegDate?.let { VehicleUtils.formatDate(it) } ?: "מועד עלייה לכביש"
+            val displayOrig = when {
+                cleanOrig.contains("ביס לנהיגה") || cleanOrig.contains("לימוד") -> "בי״ס לנהיגה"
+                cleanOrig == "החכר" -> "החכר (ליסינג)"
+                cleanOrig == "החכר-השכרה" -> "החכר / השכרה"
+                cleanOrig == "מדינת ישראל" -> "מדינת ישראל (ממשלתי)"
+                cleanOrig == "משומש מיבואן" -> "משומש מיבואן (הדגמה)"
+                cleanOrig == "יוש-עזה" -> "יו״ש / עזה"
+                else -> cleanOrig
+            }
             
             // Row 1: Original Registration (רישום מקורי בעלייה לכביש)
             list.add(
                 OwnershipHistoryItem(
                     stage = "רישום מקורי (מקוריות)",
-                    ownership = if (orig == "החכר") "החכר (ליסינג)" else orig,
+                    ownership = displayOrig,
                     dateAndStatus = "$origFormattedDate (עלייה לכביש)"
                 )
             )
@@ -3902,9 +3925,55 @@ fun OwnershipHistorySection(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(Modifier.height(2.dp))
+                            val rawOrig = extraHistory?.originality?.trim()
+                            val cleanOrig = rawOrig?.replace("\"", "")?.replace("'", "")?.trim().orEmpty()
+                            val origLabel = when {
+                                cleanOrig.contains("ביס לנהיגה") || cleanOrig.contains("לימוד נהיגה") -> "בית ספר לנהיגה"
+                                cleanOrig.contains("החכר-השכרה") -> "חברת ליסינג והשכרה"
+                                cleanOrig.contains("החכר") -> "חברת ליסינג/החכר"
+                                cleanOrig.contains("השכרה") -> "חברת השכרה"
+                                cleanOrig.contains("מדינת ישראל") || cleanOrig.contains("ממשלתי") -> "מדינת ישראל / גוף ממשלתי"
+                                cleanOrig.contains("דפלומטי") -> "סגל דיפלומטי / שגרירות"
+                                cleanOrig.contains("מונית") -> "מונית (רכב ציבורי)"
+                                cleanOrig.contains("סיור ותיור") -> "רכב סיור ותיור (הסעות)"
+                                cleanOrig.contains("משומש מיבואן") -> "רכב הדגמה / טרייד-אין מיבואן"
+                                cleanOrig.contains("יוש") || cleanOrig.contains("עזה") -> "אזור יהודה ושומרון / עזה"
+                                cleanOrig.contains("יבוא אישי") -> "ייבוא אישי מחו\"ל"
+                                else -> cleanOrig.ifBlank { "גוף מוסדי" }
+                            }
+
+                            val hand1Text = when {
+                                cleanOrig.contains("ביס לנהיגה") || cleanOrig.contains("לימוד") ->
+                                    "• יד 1: הרכב שימש במקור כרכב לימוד נהיגה בבית ספר לנהיגה (תאריך העלייה לכביש המצוין למעלה)."
+                                cleanOrig.contains("החכר") || cleanOrig.contains("ליסינג") ->
+                                    "• יד 1: הרכב נרכש במקור מחברת ליסינג/החכר (תאריך העלייה לכביש המצוין למעלה)."
+                                cleanOrig.contains("השכרה") ->
+                                    "• יד 1: הרכב נרכש במקור מחברת השכרה (תאריך העלייה לכביש המצוין למעלה)."
+                                cleanOrig.contains("מונית") ->
+                                    "• יד 1: הרכב שימש במקור כמונית (תאריך העלייה לכביש המצוין למעלה)."
+                                cleanOrig.contains("מדינת ישראל") || cleanOrig.contains("ממשלתי") ->
+                                    "• יד 1: הרכב היה במקור בבעלות ממשלתית / מדינת ישראל (תאריך העלייה לכביש המצוין למעלה)."
+                                cleanOrig.contains("דפלומטי") ->
+                                    "• יד 1: הרכב שימש במקור סגל דיפלומטי (תאריך העלייה לכביש המצוין למעלה)."
+                                cleanOrig.contains("סיור ותיור") ->
+                                    "• יד 1: הרכב שימש במקור כרכב סיור ותיור / הסעות (תאריך העלייה לכביש המצוין למעלה)."
+                                cleanOrig.contains("משומש מיבואן") ->
+                                    "• יד 1: הרכב נרכש במקור דרך יבואן (כרכב הדגמה/טרייד-אין) (תאריך העלייה לכביש המצוין למעלה)."
+                                cleanOrig.contains("יבוא אישי") ->
+                                    "• יד 1: הרכב נרשם במקור ברישום ייבוא אישי מחו\"ל (תאריך העלייה לכביש המצוין למעלה)."
+                                else ->
+                                    "• יד 1: הרכב נרכש במקור בבעלות $origLabel (תאריך העלייה לכביש המצוין למעלה)."
+                            }
+
+                            val curOwner = if (!vehicle.ownership.isNullOrBlank()) vehicle.ownership else "פרטי"
+                            val hand2Text = if (curOwner.contains("פרטי")) {
+                                "• יד 2+: הרכב נרכש בהמשך בבעלות פרטית (כל מעבר בעלות נספר כיד נוספת). משרד התחבורה אינו מפרסם במאגר הפתוח את התאריך המדויק שבו בוצעה העברת הבעלות בפועל."
+                            } else {
+                                "• יד 2+: הרכב רשום כעת בבעלות $curOwner (כל מעבר בעלות נספר כיד נוספת). משרד התחבורה אינו מפרסם במאגר הפתוח את התאריך המדויק שבו בוצעה העברת הבעלות בפועל."
+                            }
+
                             Text(
-                                text = "• יד 1: הרכב נרכש במקור מחברת ליסינג/החכר (תאריך העלייה לכביש המצוין למעלה).\n" +
-                                       "• יד 2+: הרכב נרכש בהמשך בבעלות פרטית (כל מעבר בעלות נספר כיד נוספת). משרד התחבורה אינו מפרסם במאגר הפתוח את התאריך המדויק שבו בוצעה העברת הבעלות בפועל.",
+                                text = "$hand1Text\n$hand2Text",
                                 fontSize = 10.5.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 lineHeight = 15.sp
