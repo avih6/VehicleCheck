@@ -659,12 +659,10 @@ fun ResultCard(
                         val isEmergency = quickClassification.contains("אמבולנס") || quickClassification.contains("הצלה") || quickClassification.contains("כיבוי") || quickClassification.contains("כבאית")
                         val isTaxi = quickClassification.contains("מונית")
                         val isCollectorChip = quickClassification.contains("אספנות")
-                        val isDrivingSchool = quickClassification.contains("לימוד נהיגה")
                         val chipColor = when {
                             isEmergency -> Color(0xFFE53935)
                             isTaxi -> Color(0xFFE65100)
                             isCollectorChip -> Color(0xFFFFB300)
-                            isDrivingSchool -> Color(0xFF0284C7)
                             else -> MaterialTheme.colorScheme.primary
                         }
                         Surface(

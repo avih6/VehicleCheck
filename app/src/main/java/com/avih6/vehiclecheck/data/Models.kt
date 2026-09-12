@@ -2098,13 +2098,6 @@ object VehicleUtils {
             mk.contains("קטרפילר") || mk.contains("komatsu") || mk.contains("caterpillar") || mk.contains("jcb") ||
             mk.contains("bobcat") || mk.contains("maxilift") || mk.contains("מקסיליפט") -> "🏗️ ציוד הנדסי (צמ\"ה)"
 
-            // 0c. Driving School Vehicles (רכבי לימוד נהיגה - רק אם פעיל כעת ולא פרטי)
-            !o.contains("פרטי") && (
-                o.contains("ביס לנהיגה") || o.contains("לימוד נהיגה") || o.contains("הוראת נהיגה") ||
-                cat.contains("לימוד נהיגה") || cat.contains("הוראת נהיגה") || t.contains("לימוד נהיגה") ||
-                orig.contains("ביס לנהיגה") || orig.contains("הוראת נהיגה")
-            ) -> "🚗 לימוד נהיגה"
-
             // 1. Firefighting & Rescue Vehicles (כיבוי אש / כבאית)
             combined.contains("כיבוי") || combined.contains("כבאית") || combined.contains("fire") ||
             combined.contains("חילוץ") -> "🚒 כבאית"
