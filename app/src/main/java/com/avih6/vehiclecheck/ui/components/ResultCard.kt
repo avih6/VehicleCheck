@@ -565,6 +565,21 @@ fun ResultCard(
                     }
                 }
 
+                extraHistory?.originality?.takeIf { it.isNotBlank() }?.let { origRaw ->
+                    val cleanOrig = VehicleUtils.formatOriginality(origRaw)
+                    if (cleanOrig.isNotBlank()) {
+                        Spacer(Modifier.height(3.dp))
+                        Text(
+                            text = "בעלות מקורית: $cleanOrig",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.5.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+
                 Spacer(Modifier.height(8.dp))
 
 
@@ -1451,11 +1466,21 @@ private fun GeneralTabContent(
                 }
                 SpecRow("סוג בעלות רשומה:", ownershipStr)
 
-                val totalSeats = techSpec?.seats ?: vehicle.effectiveSeats
-                val seatsNext = vehicle.effectiveSeatsNextToDriver
-                if (totalSeats != null && totalSeats > 0) {
-                    val seatsText = if (seatsNext != null && seatsNext > 0) "$totalSeats מושבים ($seatsNext ליד הנהג)" else "$totalSeats מושבים"
-                    SpecRow("מקומות ישיבה מורשים:", seatsText)
+                val totalSeats = techSpec?.seats ?: vehicle.effectiveSeats ?: vehicle.seats ?: vehicle.seatsHeavy
+                val seatsNext = vehicle.effectiveSeatsNextToDriver ?: vehicle.seatsNextToDriver ?: vehicle.seatsNextToDriverHeavy
+                val totalSeatsFormatted = when {
+                    totalSeats != null && totalSeats > 0 -> if (totalSeats == 1) "מושב 1" else "$totalSeats מושבים"
+                    else -> "אין מידע"
+                }
+                SpecRow("מקומות ישיבה מורשים:", totalSeatsFormatted, isCopyable = totalSeats != null, copyValue = totalSeats?.toString())
+
+                if (seatsNext != null) {
+                    val seatsNextFormatted = when (seatsNext) {
+                        0 -> "ללא מושב ליד הנהג"
+                        1 -> "מושב 1 ליד הנהג"
+                        else -> "$seatsNext מושבים ליד הנהג"
+                    }
+                    SpecRow("מושבים ליד הנהג:", seatsNextFormatted, isCopyable = true, copyValue = seatsNext.toString())
                 }
 
                 if (vehicle.isOfficiallyCollector) {
@@ -2203,12 +2228,15 @@ private fun PublicSpecialTransitCard(vehicle: VehicleRecord, busFleet: BusFleetR
 
             val seats = vehicle.effectiveSeats ?: vehicle.seats ?: vehicle.seatsHeavy
             val seatsNext = vehicle.effectiveSeatsNextToDriver ?: vehicle.seatsNextToDriver ?: vehicle.seatsNextToDriverHeavy
-            val seatsVal = if (seats != null && seats > 0) {
-                if (seatsNext != null) "$seats מושבים ($seatsNext ליד הנהג)" else "$seats מושבים"
-            } else if (seatsNext != null) {
-                "$seatsNext ליד הנהג"
-            } else {
-                "אין מידע"
+            val seatsVal = when {
+                seats != null && seats > 0 -> if (seats == 1) "מושב 1" else "$seats מושבים"
+                else -> "אין מידע"
+            }
+            val seatsNextVal = when (seatsNext) {
+                null -> "אין מידע"
+                0 -> "ללא"
+                1 -> "מושב 1"
+                else -> "$seatsNext מושבים"
             }
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -2217,6 +2245,13 @@ private fun PublicSpecialTransitCard(vehicle: VehicleRecord, busFleet: BusFleetR
                     value = seatsVal,
                     modifier = Modifier.weight(1f)
                 )
+                if (seatsNext != null) {
+                    BusInfoCell(
+                        label = "ליד הנהג",
+                        value = seatsNextVal,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
                 val nf = java.text.NumberFormat.getIntegerInstance(java.util.Locale.US)
                 val weightVal = vehicle.totalWeight?.let { "${nf.format(it)} ק\"ג" } ?: "אין מידע"
                 BusInfoCell(
@@ -2399,25 +2434,30 @@ private fun TechSpecTabContent(
                     SpecRow("משקל מטען מורשה:", "אין מידע")
                 }
 
-                val seatsNext = vehicle.seatsNextToDriver ?: vehicle.seatsNextToDriverHeavy
-                val seatsDoorsList = mutableListOf<String>()
-                if (seats != null && seats > 0) {
-                    if (seatsNext != null) {
-                        seatsDoorsList.add("$seats מושבים ($seatsNext ליד הנהג)")
-                    } else {
-                        seatsDoorsList.add("$seats מושבים")
-                    }
-                } else if (seatsNext != null) {
-                    seatsDoorsList.add("$seatsNext מושבים ליד הנהג")
+                val seatsNext = vehicle.seatsNextToDriver ?: vehicle.seatsNextToDriverHeavy ?: vehicle.effectiveSeatsNextToDriver
+
+                // 1. Total Seats (מקומות ישיבה) - Separate row
+                val seatsStr = when {
+                    seats != null && seats > 0 -> if (seats == 1) "מושב 1" else "$seats מושבים"
+                    else -> "אין מידע"
                 }
-                if (doors != null && doors > 0) {
-                    seatsDoorsList.add("$doors דלתות")
+                SpecRow("מקומות ישיבה:", seatsStr, isCopyable = seats != null, copyValue = seats?.toString())
+
+                // 2. Seats Next to Driver (מושבים ליד הנהג) - Separate row
+                val seatsNextStr = when (seatsNext) {
+                    null -> "אין מידע"
+                    0 -> "ללא מושב ליד הנהג"
+                    1 -> "מושב 1 ליד הנהג"
+                    else -> "$seatsNext מושבים ליד הנהג"
                 }
-                if (seatsDoorsList.isNotEmpty()) {
-                    SpecRow("מושבים ודלתות:", seatsDoorsList.joinToString(" • "), isCopyable = seats != null, copyValue = seats?.toString())
-                } else {
-                    SpecRow("מושבים ודלתות:", "אין מידע")
+                SpecRow("מושבים ליד הנהג:", seatsNextStr, isCopyable = seatsNext != null, copyValue = seatsNext?.toString())
+
+                // 3. Doors (מספר דלתות) - Separate row
+                val doorsStr = when {
+                    doors != null && doors > 0 -> if (doors == 1) "דלת אחת" else "$doors דלתות"
+                    else -> "אין מידע"
                 }
+                SpecRow("מספר דלתות:", doorsStr, isCopyable = doors != null, copyValue = doors?.toString())
 
                 val frontTire = vehicle.frontTire?.trim()
                 if (!frontTire.isNullOrBlank()) {
@@ -3763,12 +3803,18 @@ fun OwnershipHistorySection(
                 )
             )
 
+            val isDrivingSchool = cleanOrig.contains("ביס לנהיגה") || cleanOrig.contains("לימוד")
+            val statusDesc = when {
+                isDrivingSchool && currentOwnership.contains("פרטי") -> "מעודכן ברישיון (יד 1 - מורה נהיגה)"
+                else -> "מעודכן ברישיון הרכב"
+            }
+
             // Row 2: Current Ownership (בעלות נוכחית)
             list.add(
                 OwnershipHistoryItem(
                     stage = "בעלות נוכחית",
                     ownership = currentOwnership,
-                    dateAndStatus = "מעודכן ברישיון (יד 2+)"
+                    dateAndStatus = statusDesc
                 )
             )
         }
@@ -3952,10 +3998,14 @@ fun OwnershipHistorySection(
                             }
 
                             val curOwner = if (!vehicle.ownership.isNullOrBlank()) vehicle.ownership else "פרטי"
-                            val hand2Text = if (curOwner.contains("פרטי")) {
-                                "• יד 2+: הרכב נרכש בהמשך בבעלות פרטית (כל מעבר בעלות נספר כיד נוספת). משרד התחבורה אינו מפרסם במאגר הפתוח את התאריך המדויק שבו בוצעה העברת הבעלות בפועל."
-                            } else {
-                                "• יד 2+: הרכב רשום כעת בבעלות $curOwner (כל מעבר בעלות נספר כיד נוספת). משרד התחבורה אינו מפרסם במאגר הפתוח את התאריך המדויק שבו בוצעה העברת הבעלות בפועל."
+                            val isDs = cleanOrig.contains("ביס לנהיגה") || cleanOrig.contains("לימוד")
+                            val hand2Text = when {
+                                isDs && curOwner.contains("פרטי") ->
+                                    "• בעלות נוכחית: הרכב רשום כעת בבעלות פרטית. מורי נהיגה עצמאיים רושמים לרוב את הרכב תחת שמם הפרטי כבר מהעלייה לכביש (יד 1)."
+                                curOwner.contains("פרטי") ->
+                                    "• בעלות נוכחית: הרכב רשום כעת בבעלות פרטית (במידה ובוצעה העברת בעלות, הרכב נחשב יד 2+). משרד התחבורה אינו מפרסם במאגר הפתוח את התאריך המדויק שבו בוצעה העברת הבעלות בפועל."
+                                else ->
+                                    "• בעלות נוכחית: הרכב רשום כעת בבעלות $curOwner. משרד התחבורה אינו מפרסם במאגר הפתוח את התאריך המדויק שבו בוצעה העברת הבעלות בפועל."
                             }
 
                             Text(

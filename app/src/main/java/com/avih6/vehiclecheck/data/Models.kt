@@ -2060,6 +2060,21 @@ object VehicleUtils {
         }
     }
 
+    fun formatOriginality(rawOrig: String?): String {
+        if (rawOrig.isNullOrBlank()) return ""
+        val cleanOrig = rawOrig.replace("\"", "").replace("'", "").trim()
+        return when {
+            cleanOrig.contains("ביס לנהיגה") || cleanOrig.contains("לימוד נהיגה") -> "בית ספר לנהיגה"
+            cleanOrig == "השכרה" -> "השכרה"
+            cleanOrig == "החכר" || cleanOrig == "ליסינג" -> "החכר (ליסינג)"
+            cleanOrig == "החכר-השכרה" -> "החכר / השכרה"
+            cleanOrig == "מדינת ישראל" -> "מדינת ישראל (ממשלתי)"
+            cleanOrig == "משומש מיבואן" -> "משומש מיבואן (הדגמה)"
+            cleanOrig.contains("יוש") || cleanOrig.contains("עזה") -> "יהודה ושומרון (איו״ש)"
+            else -> cleanOrig
+        }
+    }
+
     fun resolveQuickClassification(
         make: String?,
         model: String?,
