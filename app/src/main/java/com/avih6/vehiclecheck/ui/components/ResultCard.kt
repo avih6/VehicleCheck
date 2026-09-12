@@ -1523,20 +1523,6 @@ private fun GeneralTabContent(
                 } else {
                     SpecRow("צבע:", "אין מידע")
                 }
-
-                Spacer(Modifier.height(8.dp))
-                val cleanOrigVal = extraHistory?.originality?.replace("\"", "")?.replace("'", "")?.trim()?.ifBlank { null }
-                val origVal = when {
-                    cleanOrigVal == null || cleanOrigVal == "0" -> "אין מידע"
-                    cleanOrigVal.contains("ביס לנהיגה") || cleanOrigVal.contains("לימוד") -> "בית ספר לנהיגה"
-                    cleanOrigVal == "החכר" -> "החכר (ליסינג)"
-                    cleanOrigVal == "החכר-השכרה" -> "החכר / השכרה"
-                    cleanOrigVal == "מדינת ישראל" -> "מדינת ישראל (ממשלתי)"
-                    cleanOrigVal == "משומש מיבואן" -> "משומש מיבואן (הדגמה)"
-                    cleanOrigVal.contains("יוש") || cleanOrigVal.contains("עזה") -> "יהודה ושומרון (איו״ש)"
-                    else -> cleanOrigVal
-                }
-                SpecRow("מקוריות בעלות:", origVal)
             }
         }
 
