@@ -685,9 +685,8 @@ fun ResultCard(
                         }
                     }
 
-                    if (!isOffRoad && !isEngineeringEquipment && !quickClassification.contains("אספנות")) {
-                        if (vehicle.isOfficiallyCollector) {
-                            Surface(
+                    if (!isOffRoad && !isEngineeringEquipment && vehicle.isOfficiallyCollector) {
+                        Surface(
                                 color = Color(0xFFFFD700).copy(alpha = 0.15f),
                                 shape = RoundedCornerShape(20.dp),
                                 border = BorderStroke(1.dp, Color(0xFFFFB300)),
@@ -706,7 +705,6 @@ fun ResultCard(
                                 }
                             }
                         }
-                    }
                 }
 
                 vehicle.trimLevel?.let { trim ->
@@ -1031,31 +1029,7 @@ private fun GeneralTabContent(
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         // Active vs Inactive Same Model Vehicles Count Card
-        if (stats == null) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(22.dp),
-                        strokeWidth = 2.5.dp,
-                        color = Color(0xFF0091EA)
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Text(
-                        text = "מחשב נתוני תפוצה ורכבים פעילים מאותו הדגם...",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        } else {
+        if (stats != null) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -1207,7 +1181,7 @@ private fun GeneralTabContent(
 
                 // Last test date (טסט אחרון)
                 val stdTest = (vehicle.effectiveStandardType ?: vehicle.standardType).orEmpty().trim().uppercase()
-                val lastTestFormatted = vehicle.lastTestDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע"
+                val lastTestFormatted = vehicle.lastTestDate?.let { VehicleUtils.formatDate(it) }?.ifBlank { null } ?: "אין מידע"
                 SpecRow(
                     label = "טסט אחרון (מבחן רישוי אחרון):",
                     value = lastTestFormatted
@@ -1215,7 +1189,7 @@ private fun GeneralTabContent(
 
                 // Next test / Expiry date or Off-Road status
                 if (isOffRoad) {
-                    val formattedOffRoad = offRoadDate?.let { VehicleUtils.formatDate(it) } ?: vehicle.testExpiryDate?.let { VehicleUtils.formatDate(it) }
+                    val formattedOffRoad = (offRoadDate?.let { VehicleUtils.formatDate(it) } ?: vehicle.testExpiryDate?.let { VehicleUtils.formatDate(it) })?.ifBlank { null }
                     val offRoadAgo = VehicleUtils.formatTimeAgo(offRoadDate ?: vehicle.testExpiryDate)
                     val displayOffRoad = if (formattedOffRoad.isNullOrBlank() || formattedOffRoad.contains("רכב היסטור")) {
                         "רכב ישן שנגרע מהמצבה"
@@ -1224,7 +1198,7 @@ private fun GeneralTabContent(
                     }
 
                     if (vehicle.testExpiryDate != null && vehicle.testExpiryDate != offRoadDate) {
-                        val expiryFormatted = vehicle.testExpiryDate.let { VehicleUtils.formatDate(it) }
+                        val expiryFormatted = vehicle.testExpiryDate.let { VehicleUtils.formatDate(it) }.ifBlank { "אין מידע" }
                         SpecRow(
                             label = "תוקף רישיון אחרון (לפני ביטול):",
                             value = expiryFormatted
@@ -1258,19 +1232,9 @@ private fun GeneralTabContent(
                                     textAlign = TextAlign.End
                                 )
                             }
-                            if (offRoadAgo != null && !formattedOffRoad.isNullOrBlank() && !formattedOffRoad.contains("רכב היסטור")) {
-                                Spacer(Modifier.height(2.dp))
-                                Text(
-                                    text = "חלוף זמן: $offRoadAgo",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color(0xFFFF5252).copy(alpha = 0.85f)
-                                )
-                            }
-                            Spacer(Modifier.height(8.dp))
-                            HorizontalDivider(color = Color(0xFFEF5350).copy(alpha = 0.2f), thickness = 0.5.dp)
-                            Spacer(Modifier.height(8.dp))
+                            Spacer(Modifier.height(4.dp))
                             Text(
-                                text = "⚖️ מעמד משפטי: ביטול רישום סופי ומוחלט",
+                                text = "סטטוס: הרכב בוטל / ירד מהכביש${if (!offRoadAgo.isNullOrBlank()) " ($offRoadAgo)" else ""}",
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFFFF5252),
                                 fontSize = 12.sp
@@ -1285,7 +1249,7 @@ private fun GeneralTabContent(
                         }
                     }
                 } else {
-                    val expiryFormatted = vehicle.testExpiryDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע"
+                    val expiryFormatted = vehicle.testExpiryDate?.let { VehicleUtils.formatDate(it) }?.ifBlank { null } ?: "אין מידע"
                     SpecRow(
                         label = "טסט הבא (תוקף רישיון רכב):",
                         value = expiryFormatted,
@@ -1312,23 +1276,24 @@ private fun GeneralTabContent(
                 }
 
                 // Year of manufacture (שנת ייצור)
-                vehicle.year?.let {
-                    SpecRow(
-                        label = "שנת ייצור:",
-                        value = "$it"
-                    )
-                }
+                val yearFormatted = vehicle.year?.toString()?.ifBlank { null } ?: "אין מידע"
+                SpecRow(
+                    label = "שנת ייצור:",
+                    value = yearFormatted
+                )
 
                 // On-road date (מועד עלייה לכביש)
+                val onRoadFormatted = vehicle.onRoadDate?.let { VehicleUtils.formatDate(it) }?.ifBlank { null } ?: "אין מידע"
                 SpecRow(
                     label = "מועד עלייה לכביש:",
-                    value = vehicle.onRoadDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע"
+                    value = onRoadFormatted
                 )
 
                 // First registration date (תאריך רישום ראשוני)
+                val firstRegFormatted = extraHistory?.firstRegistrationDate?.let { VehicleUtils.formatDate(it) }?.ifBlank { null } ?: "אין מידע"
                 SpecRow(
                     label = "תאריך רישום ראשוני:",
-                    value = extraHistory?.firstRegistrationDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע"
+                    value = firstRegFormatted
                 )
             }
         }
@@ -3591,12 +3556,12 @@ private fun EngineeringGeneralTabContent(
 
                 SpecRow(
                     label = "תוקף רישיון כלי (טסט עד):",
-                    value = vehicle.testExpiryDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע",
+                    value = vehicle.testExpiryDate?.let { VehicleUtils.formatDate(it) }?.ifBlank { null } ?: "אין מידע",
                     isHighlighted = vehicle.testExpiryDate != null
                 )
                 SpecRow(
                     label = "תאריך רישום ראשוני:",
-                    value = vehicle.onRoadDate?.let { VehicleUtils.formatDate(it) } ?: "אין מידע"
+                    value = vehicle.onRoadDate?.let { VehicleUtils.formatDate(it) }?.ifBlank { null } ?: "אין מידע"
                 )
             }
         }

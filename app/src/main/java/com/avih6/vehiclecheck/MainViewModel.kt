@@ -905,23 +905,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     isEngineeringEquipment = isEngineering
                 )
 
-                // FAST-PATH UI: Display primary vehicle data immediately!
-                var currentSuccess = SearchState.Success(
-                    vehicle = vehicle,
-                    formattedPlate = formattedPlate,
-                    testStatus = testStatus,
-                    isOffRoad = isOffRoad,
-                    offRoadDate = offRoadDateFormatted,
-                    isEngineeringEquipment = isEngineering,
-                    equipmentDetails = activeEq,
-                    alternateEquipment = altEq,
-                    alternateVehicle = altVeh,
-                    alternateVehicleIsOffRoad = altVehIsOffRoad,
-                    alternateVehicleOffRoadDate = altVehOffRoadDate,
-                    equipmentPollution = equipmentPollution
-                )
-                _searchState.value = currentSuccess
-                _searchProgress.value = 0.45f
+                _searchProgress.value = 0.5f
 
                 // 3. Background Parallel Fetch: Recalls, History, Permits, Specs, Pricing & Stats
                 val makeCd = vehicle.makeCode
@@ -1063,7 +1047,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val statsKey = "${makeCd}_${modelCd}_${year}_${baseInfo.baseModel}_v2"
                 val statsDeferred = async {
                     modelStatsCache.get(statsKey)?.let { return@async it }
-                    val computedStats = withTimeoutOrNull(10000L) {
+                    val computedStats = withTimeoutOrNull(4000L) {
                         computeModelStatistics(vehicle, isEngineering, isOffRoad, baseInfo)
                     } ?: ModelStatistics(if (isOffRoad) 0 else 1, if (isOffRoad) 1 else 0)
                     modelStatsCache.put(statsKey, computedStats)
@@ -1080,6 +1064,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val busFleet = busFleetDeferred.await()
                 val monthlyDeliveries = monthlyDeliveriesDeferred.await()
                 val emissionFilter = emissionFilterDeferred.await()
+                val stats = statsDeferred.await()
 
                 val isDiesel = vehicle.fuelType?.contains("דיזל") == true || vehicle.fuelType?.contains("סולר") == true
                 val dieselStatus = if (!isDiesel) {
@@ -1099,8 +1084,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
                 val hasDisabledPermit = permitRecord != null
 
-                // Update with all specs, recalls, and permits
-                currentSuccess = currentSuccess.copy(
+                val finalSuccess = SearchState.Success(
+                    vehicle = vehicle,
+                    formattedPlate = formattedPlate,
+                    testStatus = testStatus,
+                    isOffRoad = isOffRoad,
+                    offRoadDate = offRoadDateFormatted,
+                    isEngineeringEquipment = isEngineering,
+                    equipmentDetails = activeEq,
+                    alternateEquipment = altEq,
+                    alternateVehicle = altVeh,
+                    alternateVehicleIsOffRoad = altVehIsOffRoad,
+                    alternateVehicleOffRoadDate = altVehOffRoadDate,
+                    equipmentPollution = equipmentPollution,
                     techSpec = techSpec,
                     importerInfo = importerInfo,
                     extraHistory = extraHistory,
@@ -1112,19 +1108,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     dieselFilterStatus = dieselStatus,
                     cargoTieDown = cargoTieDown,
                     busFleet = busFleet,
-                    monthlyDeliveries = monthlyDeliveries
+                    monthlyDeliveries = monthlyDeliveries,
+                    stats = stats
                 )
-                _searchState.value = currentSuccess
-                _searchProgress.value = 0.85f
 
-                // Finally await model stats
-                val stats = statsDeferred.await()
-                currentSuccess = currentSuccess.copy(stats = stats)
-                _searchState.value = currentSuccess
                 _searchProgress.value = 1.0f
+                _searchState.value = finalSuccess
 
                 // Cache the full success for 0ms re-lookups
-                searchResultCache.put(cacheKey, currentSuccess)
+                searchResultCache.put(cacheKey, finalSuccess)
 
                 searchTrace.putAttribute("status", "success")
                 searchTrace.putAttribute("make", vehicle.make ?: "unknown")

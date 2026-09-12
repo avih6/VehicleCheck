@@ -2051,10 +2051,6 @@ object VehicleUtils {
         val cat = category.orEmpty().lowercase()
         val combined = "$m $mk $t $o $tl $cat"
 
-        val currentYear = java.time.LocalDate.now().year
-        val isPassengerOrMotorcycle = t.startsWith("m1") || t.startsWith("l") || cat.contains("פרטי") || cat.contains("אופנוע") || mk.contains("סימקה") || mk.contains("simca")
-        val isOfficialCollector = combined.contains("אספנות") || t.contains("רכב אספנות") || o.contains("אספנות") || (year != null && (currentYear - year) >= 30 && isPassengerOrMotorcycle)
-
         return when {
             // 0. Taxis & Public Transport Passenger Vehicles (מוניות)
             combined.contains("זוטובוס") || combined.contains("מונית שירות") -> "🚖 מונית שירות"
@@ -2119,7 +2115,7 @@ object VehicleUtils {
             m.contains("eurocargo") || m.contains("scania") || m.contains("man ") || mk.contains("סקניה") ||
             mk.contains("דאף") || mk.contains("daf") || mk.contains("מאק") || mk.contains("mack") ||
             mk == "מק" || mk.startsWith("מק ") || mk.endsWith(" מק") -> {
-                if (isOfficialCollector) "🚚 משאית אספנות" else "🚚 משא / מסחרי"
+                "🚚 משא / מסחרי"
             }
 
             // 6. Motorcycles & Scooters (אופנוע / קטנוע)
@@ -2138,7 +2134,10 @@ object VehicleUtils {
             m.contains("sharan") || m.contains("carens") || m.contains("קארנס") || m.contains("touran") || m.contains("גרנד סניק") ||
             m.contains("grand scenic") || m.contains("lodgy") || m.contains("לודג'י") || m.contains("routan") || combined.contains("מיניוואן") -> "🚐 מיניוואן"
 
-            // 8. SUV & Crossovers (פנאי-שטח SUV) - Note: Fix "cross" word boundary so "lacrosse" does NOT match!
+            // 8. SUV & Crossovers & Jeeps (פנאי-שטח SUV / 4X4)
+            combined.contains("ג'יפ") || combined.contains("גיפ") || combined.contains("jeep") ||
+            m.contains("cj") || m.contains("סי גי") || m.contains("סי.גי") || m.contains("סופה") ||
+            mk.contains("ויליס") || mk.contains("וויליס") || mk.contains("willys") ||
             m.contains("suv") || m.contains("sportage") || m.contains("ספורטאז") || m.contains("tucson") || m.contains("טוסון") ||
             m.contains("qashqai") || m.contains("קשקאי") || m.contains("duster") || m.contains("דאסטר") || m.contains("rav4") ||
             m.contains("ראב 4") || m.contains("ראב4") || m.contains("x-trail") || m.contains("אקס טרייל") || m.contains("cx-5") ||
@@ -2167,10 +2166,7 @@ object VehicleUtils {
             m.contains("סוויפט") || m.contains("ignis") || m.contains("איגניס") || m.contains("aygo") || m.contains("אייגו") ||
             m.contains("leaf") || m.contains("ליף") || m.contains("zoe") || m.contains("dolphin") || m.contains("דולפין") -> "🚗 הצ'בק"
 
-            // 10. Vintage / Collector
-            isOfficialCollector -> "🏆 רכב אספנות"
-
-            // 11. Default Passenger Car (פרטי / סדאן / מנהלים)
+            // 10. Default Passenger Car (פרטי / סדאן / מנהלים)
             else -> "🚗 רכב פרטי"
         }
     }

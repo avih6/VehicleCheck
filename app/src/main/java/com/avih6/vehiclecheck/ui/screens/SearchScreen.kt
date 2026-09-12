@@ -353,6 +353,11 @@ fun SearchScreen(
                             liveRegion = LiveRegionMode.Polite
                         }
                     ) {
+                        nativeAd?.let { ad ->
+                            NativeAdView(nativeAd = ad)
+                            Spacer(Modifier.height(16.dp))
+                        }
+
                         ResultCard(
                             vehicle = state.vehicle,
                             techSpec = state.techSpec,
@@ -382,11 +387,6 @@ fun SearchScreen(
                             onToggleEquipment = { viewModel.toggleEquipmentView() },
                             onLogEvent = { name, params -> viewModel.logEvent(name, params) }
                         )
-
-                        nativeAd?.let { ad ->
-                            Spacer(Modifier.height(16.dp))
-                            NativeAdView(nativeAd = ad)
-                        }
                     }
                 }
                 is SearchState.NotFound -> {
