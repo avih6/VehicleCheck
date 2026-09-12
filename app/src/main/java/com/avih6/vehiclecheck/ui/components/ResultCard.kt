@@ -1533,7 +1533,7 @@ private fun GeneralTabContent(
                     cleanOrigVal == "החכר-השכרה" -> "החכר / השכרה"
                     cleanOrigVal == "מדינת ישראל" -> "מדינת ישראל (ממשלתי)"
                     cleanOrigVal == "משומש מיבואן" -> "משומש מיבואן (הדגמה)"
-                    cleanOrigVal == "יוש-עזה" -> "יו״ש / עזה"
+                    cleanOrigVal.contains("יוש") || cleanOrigVal.contains("עזה") -> "יהודה ושומרון (איו״ש)"
                     else -> cleanOrigVal
                 }
                 SpecRow("מקוריות בעלות:", origVal)
@@ -3766,7 +3766,7 @@ fun OwnershipHistorySection(
                 cleanOrig == "החכר-השכרה" -> "החכר / השכרה"
                 cleanOrig == "מדינת ישראל" -> "מדינת ישראל (ממשלתי)"
                 cleanOrig == "משומש מיבואן" -> "משומש מיבואן (הדגמה)"
-                cleanOrig == "יוש-עזה" -> "יו״ש / עזה"
+                cleanOrig.contains("יוש") || cleanOrig.contains("עזה") -> "יהודה ושומרון (איו״ש)"
                 else -> cleanOrig
             }
             
@@ -3937,7 +3937,7 @@ fun OwnershipHistorySection(
                                 cleanOrig.contains("מונית") -> "מונית (רכב ציבורי)"
                                 cleanOrig.contains("סיור ותיור") -> "רכב סיור ותיור (הסעות)"
                                 cleanOrig.contains("משומש מיבואן") -> "רכב הדגמה / טרייד-אין מיבואן"
-                                cleanOrig.contains("יוש") || cleanOrig.contains("עזה") -> "אזור יהודה ושומרון / עזה"
+                                cleanOrig.contains("יוש") || cleanOrig.contains("עזה") -> "יהודה ושומרון (איו״ש)"
                                 cleanOrig.contains("יבוא אישי") -> "ייבוא אישי מחו\"ל"
                                 else -> cleanOrig.ifBlank { "גוף מוסדי" }
                             }
@@ -3959,6 +3959,8 @@ fun OwnershipHistorySection(
                                     "• יד 1: הרכב שימש במקור כרכב סיור ותיור / הסעות (תאריך העלייה לכביש המצוין למעלה)."
                                 cleanOrig.contains("משומש מיבואן") ->
                                     "• יד 1: הרכב נרכש במקור דרך יבואן (כרכב הדגמה/טרייד-אין) (תאריך העלייה לכביש המצוין למעלה)."
+                                cleanOrig.contains("יוש") || cleanOrig.contains("עזה") ->
+                                    "• יד 1: הרכב נרשם במקור באזור יהודה ושומרון (קמ\"ט תחבורה / המנהל האזרחי) (תאריך העלייה לכביש המצוין למעלה)."
                                 cleanOrig.contains("יבוא אישי") ->
                                     "• יד 1: הרכב נרשם במקור ברישום ייבוא אישי מחו\"ל (תאריך העלייה לכביש המצוין למעלה)."
                                 else ->
