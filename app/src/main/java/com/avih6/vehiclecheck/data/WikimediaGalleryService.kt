@@ -289,72 +289,61 @@ object WikimediaGalleryService {
         return d
     }
 
+    private val blockedExactTokens = setOf(
+        "logo", "icon", "flag", "diagram", "map", "badge", "emblem", "symbol",
+        "drawing", "sketch", "blueprint", "patent", "graph", "chart", "table", "stats", "infographic",
+        "building", "headquarters", "factory", "dealership", "dealer", "showroom", "warehouse",
+        "station", "terminal", "facility", "tower", "museum", "cemetery", "graveyard",
+        "monument", "memorial", "statue", "architecture", "bridge", "house",
+        "diecast", "die-cast", "miniature", "hotwheels",
+        "matchbox", "lego", "tomica", "tomy", "toy", "toys",
+        "railway", "railroad", "train", "trains", "locomotive", "tram", "streetcar", "subway", "metro", "monorail",
+        "boat", "ship", "ferry", "vessel", "yacht", "harbor", "port", "barge",
+        "medal", "coin", "banknote", "currency", "stamp", "stamps", "trophy", "award",
+        "engine", "switch", "button", "gauge", "gauges", "speedometer",
+        "tachometer", "odometer", "dashboard", "interior", "steering wheel", "pedal", "pedals",
+        "gearbox", "transmission", "shifter", "knob", "console", "exhaust",
+        "muffler", "tailpipe", "headlight", "taillight", "indicator", "lamp",
+        "caliper", "rotor", "radiator", "battery", "intake", "manifold",
+        "fuse", "relay", "wiring", "harness", "chassis",
+        "undercarriage", "glovebox", "sunroof", "wiper", "wipers",
+        "satellite", "observatory", "spacecraft", "telescope", "rocket", "missile", "fighter jet", "aircraft", "airplane", "submarine", "warship",
+        "advertisement", "advert", "ad", "newspaper", "clipping", "poster", "brochure", "flyer", "leaflet",
+        "pamphlet", "receipt", "invoice", "press release", "article",
+        "letterhead", "magazine", "catalog", "catalogue", "price list", "tariff",
+        "portrait", "singer", "actor", "actress", "politician", "minister", "president",
+        "driver", "racer", "biography", "obituary", "soldier", "army",
+        "concert", "album", "cover", "band", "music", "song", "person", "headshot", "selfie",
+        "peas", "pea", "vegetable", "vegetables", "fruit", "fruits", "food", "dish", "recipe",
+        "cooking", "cuisine", "animal", "animals", "bird", "birds", "fish", "dog", "dogs", "cat", "cats", "cow", "horse", "sheep"
+    )
+
+    private val blockedPhrases = listOf(
+        "scale model", "model car", "slot car", "rc car", "radio control",
+        "aerial view", "aerial photo", "satellite view", "satellite image", "head office",
+        "vin plate", "identification plate", "plate number", "door panel", "close-up", "closeup",
+        "october 7", "bundesarchiv bild", "israeli singer", "pikiwiki", "piki_wiki", "leonard cohen",
+        "חופשי ומאושר", "אתניקס", "אתניx", "כינוס פוליטי", "בית קברות"
+    )
+
     private fun isJunkOrNonVehicle(title: String, description: String = "", artist: String = ""): Boolean {
-        val t = title.lowercase()
-        val d = description.lowercase()
-        val a = artist.lowercase()
-        val combined = "$t $d $a"
+        val comb = "$title $description $artist".lowercase()
 
-        val blockedKeywords = listOf(
-            // Diagrams, graphics, non-photo assets
-            "logo", "icon", "flag", "diagram", "map", "badge", "emblem", "symbol",
-            "drawing", "sketch", "blueprint", "patent", "graph", "chart", "table", "stats", "infographic",
-            // Real estate, buildings, headquarters, factories, dealerships, showrooms
-            "building", "headquarters", "factory", "dealership", "dealer", "showroom", "warehouse",
-            "station", "terminal", "facility", "head office", "tower", "museum", "cemetery", "graveyard",
-            "monument", "memorial", "statue", "architecture", "bridge", "house",
-            // Toys, scale models, miniatures, merchandise
-            "diecast", "die-cast", "scale model", "scale-model", "miniature", "hot wheels", "hotwheels",
-            "matchbox", "lego", "tomica", "tomy", "toy", "model car", "1:18", "1:24", "1:43", "1:64", "1/18", "1/24", "1/43", "1/64",
-            "slot car", "rc car", "radio control",
-            // Geography, cityscapes, aerials, nature
-            "skyline", "panorama", "aerial view", "aerial photo", "satellite view", "satellite image", "landscape", "scenery",
-            // Non-car transport
-            "railway", "railroad", "train", "locomotive", "tram", "streetcar", "subway", "metro", "monorail",
-            "boat", "ship", "ferry", "vessel", "yacht", "harbor", "port", "barge",
-            // Awards, medals, stamps, currency
-            "medal", "coin", "banknote", "currency", "postage stamp", "stamp", "trophy", "award",
-            // Vehicle parts, engine bay, interior buttons, component closeups
-            "engine", "motor", "fb20", "v6", "v8", "inline-4", "tsi", "tdi", "turbocharger", "supercharger",
-            "switch", "button", "vdc off", "esp off", "traction control", "gauge", "gauges", "speedometer",
-            "tachometer", "odometer", "dashboard", "interior", "steering wheel", "seats", "seat", "pedal", "pedals",
-            "gearbox", "transmission", "gear shifter", "shifter", "knob", "center console", "console", "exhaust",
-            "muffler", "tailpipe", "headlight", "taillight", "fog light", "indicator", "lamp", "mirror",
-            "side mirror", "door handle", "fuel door", "fuel cap", "gas cap", "rim", "wheel rim", "tire", "tyre",
-            "alloy wheel", "suspension", "brake", "caliper", "rotor", "radiator", "battery", "intake", "manifold",
-            "airbox", "air filter", "oil filter", "fuse box", "fuse", "relay", "wiring", "harness", "chassis",
-            "underbody", "undercarriage", "trunk", "boot", "glovebox", "sunroof", "wiper", "wipers", "vin plate",
-            "identification plate", "plate number", "door panel", "detail", "close-up", "closeup", "crop",
-            // Space, astronomy, aviation, naval, military hardware
-            "satellite", "observatory", "spacecraft", "space probe", "telescope", "orbiting", "oao-", "oao", "astronomy", "celestial",
-            "nasa", "rocket", "missile", "fighter jet", "aircraft", "airplane", "aerospace", "submarine", "warship", "space",
-            // Text advertisements, scanned pages, newspaper clippings, brochures, documents
-            "advertisement", "advert", "ad", "newspaper", "clipping", "poster", "brochure", "flyer", "leaflet",
-            "pamphlet", "receipt", "invoice", "press release", "article", "page", "text", "document", "scanned",
-            "letterhead", "magazine", "catalog", "catalogue", "price list", "tariff", "vintage ad", "amsterdam",
-            // People, portraits, entertainment, politics
-            "portrait", "singer", "actor", "actress", "politician", "minister", "prime minister", "president",
-            "founder", "executive", "ceo", "director", "chairperson", "driver", "racer", "biography", "obituary",
-            "knesset", "rabbi", "general", "officer", "soldier", "army", "military base",
-            "benayoun", "dor daniel", "habibi", "hakol over habibi", "bennett", "netanyahu", "gaza", "genocide", "war",
-            "attack", "october 7", "terror", "conflict", "protest", "memorial", "cemetery", "grave",
-            "concert", "album", "cover", "band", "music", "song", "group", "person", "man", "woman", "people",
-            "headshot", "selfie", "bundesarchiv bild", "israeli singer", "portrait of",
-            "pikiwiki", "piki_wiki", "leonard cohen", "cohen", "performance", "recital", "historical photo", "troops", "soldiers",
-            // Hebrew entertainment, music, albums, culture, non-vehicle assets
-            "שיר", "סינגל", "אלבום", "מוזיקה", "פזמון", "עטיפה", "להקה", "זמר", "זמרת", "כרזה", "פוסטר",
-            "סרט", "ספר", "חוברת", "קלף", "קלפים", "איור", "ציור", "דיוקן", "חופשי ומאושר", "אתניקס", "אתניx",
-            "הופעה", "קונצרט", "שחקן", "שחקנית", "פוליטיקאי", "ח\"כ", "כנסת", "רב", "חייל", "צבא", "מלחמה",
-            "אנדרטה", "בית קברות", "בניין", "סמל", "לוגו", "מפה", "תרשים", "סדרה", "פרק", "תקליט", "תקליטור",
-            // Food, agriculture, plants, fruits, vegetables, animals, nature, markets
-            "peas", "pea", "vegetable", "vegetables", "fruit", "fruits", "food", "dish", "recipe",
-            "cooking", "cuisine", "market stall", "produce", "crop", "crops", "harvest", "agriculture",
-            "plant", "plants", "flower", "flowers", "tree", "trees", "leaf", "leaves", "forest",
-            "animal", "animals", "bird", "birds", "fish", "dog", "dogs", "cat", "cats", "cow", "horse", "sheep",
-            "varanasi", "india", "bazaar", "grocery", "spice", "spices", "kitchen", "meal", "salad"
-        )
+        // 1. Check blocked multi-word phrases
+        if (blockedPhrases.any { comb.contains(it) }) return true
 
-        return blockedKeywords.any { combined.contains(it) }
+        // 2. Tokenize and check whole-word tokens (avoids 'toy' blocking 'toyota', 'port' blocking 'sport', etc.)
+        val words = comb.split(Regex("[^\\p{L}\\p{Nd}_-]+")).filter { it.isNotBlank() }
+        for (w in words) {
+            if (blockedExactTokens.contains(w)) {
+                // Special safety exceptions
+                if (w == "seat" && (comb.contains("ibiza") || comb.contains("leon") || comb.contains("arona") || comb.contains("ateca") || comb.contains("cupra"))) {
+                    continue
+                }
+                return true
+            }
+        }
+        return false
     }
 
     suspend fun fetchGalleryPage(
@@ -368,23 +357,9 @@ object WikimediaGalleryService {
 
         if (cleanMake.isBlank() && cleanModel.isBlank()) {
             // Rich multi-car gallery for "הכל" with full infinite scrolling support
-            val baseResult = fetchCommonsSearch("passenger cars automobiles", offset, limit)
-            if (offset == 0) {
-                // Enrich initial view with iconic popular cars
-                val featured = listOf(
-                    "Toyota Corolla", "Hyundai Ioniq 5", "Tesla Model 3",
-                    "Mercedes-Benz C-Class", "BMW 3 Series", "Porsche 911",
-                    "Audi A4", "Volkswagen Golf", "Kia Sportage", "BYD Atto 3"
-                )
-                val extraImages = coroutineScope {
-                    featured.map { q ->
-                        async { fetchCommonsSearch("$q car", offset = 0, limit = 4).images }
-                    }.awaitAll().flatten()
-                }
-                val merged = (extraImages + baseResult.images).distinctBy { it.imageUrl }.shuffled()
-                return@withContext GalleryPageResult(merged, baseResult.nextOffset ?: 40)
-            }
-            return@withContext baseResult
+            val query = "Toyota OR Hyundai OR Tesla OR Kia OR Mazda OR Honda OR Mercedes OR BMW OR Audi OR BYD car"
+            val result = fetchCommonsSearch(query, offset, limit)
+            return@withContext result
         }
 
         val query = buildSearchQuery(cleanMake, cleanModel)
@@ -426,7 +401,7 @@ object WikimediaGalleryService {
         offset: Int = 0,
         limit: Int = 40
     ): GalleryPageResult = withContext(Dispatchers.IO) {
-        val lightExclusions = " -logo -icon -diagram -flag -symbol -badge -map -drawing -blueprint -singer -portrait -politician -satellite -observatory -space -spacecraft -telescope -rocket -missile -aircraft -ship -train -helicopter -engine -interior -dashboard -seat -seats -steering -cockpit -radiator"
+        val lightExclusions = " -logo -icon -diagram -flag -train -locomotive -aircraft -ship"
         val fullQuery = "$rawQuery$lightExclusions"
         val encodedQuery = URLEncoder.encode(fullQuery, "UTF-8")
         val offsetParam = if (offset > 0) "&gsroffset=$offset" else ""

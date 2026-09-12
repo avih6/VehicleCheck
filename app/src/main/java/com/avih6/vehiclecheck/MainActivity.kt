@@ -436,51 +436,6 @@ fun MainAppShell(viewModel: MainViewModel) {
                             Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.btn_menu))
                         }
                     },
-                    actions = {
-                        var menuExpanded by remember { mutableStateOf(false) }
-                        IconButton(onClick = { menuExpanded = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.btn_more_options))
-                        }
-                        DropdownMenu(
-                            expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.menu_disabled_permit), fontWeight = FontWeight.SemiBold) },
-                                leadingIcon = {
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.Accessible,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                },
-                                onClick = {
-                                    menuExpanded = false
-                                    viewModel.logEvent("menu_disabled_permit_clicked")
-                                    com.avih6.vehiclecheck.util.ExternalAppUtils.openDisabledPermitApp(context, source = "top_overflow_menu")
-                                }
-                            )
-                            HorizontalDivider()
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.menu_settings)) },
-                                leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                                onClick = {
-                                    menuExpanded = false
-                                    viewModel.logEvent("menu_settings_clicked")
-                                    showSettingsDialog = true
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.menu_share)) },
-                                leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
-                                onClick = {
-                                    menuExpanded = false
-                                    viewModel.logEvent("menu_share_clicked")
-                                    shareApp(context)
-                                }
-                            )
-                        }
-                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.background
                     )
