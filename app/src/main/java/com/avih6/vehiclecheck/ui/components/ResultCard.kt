@@ -285,43 +285,41 @@ fun ResultCard(
                 border = BorderStroke(1.5.dp, Color(0xFFD32F2F).copy(alpha = 0.7f))
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "קריאת שירות (ריקול) פתוחה לרכב!",
-                            fontWeight = FontWeight.Black,
-                            color = Color(0xFFD32F2F),
-                            fontSize = 15.sp
-                        )
-                        firstRecall.recallId?.let { rId ->
+                    Text(
+                        text = "קריאת שירות (ריקול) פתוחה לרכב!",
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFFD32F2F),
+                        fontSize = 16.sp
+                    )
+
+                    Spacer(Modifier.height(10.dp))
+
+                    firstRecall.recallId?.let { rId ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "מספר קריאה:",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                             Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFFD32F2F).copy(alpha = 0.15f),
-                                border = BorderStroke(1.dp, Color(0xFFD32F2F).copy(alpha = 0.5f))
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFFD32F2F).copy(alpha = 0.12f),
+                                border = BorderStroke(1.dp, Color(0xFFD32F2F).copy(alpha = 0.4f))
                             ) {
                                 Text(
-                                    text = "קריאה מס' #$rId",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
+                                    text = "#$rId",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 13.sp,
                                     color = Color(0xFFD32F2F),
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                 )
                             }
                         }
-                    }
-
-                    Spacer(Modifier.height(8.dp))
-
-                    firstRecall.recallId?.let { rId ->
-                        Text(
-                            text = "מספר קריאה: #$rId",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Spacer(Modifier.height(6.dp))
                     }
 
                     firstRecall.faultDescription?.let {
@@ -1451,6 +1449,13 @@ private fun GeneralTabContent(
                     else -> "אין מידע"
                 }
                 SpecRow("סוג בעלות רשומה:", ownershipStr)
+
+                val totalSeats = techSpec?.seats ?: vehicle.effectiveSeats
+                val seatsNext = vehicle.effectiveSeatsNextToDriver
+                if (totalSeats != null && totalSeats > 0) {
+                    val seatsText = if (seatsNext != null && seatsNext > 0) "$totalSeats מושבים ($seatsNext ליד הנהג)" else "$totalSeats מושבים"
+                    SpecRow("מקומות ישיבה מורשים:", seatsText)
+                }
 
                 if (vehicle.isOfficiallyCollector) {
                     SpecRow("מעמד אספנות:", "רכב אספנות רשמי 🏆", isHighlighted = true)
