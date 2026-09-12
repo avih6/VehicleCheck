@@ -882,7 +882,12 @@ object VehicleUtils {
             return "פלימות"
         }
 
-        // Yamaha
+        // Willys / וויליס
+        if (mk.contains("וויליס") || mk.contains("ויליס") || mk.contains("WILLYS", ignoreCase = true)) {
+            if (mc.contains("CJ") || mn.contains("CJ") || mn.contains("סי גי") || mn.contains("סי גיי") || mn.contains("גיי")) return "CJ (סי גי)"
+        }
+
+        // Yamaha / ימאהה
         if (mk.contains("ימאהה") || mk.contains("ימהה") || mk.contains("YAMAHA", ignoreCase = true)) {
             if (mc.contains("XP 500") || mc.contains("TMAX") || mn.contains("TMAX") || mn.contains("טימקס")) return "TMAX"
         }
@@ -898,6 +903,7 @@ object VehicleUtils {
         if (known != null) {
             val terms = mutableListOf<String>()
             when (known) {
+                "CJ (סי גי)" -> terms.addAll(listOf("סי גי", "CJ", "גיי", "סי גיי", "CJ-6", "CJ-5"))
                 "מוסטנג" -> { terms.addAll(listOf("MUSTANG", "מוסטנג")); if (rawCode.isNotBlank()) terms.add(rawCode) }
                 "פוקוס" -> terms.addAll(listOf("FOCUS", "פוקוס"))
                 "פיאסטה" -> terms.addAll(listOf("FIESTA", "פיאסטה"))
@@ -908,7 +914,7 @@ object VehicleUtils {
                 "CB 500" -> terms.addAll(listOf("CB 500", "CB-500", "CB500", "CB"))
                 "503" -> terms.addAll(listOf("503"))
                 "פלימות" -> terms.addAll(listOf("פלימות", "פלימוט", "PLYMOUTH"))
-                "אקונוליין (E-Series)" -> terms.addAll(listOf("ECONOLINE", "אקונוליין", "E 3", "E-3", "E350", "E-350"))
+                "אקונוליין (E-Series)" -> terms.addAll(listOf("E 34", "E-350", "ECONOLINE", "אקונוליין", "E 3", "E-3", "E350"))
                 else -> {
                     terms.add(known)
                     if (rawModel.isNotBlank()) terms.add(rawModel.split(" ").first())
@@ -1857,8 +1863,8 @@ object VehicleUtils {
                 (vehicle.make?.contains("גרור") == true) || (vehicle.make?.contains("נתמך") == true)
 
         val isFireTruck = cat.contains("כיבוי") || cat.contains("כבאית") || mod.contains("כיבוי") ||
-                mod.contains("כבאית") || mod.contains("אש די") || trim.contains("כיבוי") ||
-                effMod.contains("כיבוי") || effMod.contains("כבאית") || effMod.contains("אש די")
+                mod.contains("כבאית") || trim.contains("כיבוי") ||
+                effMod.contains("כיבוי") || effMod.contains("כבאית")
 
         val isBus = cat.contains("אוטובוס") || trim.contains("אוטובוס") ||
                 std.startsWith("M3") || (std.startsWith("M2") && seats > 16)
@@ -1900,7 +1906,10 @@ object VehicleUtils {
                 BodyTypeInfo("מיניוואן / מוביל נוסעים", "🚐", "רכב משפחתי מרווח להסעת 7-9 נוסעים")
             bt.contains("מסחרי") || bt.contains("משא אחוד") || bt.contains("van") || bt.contains("ואן") || bt.contains("וואן") || (cat.contains("משא אחוד")) ->
                 BodyTypeInfo("רכב מסחרי / וואן", "🚐", "רכב עבודה להובלת משא וציוד")
-            bt.contains("שטח") || bt.contains("suv") || bt.contains("קרוסאובר") || bt.contains("crossover") ->
+            bt.contains("שטח") || bt.contains("suv") || bt.contains("קרוסאובר") || bt.contains("crossover") ||
+            effMod.contains("cj") || effMod.contains("סי גי") || effMod.contains("סי.גי") || effMod.contains("סופה") ||
+            (vehicle.make?.contains("וויליס") == true) || (vehicle.make?.contains("ויליס") == true) ||
+            (vehicle.make?.contains("ג'יפ") == true) || (vehicle.make?.contains("jeep", ignoreCase = true) == true) ->
                 BodyTypeInfo("רכב פנאי-שטח (SUV)", "🚙", "מרכב מוגבה המשלב נוחות כביש עם יכולת תנועה בשטח")
             bt.contains("סדאן") || bt.contains("sedan") || bt.contains("saloon") ->
                 BodyTypeInfo("סדאן (Sedan)", "🚗", "מרכב קלאסי בעל 4 דלתות ותא מטען נפרד")
@@ -1925,7 +1934,7 @@ object VehicleUtils {
                 std.startsWith("O") || (vehicle.make?.contains("גרור") == true) || (vehicle.make?.contains("נתמך") == true)
 
         val isFireTruck = cat.contains("כיבוי") || cat.contains("כבאית") || mod.contains("כיבוי") ||
-                mod.contains("כבאית") || mod.contains("אש די") || trim.contains("כיבוי")
+                mod.contains("כבאית") || trim.contains("כיבוי")
 
         val isPickup = mod.contains("hilux") || mod.contains("d-max") || mod.contains("silverado") || mod.contains("סילברדו") ||
                 mod.contains("sierra") || mod.contains("סיירה") || mod.contains("ram") || mod.contains("ראם") ||

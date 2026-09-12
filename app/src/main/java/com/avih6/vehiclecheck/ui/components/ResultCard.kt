@@ -1680,27 +1680,7 @@ private fun GeneralTabContent(
 
                 val effectiveVin = vehicle.cleanVin ?: vehicle.effectiveVin ?: vehicle.vin
                 if (!effectiveVin.isNullOrBlank()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = "מספר שלדה (VIN):", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = effectiveVin, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            IconButton(
-                                onClick = {
-                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    clipboard.setPrimaryClip(ClipData.newPlainText("VIN", effectiveVin))
-                                    Toast.makeText(context, "מספר שלדה הועתק ללוח", Toast.LENGTH_SHORT).show()
-                                    onLogEvent?.invoke("result_copy_vin_clicked", null)
-                                },
-                                modifier = Modifier.size(28.dp).padding(start = 4.dp)
-                            ) {
-                                Icon(Icons.Outlined.ContentCopy, contentDescription = "העתק מספר שלדה", modifier = Modifier.size(16.dp))
-                            }
-                        }
-                    }
+                    SpecRow("מספר שלדה (VIN):", effectiveVin, isCopyable = true, copyValue = effectiveVin)
                 } else {
                     SpecRow("מספר שלדה (VIN):", "אין מידע")
                 }
@@ -3639,30 +3619,10 @@ private fun EngineeringGeneralTabContent(
 
                 val context = LocalContext.current
                 val vin = equipmentDetails?.vin ?: vehicle.vin
-                vin?.let {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = "מספר שלדה (VIN):", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = it, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            IconButton(
-                                onClick = {
-                                    val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("VIN", it))
-                                    android.widget.Toast.makeText(context, "מספר שלדה הועתק ללוח", android.widget.Toast.LENGTH_SHORT).show()
-                                    try {
-                                        com.google.firebase.analytics.FirebaseAnalytics.getInstance(context).logEvent("result_copy_vin_clicked", null)
-                                    } catch (_: Throwable) {}
-                                },
-                                modifier = Modifier.size(28.dp).padding(start = 4.dp)
-                            ) {
-                                Icon(Icons.Outlined.ContentCopy, contentDescription = "העתק מספר שלדה", modifier = Modifier.size(16.dp))
-                            }
-                        }
-                    }
+                if (!vin.isNullOrBlank()) {
+                    SpecRow("מספר שלדה (VIN):", vin, isCopyable = true, copyValue = vin)
+                } else {
+                    SpecRow("מספר שלדה (VIN):", "אין מידע")
                 }
 
                 val makeCd = equipmentDetails?.makeCode ?: vehicle.makeCode

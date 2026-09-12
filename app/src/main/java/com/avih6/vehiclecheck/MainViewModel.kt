@@ -1256,30 +1256,83 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (modelCd != null && modelCd > 0) {
             candidateModelFilters.add("{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}")
         }
-        if (!vehicle.modelCode.isNullOrBlank()) {
-            candidateModelFilters.add("{\"tozeret_cd\":$makeCd,\"degem_nm\":\"${vehicle.modelCode}\"}")
-        }
-        for (t in baseInfo.searchTerms.take(2)) {
+        for (t in baseInfo.searchTerms.take(3)) {
             if (t.isNotBlank() && t != vehicle.make) {
                 candidateModelFilters.add("{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$t\"}")
             }
         }
+        if (!vehicle.modelCode.isNullOrBlank()) {
+            candidateModelFilters.add("{\"tozeret_cd\":$makeCd,\"degem_nm\":\"${vehicle.modelCode}\"}")
+        }
 
         var matchedFilter: String? = null
         var totalActive = 0
+        var singleCandidateFilter: String? = null
+
         for (f in candidateModelFilters) {
             try {
                 val c = NetworkClient.apiService.getSameModelActiveCount(resourceId = activeResourceId, filters = f, limit = 0).result?.total ?: 0
-                if (c > 0) {
+                if (c > 1) {
                     totalActive = c
                     matchedFilter = f
                     break
+                } else if (c == 1 && singleCandidateFilter == null) {
+                    singleCandidateFilter = f
                 }
             } catch (_: Exception) {}
         }
 
+        if (totalActive == 0 && singleCandidateFilter != null) {
+            totalActive = 1
+            matchedFilter = singleCandidateFilter
+        }
+
+        // If totalActive is <= 1 and search terms exist, try query (q) parameter within tozeret_cd
+        // to match models where freeform clerk names differ (e.g. Willys CJ, Ford E-350 / E 34)
+        var matchedQueryTerm: String? = null
+        if (totalActive <= 1 && baseInfo.searchTerms.isNotEmpty()) {
+            for (term in baseInfo.searchTerms) {
+                if (term.isNotBlank() && term != vehicle.make) {
+                    try {
+                        val qc = NetworkClient.apiService.getSameModelActiveCount(
+                            resourceId = activeResourceId,
+                            filters = "{\"tozeret_cd\":$makeCd}",
+                            query = term,
+                            limit = 0
+                        ).result?.total ?: 0
+                        if (qc > totalActive) {
+                            totalActive = qc
+                            matchedQueryTerm = term
+                            matchedFilter = null
+                            break
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+        }
+
         var totalInactive = 0
-        if (matchedFilter != null) {
+        if (matchedQueryTerm != null) {
+            try {
+                val c1 = NetworkClient.apiService.getDeregisteredCount(
+                    resourceId = "f6efe89a-fb3d-43a4-bb61-9bf12a9b9099",
+                    filters = "{\"tozeret_cd\":$makeCd}",
+                    query = matchedQueryTerm,
+                    limit = 0
+                ).result?.total ?: 0
+                if (c1 > 0) {
+                    totalInactive = c1
+                } else if (year < 2005 || isOffRoad) {
+                    val c2 = NetworkClient.apiService.getDeregisteredCount(
+                        resourceId = "6f6acd03-f351-4a8f-8ecf-df792f4f573a",
+                        filters = "{\"tozeret_cd\":$makeCd}",
+                        query = matchedQueryTerm,
+                        limit = 0
+                    ).result?.total ?: 0
+                    totalInactive = c2
+                }
+            } catch (_: Exception) {}
+        } else if (matchedFilter != null) {
             // Active matched a model-specific filter!
             // Query inactive ONLY with model-specific filters (starting with matchedFilter).
             // NEVER fall back to brand-wide {"tozeret_cd": $makeCd} when active matched a specific model!
@@ -1295,6 +1348,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             val c1 = queryInactiveSpecific("f6efe89a-fb3d-43a4-bb61-9bf12a9b9099")
             totalInactive = if (c1 > 0) c1 else if (year < 2005 || isOffRoad) queryInactiveSpecific("6f6acd03-f351-4a8f-8ecf-df792f4f573a") else 0
+
+            // If still 0 inactive, check if any search term matches inactive
+            if (totalInactive == 0 && baseInfo.searchTerms.isNotEmpty()) {
+                for (term in baseInfo.searchTerms) {
+                    if (term.isNotBlank() && term != vehicle.make) {
+                        try {
+                            val inactQ = NetworkClient.apiService.getDeregisteredCount(
+                                resourceId = if (year < 2005 || isOffRoad) "6f6acd03-f351-4a8f-8ecf-df792f4f573a" else "f6efe89a-fb3d-43a4-bb61-9bf12a9b9099",
+                                filters = "{\"tozeret_cd\":$makeCd}",
+                                query = term,
+                                limit = 0
+                            ).result?.total ?: 0
+                            if (inactQ > 0) {
+                                totalInactive = inactQ
+                                break
+                            }
+                        } catch (_: Exception) {}
+                    }
+                }
+            }
         } else {
             // No model-specific filter matched active!
             suspend fun queryInactiveAny(resId: String): Pair<Int, String?> {
@@ -1333,6 +1406,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val yearFilter = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd,\"shnat_yitzur\":$year}"
                 activeYearCount = NetworkClient.apiService.getSameModelActiveCount(resourceId = activeResourceId, filters = yearFilter, limit = 0).result?.total ?: 0
+            } catch (_: Exception) {}
+        } else if (matchedQueryTerm != null) {
+            try {
+                val yearFilter = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$year}"
+                activeYearCount = NetworkClient.apiService.getSameModelActiveCount(resourceId = activeResourceId, filters = yearFilter, query = matchedQueryTerm, limit = 0).result?.total ?: 0
             } catch (_: Exception) {}
         } else if (matchedFilter != null) {
             try {
