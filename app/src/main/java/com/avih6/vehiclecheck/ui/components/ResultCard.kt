@@ -622,7 +622,7 @@ fun ResultCard(
                         }
                     }
 
-                    // Smart Classification Badge (e.g. 🏗️ צמ"ה, 🚑 אמבולנס, 🚒 כבאית, 🚖 מונית, 🏍️ אופנוע, 🚚 משאית, etc.)
+                    // Smart Classification Badge (e.g. 🏗️ צמ"ה, 🚑 אמבולנס, 🚒 כבאית, 🚕 מונית, 🏍️ אופנוע, 🚚 משאית, etc.)
                     if (isEngineeringEquipment) {
                         val catLower = (vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory).orEmpty().lowercase()
                         val modLower = (vehicle.effectiveModel ?: vehicle.model).orEmpty().lowercase()
@@ -699,7 +699,7 @@ fun ResultCard(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "🚖 מונית (רכב ציבורי)",
+                                    text = "🚕 מונית (רכב ציבורי)",
                                     color = Color(0xFFE65100),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.sp
@@ -1719,7 +1719,8 @@ private fun GeneralTabContent(
                 SpecRow("מספר מנוע:", if (!engineNum.isNullOrBlank()) engineNum else "אין מידע", isCopyable = !engineNum.isNullOrBlank(), copyValue = engineNum)
                 val cleanEngModel = VehicleUtils.cleanIdentificationCode(vehicle.engineModel)
                 SpecRow("דגם מנוע:", if (!cleanEngModel.isNullOrBlank()) cleanEngModel else "אין מידע", isCopyable = !cleanEngModel.isNullOrBlank(), copyValue = cleanEngModel)
-                SpecRow("מספר הוראת רישום:", vehicle.registrationDirective?.toString() ?: "אין מידע", isCopyable = vehicle.registrationDirective != null, copyValue = vehicle.registrationDirective?.toString())
+                val directiveVal = vehicle.registrationDirective?.takeIf { it > 0 }
+                SpecRow("מספר הוראת רישום:", directiveVal?.toString() ?: "אין מידע", isCopyable = directiveVal != null, copyValue = directiveVal?.toString())
                 SpecRow("קוד תוצרת:", vehicle.makeCode?.toString() ?: "אין מידע", isCopyable = vehicle.makeCode != null, copyValue = vehicle.makeCode?.toString())
                 SpecRow("קוד דגם משרד התחבורה:", vehicle.modelCd?.toString() ?: "אין מידע", isCopyable = vehicle.modelCd != null, copyValue = vehicle.modelCd?.toString())
             }
@@ -2057,11 +2058,18 @@ private fun TaxiFleetCard(vehicle: VehicleRecord) {
     val isTaxi = vehicle.effectiveVehicleCategory?.contains("מונית") == true || vehicle.vehicleCategory?.contains("מונית") == true
     if (!isTaxi) return
 
+    val seats = vehicle.effectiveSeats ?: vehicle.seats
+    val seatsNext = vehicle.effectiveSeatsNextToDriver ?: vehicle.seatsNextToDriver
+    val hasSpecificTaxiDetails = (seats != null && seats > 0) || (seatsNext != null && seatsNext > 0)
+    
+    // Do not display an empty redundant card if no unique taxi specs (like seat capacity) are recorded
+    if (!hasSpecificTaxiDetails) return
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
-        border = BorderStroke(1.dp, Color(0xFFFFB300).copy(alpha = 0.4f))
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -2071,14 +2079,12 @@ private fun TaxiFleetCard(vehicle: VehicleRecord) {
                 Box(
                     modifier = Modifier
                         .size(36.dp)
-                        .background(Color(0xFFFFD54F).copy(alpha = 0.25f), CircleShape),
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        Icons.Default.DirectionsCar,
-                        contentDescription = null,
-                        tint = Color(0xFFE65100),
-                        modifier = Modifier.size(20.dp)
+                    Text(
+                        text = "🚕",
+                        fontSize = 18.sp
                     )
                 }
                 Column(modifier = Modifier.weight(1f)) {
@@ -2091,7 +2097,7 @@ private fun TaxiFleetCard(vehicle: VehicleRecord) {
                     Text(
                         text = "רשום במאגר רכבי התחבורה הציבורית של משרד התחבורה",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFFE65100),
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -2102,7 +2108,6 @@ private fun TaxiFleetCard(vehicle: VehicleRecord) {
             Spacer(Modifier.height(12.dp))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val seats = vehicle.effectiveSeats ?: vehicle.seats
                 if (seats != null && seats > 0) {
                     BusInfoCell(
                         label = "מקומות ישיבה",
@@ -2110,21 +2115,29 @@ private fun TaxiFleetCard(vehicle: VehicleRecord) {
                         modifier = Modifier.weight(1f)
                     )
                 }
-                val seatsNext = vehicle.effectiveSeatsNextToDriver ?: vehicle.seatsNextToDriver
-                if (seatsNext != null) {
+                if (seatsNext != null && seatsNext > 0) {
                     BusInfoCell(
                         label = "ליד הנהג",
                         value = "$seatsNext נוסעים",
                         modifier = Modifier.weight(1f)
                     )
                 }
-                val cat = vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory
-                if (!cat.isNullOrBlank()) {
+                val std = vehicle.effectiveStandardType ?: vehicle.standardType
+                if (!std.isNullOrBlank()) {
                     BusInfoCell(
-                        label = "סיווג במאגר",
-                        value = cat,
+                        label = "תקינה אירופית",
+                        value = std,
                         modifier = Modifier.weight(1f)
                     )
+                } else {
+                    val cat = vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory
+                    if (!cat.isNullOrBlank()) {
+                        BusInfoCell(
+                            label = "סיווג במאגר",
+                            value = cat,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
             }
         }
@@ -2455,7 +2468,7 @@ private fun TechSpecTabContent(
                 vehicle.effectiveStandardType?.let {
                     if (it.isNotBlank()) SpecRow("סוג תקינה:", it)
                 }
-                vehicle.registrationDirective?.let { SpecRow("מספר הוראת רישום:", "$it", isCopyable = true, copyValue = "$it") }
+                vehicle.registrationDirective?.takeIf { it > 0 }?.let { SpecRow("מספר הוראת רישום:", "$it", isCopyable = true, copyValue = "$it") }
                 vehicle.makeCode?.let { SpecRow("קוד תוצרת:", "$it", isCopyable = true, copyValue = "$it") }
                 vehicle.modelCd?.let { SpecRow("קוד דגם משרד התחבורה:", "$it", isCopyable = true, copyValue = "$it") }
                 val cleanModel = VehicleUtils.cleanIdentificationCode(vehicle.modelCode)

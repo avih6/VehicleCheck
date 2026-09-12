@@ -360,7 +360,7 @@ data class DeregisteredVehicleRecord(
         val year = yearRaw
         val makeCd = makeCodeRaw?.filter { it.isDigit() }?.toLongOrNull()
         val modelCd = modelCodeRaw?.filter { it.isDigit() }?.toLongOrNull()
-        val directive = registrationDirectiveRaw?.filter { it.isDigit() }?.toLongOrNull()
+        val directive = registrationDirectiveRaw?.filter { it.isDigit() }?.toLongOrNull()?.takeIf { it > 0 }
         val effectiveLastTest = lastTestDate ?: lastTestDateAlt
         val effectiveExpiry = testExpiryDate ?: cancellationDate
         val rawVin = vin ?: vinAlt ?: vinAlt2
@@ -2082,8 +2082,8 @@ object VehicleUtils {
 
         return when {
             // 0. Taxis & Public Transport Passenger Vehicles (מוניות)
-            combined.contains("זוטובוס") || combined.contains("מונית שירות") -> "🚖 מונית שירות"
-            combined.contains("מונית") || o.contains("מונית") || t.contains("מונית") || cat.contains("מונית") || m.contains("מונית") -> "🚖 מונית"
+            combined.contains("זוטובוס") || combined.contains("מונית שירות") -> "🚕 מונית שירות"
+            combined.contains("מונית") || o.contains("מונית") || t.contains("מונית") || cat.contains("מונית") || m.contains("מונית") -> "🚕 מונית"
 
             // 0a. Trailers & Semi-trailers (גרורים ונתמכים - נצר סירני וכו')
             combined.contains("סירני") || combined.contains("נתמך") || combined.contains("גרור") || 

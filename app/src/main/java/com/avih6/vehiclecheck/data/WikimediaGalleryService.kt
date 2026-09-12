@@ -59,7 +59,8 @@ object WikimediaGalleryService {
         val isAmbulance = catLower.contains("אמבולנס") || trimLower.contains("אמבולנס") || modelClean.equals("ambulance", ignoreCase = true) || trimLower.contains("הצלה")
         val isBus = catLower.contains("אוטובוס") || trimLower.contains("אוטובוס") || modelClean.equals("bus", ignoreCase = true) || trimLower.contains("404") || trimLower.contains("405")
         val isPolice = catLower.contains("משטרה") || trimLower.contains("משטרה") || catLower.contains("סיור") || catLower.contains("ביטחון")
-        val isIsraeliPreferred = isAmbulance || isBus || isPolice
+        val isTaxi = catLower.contains("מונית") || trimLower.contains("מונית") || modelClean.equals("taxi", ignoreCase = true)
+        val isIsraeliPreferred = isAmbulance || isBus || isPolice || isTaxi
 
         val candidatesMap = mutableMapOf<String, CarGalleryImage>()
 
@@ -86,6 +87,15 @@ object WikimediaGalleryService {
             commonsQueries.add("Israel Police $brand")
             commonsQueries.add("Israeli police vehicle $brand")
             commonsQueries.add("Israel Police car")
+        }
+
+        if (isTaxi) {
+            commonsQueries.add("Israel taxi $brand")
+            commonsQueries.add("Israel taxi $brand $modelClean")
+            commonsQueries.add("$brand $modelClean taxi Israel")
+            commonsQueries.add("$brand taxi Israel")
+            commonsQueries.add("$brand $modelClean taxi")
+            commonsQueries.add("$brand taxi")
         }
 
         if (brand.equals("dodge", ignoreCase = true) && (modelClean.contains("500") || model.contains("די 500") || model.contains("500"))) {
@@ -117,6 +127,7 @@ object WikimediaGalleryService {
         val wikiQueries = listOfNotNull(
             if (isAmbulance) "Magen David Adom" else null,
             if (isBus && brand.isNotBlank()) "$brand bus" else null,
+            if (isTaxi && brand.isNotBlank()) "$brand taxi" else null,
             if (brand.isNotBlank() && modelClean.isNotBlank()) "$brand $modelClean" else null,
             if (brand.isNotBlank()) brand else null
         ).distinct()
@@ -131,6 +142,10 @@ object WikimediaGalleryService {
         }
         if (isPolice) {
             categoryQueries.add("Category:Police_vehicles_in_Israel")
+        }
+        if (isTaxi) {
+            categoryQueries.add("Category:Taxis_in_Israel")
+            categoryQueries.add("Category:Taxicabs_in_Israel")
         }
         if (brand.isNotBlank() && modelClean.isNotBlank()) {
             categoryQueries.add("Category:${brand.replace(" ", "_")}_${modelClean.replace(" ", "_")}")
@@ -162,7 +177,7 @@ object WikimediaGalleryService {
 
         // Score and sort candidates
         val scored = candidatesMap.values.map { img ->
-            val score = scoreImage(img, brand, modelClean, year, colorEn, isIsraeliPreferred)
+            val score = scoreImage(img, brand, modelClean, year, colorEn, isIsraeliPreferred, isTaxi = isTaxi)
             img to score
         }.filter {
             it.second >= (if (isIsraeliPreferred) 800 else 1200) // Lower threshold for verified special Israeli vehicles
@@ -351,7 +366,7 @@ object WikimediaGalleryService {
         offset: Int = 0,
         limit: Int = 40
     ): GalleryPageResult = withContext(Dispatchers.IO) {
-        val lightExclusions = " -logo -icon -diagram -flag -symbol -badge -map -drawing -blueprint -singer -portrait -politician -satellite -observatory -space -spacecraft -telescope -rocket -missile -aircraft -ship -train -helicopter"
+        val lightExclusions = " -logo -icon -diagram -flag -symbol -badge -map -drawing -blueprint -singer -portrait -politician -satellite -observatory -space -spacecraft -telescope -rocket -missile -aircraft -ship -train -helicopter -engine -interior -dashboard -seat -seats -steering -cockpit -radiator"
         val fullQuery = "$rawQuery$lightExclusions"
         val encodedQuery = URLEncoder.encode(fullQuery, "UTF-8")
         val offsetParam = if (offset > 0) "&gsroffset=$offset" else ""
@@ -613,7 +628,8 @@ object WikimediaGalleryService {
         model: String,
         year: Int?,
         colorEn: String?,
-        isIsraeliPreferred: Boolean = false
+        isIsraeliPreferred: Boolean = false,
+        isTaxi: Boolean = false
     ): Int {
         if (isJunkOrNonVehicle(image.title, image.description, image.artist)) {
             return -100000
@@ -621,6 +637,19 @@ object WikimediaGalleryService {
 
         var score = 0
         val textToSearch = "${image.title} ${image.description}".lowercase()
+
+        // Reject interior / engine bay terms if present anywhere in text
+        val hasInteriorOrEngine = listOf("engine", "motor", "interior", "seat", "seats", "dashboard", "steering wheel", "cockpit", "radiator", "trunk", "underbody", "chassis").any {
+            textToSearch.contains(it)
+        }
+        if (hasInteriorOrEngine) {
+            return -100000
+        }
+
+        // Strongly favor taxi images when searching for a taxi
+        if (isTaxi && (textToSearch.contains("taxi") || textToSearch.contains("מונית") || textToSearch.contains("taxicab"))) {
+            score += 1500
+        }
 
         // Israeli livery and organization prioritization (MDA, Egged, Dan, Israel Police, etc.)
         val isIsraeliImage = listOf("israel", "israeli", "mda", "magen david adom", "magen david", "egged", "dan bus", "police of israel", "israel police", "מד\"א", "מדא", "אגד", "דן", "משטרת ישראל", "ישראל").any {
@@ -645,6 +674,15 @@ object WikimediaGalleryService {
                 score -= 800 // Penalize images from the same brand that don't match the model
             }
         }
+
+        val isSportsImage = Regex("\\b(vrs|\\brs\\b|gti|type r|cupra|amg|m-sport|m3|m4|m5)\\b", RegexOption.IGNORE_CASE).containsMatchIn(textToSearch)
+        val isSportsVehicle = listOf("vrs", "rs", "gti", "amg", "cupra", "type r", "m-sport", "m3", "m4", "m5").any {
+            modelLower.contains(it)
+        }
+        if (isSportsImage && !isSportsVehicle) {
+            score -= 1500
+        }
+
 
         if (year != null) {
             val yearRegex = Regex("\\b(19\\d\\d|20\\d\\d)\\b")
