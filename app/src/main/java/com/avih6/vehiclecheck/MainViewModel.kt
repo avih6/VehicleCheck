@@ -1069,7 +1069,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val statsKey = "${makeCd}_${modelCd}_${year}_${baseInfo.baseModel}_v2"
                 val statsDeferred = async {
                     modelStatsCache.get(statsKey)?.let { return@async it }
-                    val computedStats = withTimeoutOrNull(4000L) {
+                    val computedStats = withTimeoutOrNull(8000L) {
                         computeModelStatistics(vehicle, isEngineering, isOffRoad, baseInfo)
                     } ?: ModelStatistics(if (isOffRoad) 0 else 1, if (isOffRoad) 1 else 0)
                     modelStatsCache.put(statsKey, computedStats)
