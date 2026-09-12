@@ -811,6 +811,8 @@ object VehicleUtils {
             if (mc.contains("CRUZE") || mn.contains("CRUZE") || mn.contains("קרוז")) return "קרוז"
             if (mc.contains("SPARK") || mn.contains("SPARK") || mn.contains("ספארק")) return "ספארק"
             if (mc.contains("SILVERADO") || mn.contains("SILVERADO") || mn.contains("סילברדו") || mc.startsWith("CK") || mc.startsWith("CC")) return "סילברדו"
+            if (mc.contains("EXPRESS") || mn.contains("EXPRESS") || mn.contains("אקספרס") || mc.contains("סוואנה") || mn.contains("SAVANA") ||
+                mc.startsWith("CG") || mn.startsWith("CG") || v.startsWith("1GCW")) return "אקספרס / סוואנה"
             if (mc.contains("TAHOE") || mn.contains("TAHOE") || mn.contains("טאהו")) return "טאהו"
             if (mc.contains("SUBURBAN") || mn.contains("SUBURBAN") || mn.contains("סוברבן")) return "סוברבן"
             if (mc.contains("COLORADO") || mn.contains("COLORADO") || mn.contains("קולורדו")) return "קולורדו"
@@ -820,7 +822,8 @@ object VehicleUtils {
         if (mk.contains("ג'י אם סי") || mk.contains("ג'י.אם.סי") || mk.contains("GMC", ignoreCase = true)) {
             if (mc.contains("SIERRA") || mn.contains("SIERRA") || mn.contains("סיירה") || mc.startsWith("TK") || mc.startsWith("TC") || mc.startsWith("CK")) return "סיירה"
             if (mc.contains("YUKON") || mn.contains("YUKON") || mn.contains("יוקון")) return "יוקון"
-            if (mc.contains("SAVANA") || mn.contains("SAVANA") || mn.contains("סוואנה") || mn.contains("סבאנה")) return "סוואנה"
+            if (mc.contains("SAVANA") || mn.contains("SAVANA") || mn.contains("סוואנה") || mn.contains("סבאנה") ||
+                mc.startsWith("TG") || mn.startsWith("TG") || v.startsWith("1GTW")) return "סוואנה"
             if (mc.contains("CANYON") || mn.contains("CANYON") || mn.contains("קניון")) return "קניון"
         }
 
@@ -1887,6 +1890,7 @@ object VehicleUtils {
 
         val isAmbulanceOrRescue = !isBus && (cat.contains("אמבולנס") || mod.contains("ambulance") || trim.contains("אמבולנס") ||
                 effMod.contains("אמבולנס") || effMod.contains("ambulance") ||
+                effMod.contains("econoline") || effMod.contains("אקונוליין") ||
                 cat.contains("מד\"א") || effMod.contains("מד\"א") || trim.contains("מד\"א") ||
                 (cat.contains("הצלה") && !cat.contains("כיבוי")))
 
