@@ -41,13 +41,25 @@ private val LightColorScheme = lightColorScheme(
     primaryContainer = PrimaryBlueContainer,
     onPrimaryContainer = OnPrimaryBlueContainer,
     secondary = SecondaryTeal,
+    onSecondary = Color(0xFFFFFFFF),
     secondaryContainer = SecondaryTealContainer,
+    onSecondaryContainer = Color(0xFF00201C),
+    tertiary = Color(0xFF0284C7),
+    onTertiary = Color(0xFFFFFFFF),
+    tertiaryContainer = Color(0xFFBAE6FD),
+    onTertiaryContainer = Color(0xFF001E2E),
     background = BackgroundLight,
     surface = SurfaceLight,
     surfaceVariant = SurfaceVariantLight,
     onBackground = Color(0xFF0F172A),
     onSurface = Color(0xFF0F172A),
-    onSurfaceVariant = Color(0xFF475569)
+    onSurfaceVariant = Color(0xFF475569),
+    outline = Color(0xFF94A3B8),
+    outlineVariant = Color(0xFFCBD5E1),
+    error = Color(0xFFDC2626),
+    onError = Color(0xFFFFFFFF),
+    errorContainer = Color(0xFFFEE2E2),
+    onErrorContainer = Color(0xFF7F1D1D)
 )
 
 private val DarkColorScheme = darkColorScheme(
@@ -55,14 +67,28 @@ private val DarkColorScheme = darkColorScheme(
     onPrimary = OnPrimaryBlueDark,
     primaryContainer = PrimaryBlueContainerDark,
     onPrimaryContainer = OnPrimaryBlueContainerDark,
-    secondary = SecondaryTeal,
+    secondary = Color(0xFF4DD0E1),
+    onSecondary = Color(0xFF00363A),
     secondaryContainer = Color(0xFF005048),
+    onSecondaryContainer = Color(0xFFA7F3D0),
+    tertiary = Color(0xFF38BDF8),
+    onTertiary = Color(0xFF00354E),
+    tertiaryContainer = Color(0xFF075985),
+    onTertiaryContainer = Color(0xFFE0F2FE),
     background = BackgroundDark,
     surface = SurfaceDark,
     surfaceVariant = SurfaceVariantDark,
     onBackground = Color(0xFFE2E8F0),
     onSurface = Color(0xFFE2E8F0),
-    onSurfaceVariant = Color(0xFF94A3B8)
+    onSurfaceVariant = Color(0xFF94A3B8),
+    outline = Color(0xFF64748B),
+    outlineVariant = Color(0xFF334155),
+    error = Color(0xFFEF4444),
+    onError = Color(0xFF450A0A),
+    errorContainer = Color(0xFF7F1D1D),
+    onErrorContainer = Color(0xFFFECACA),
+    inverseSurface = Color(0xFFE2E8F0),
+    inverseOnSurface = Color(0xFF0F172A)
 )
 
 @Composable
