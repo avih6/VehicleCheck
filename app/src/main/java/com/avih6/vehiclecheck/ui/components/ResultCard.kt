@@ -96,7 +96,10 @@ fun ResultCard(
             year = vehicle.year,
             modelCode = vehicle.modelCode,
             commercialName = vehicle.effectiveModel,
-            originalOwnership = extraHistory?.originality
+            originalOwnership = extraHistory?.originality,
+            cargoBoxType = vehicle.cargoBoxType,
+            bodyTypeName = vehicle.bodyTypeName,
+            licensePlate = vehicle.licensePlate
         )
     }
 
@@ -674,10 +677,16 @@ fun ResultCard(
                         val isEmergency = quickClassification.contains("אמבולנס") || quickClassification.contains("הצלה") || quickClassification.contains("כיבוי") || quickClassification.contains("כבאית")
                         val isTaxi = quickClassification.contains("מונית")
                         val isCollectorChip = quickClassification.contains("אספנות")
+                        val isGarbage = quickClassification.contains("אשפה") || quickClassification.contains("דחס")
+                        val isAtv = quickClassification.contains("טרקטורון") || quickClassification.contains("SBS") || quickClassification.contains("טרקטור משא")
+                        val isAgri = quickClassification.contains("טרקטור חקלאי")
                         val chipColor = when {
                             isEmergency -> Color(0xFFE53935)
                             isTaxi -> Color(0xFFE65100)
                             isCollectorChip -> Color(0xFFFFB300)
+                            isGarbage -> Color(0xFF00897B)
+                            isAtv -> Color(0xFFE65100)
+                            isAgri -> Color(0xFF558B2F)
                             else -> MaterialTheme.colorScheme.primary
                         }
                         Surface(

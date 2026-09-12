@@ -120,12 +120,45 @@ object WikimediaGalleryService {
         val isBus = catLower.contains("אוטובוס") || trimLower.contains("אוטובוס") || modelClean.equals("bus", ignoreCase = true) || trimLower.contains("404") || trimLower.contains("405")
         val isPolice = catLower.contains("משטרה") || trimLower.contains("משטרה") || catLower.contains("סיור") || catLower.contains("ביטחון")
         val isTaxi = catLower.contains("מונית") || trimLower.contains("מונית") || modelClean.equals("taxi", ignoreCase = true)
-        val isIsraeliPreferred = isAmbulance || isBus || isPolice || isTaxi
+        val isGarbage = catLower.contains("אשפה") || trimLower.contains("אשפה") ||
+                catLower.contains("דחס") || trimLower.contains("דחס") ||
+                catLower.contains("זבל") || trimLower.contains("טיאוט") ||
+                modelClean.contains("garbage", ignoreCase = true) || modelClean.contains("refuse", ignoreCase = true) ||
+                (brand.contains("volvo", ignoreCase = true) && modelClean.equals("fe", ignoreCase = true))
+        val isAtvOrQuad = catLower.contains("טרקטורון") || trimLower.contains("טרקטורון") ||
+                catLower.contains("טרקטור משא") || trimLower.contains("טרקטור משא") ||
+                brand.contains("polaris", ignoreCase = true) || brand.contains("פולריס") ||
+                brand.contains("can-am", ignoreCase = true) || brand.contains("קאן") ||
+                brand.contains("arctic cat", ignoreCase = true) || brand.contains("ארקטיק") ||
+                modelClean.contains("rzr", ignoreCase = true) || modelClean.contains("maverick", ignoreCase = true) ||
+                modelClean.contains("traxter", ignoreCase = true) || modelClean.contains("cforce", ignoreCase = true) ||
+                modelClean.contains("zforce", ignoreCase = true) || modelClean.contains("sportsman", ignoreCase = true) ||
+                modelClean.contains("outlander", ignoreCase = true) || modelClean.contains("atv", ignoreCase = true) ||
+                modelClean.contains("quad", ignoreCase = true)
+        val isIsraeliPreferred = isAmbulance || isBus || isPolice || isTaxi || isGarbage
 
         val candidatesMap = mutableMapOf<String, CarGalleryImage>()
 
         // 1. Prepare multi-tier parallel queries with Israeli preference
         val commonsQueries = mutableListOf<String>()
+
+        if (isGarbage) {
+            commonsQueries.add("Israel garbage truck")
+            commonsQueries.add("$brand $modelClean garbage truck")
+            commonsQueries.add("$brand garbage truck")
+            commonsQueries.add("$brand refuse truck")
+            commonsQueries.add("garbage truck")
+        }
+
+        if (isAtvOrQuad) {
+            commonsQueries.add("$brand $modelClean")
+            commonsQueries.add("$brand $modelClean ATV")
+            commonsQueries.add("$brand $modelClean quad")
+            commonsQueries.add("$brand $modelClean side by side")
+            commonsQueries.add("$brand $modelClean UTV")
+            commonsQueries.add("$brand RZR")
+            commonsQueries.add("$brand ATV")
+        }
 
         if (isAmbulance) {
             commonsQueries.add("Magen David Adom ambulance")
@@ -237,7 +270,17 @@ object WikimediaGalleryService {
 
         // Score and sort candidates
         val scored = candidatesMap.values.map { img ->
-            val score = scoreImage(img, brand, modelClean, year, colorEn, isIsraeliPreferred, isTaxi = isTaxi)
+            val score = scoreImage(
+                img,
+                brand,
+                modelClean,
+                year,
+                colorEn,
+                isIsraeliPreferred,
+                isTaxi = isTaxi,
+                isGarbage = isGarbage,
+                isAtvOrQuad = isAtvOrQuad
+            )
             img to score
         }.filter {
             it.second >= (if (isIsraeliPreferred) 800 else 1200) // Lower threshold for verified special Israeli vehicles
@@ -664,7 +707,9 @@ object WikimediaGalleryService {
         year: Int?,
         colorEn: String?,
         isIsraeliPreferred: Boolean = false,
-        isTaxi: Boolean = false
+        isTaxi: Boolean = false,
+        isGarbage: Boolean = false,
+        isAtvOrQuad: Boolean = false
     ): Int {
         if (isJunkOrNonVehicle(image.title, image.description, image.artist)) {
             return -100000
@@ -683,6 +728,16 @@ object WikimediaGalleryService {
 
         // Strongly favor taxi images when searching for a taxi
         if (isTaxi && (textToSearch.contains("taxi") || textToSearch.contains("מונית") || textToSearch.contains("taxicab"))) {
+            score += 1500
+        }
+
+        // Strongly favor garbage / refuse truck images
+        if (isGarbage && (textToSearch.contains("garbage") || textToSearch.contains("refuse") || textToSearch.contains("אשפה") || textToSearch.contains("דחס"))) {
+            score += 1500
+        }
+
+        // Strongly favor ATV / Quad / SBS images
+        if (isAtvOrQuad && (textToSearch.contains("atv") || textToSearch.contains("quad") || textToSearch.contains("rzr") || textToSearch.contains("side by side") || textToSearch.contains("utv") || textToSearch.contains("טרקטורון"))) {
             score += 1500
         }
 
@@ -728,22 +783,16 @@ object WikimediaGalleryService {
             if (textToSearch.contains(year.toString())) {
                 score += 400
             } else if (textToSearch.contains((year - 1).toString()) || textToSearch.contains((year + 1).toString())) {
-                score += 250
-            } else if (textToSearch.contains((year - 2).toString()) || textToSearch.contains((year + 2).toString())) {
-                score += 150
-            } else {
-                // If the image explicitly specifies a distant year (e.g. 2005 vs 2012), apply small penalty
-                if (foundYears.isNotEmpty() && foundYears.none { Math.abs(it - year) <= 3 }) {
-                    score -= 200
-                }
+                score += 200
             }
         }
 
-        if (!colorEn.isNullOrBlank() && textToSearch.contains(colorEn.lowercase())) {
-            score += 300
+        // Slight boost for matching color
+        if (!colorEn.isNullOrBlank() && textToSearch.contains(colorEn)) {
+            score += 200
         }
 
-        // Bonus for full car exterior terms and landscape photos
+        // Strongly prefer crisp side/front full-car views
         if (listOf("front", "rear", "side", "profile", "exterior", "automobile", "crossover", "suv", "sedan", "hatchback", "wagon").any { textToSearch.contains(it) }) {
             score += 300
         }
@@ -774,7 +823,17 @@ object WikimediaGalleryService {
             brand.contains(it, ignoreCase = true) || model.contains(it, ignoreCase = true) || rawMake.contains(it, ignoreCase = true)
         }
 
+        val isAtvOrSbs = listOf("polaris", "can-am", "can am", "arctic cat", "rzr", "maverick", "traxter", "atv", "quad", "sbs", "פולריס", "קאן אם", "טרקטורון").any {
+            brand.contains(it, ignoreCase = true) || model.contains(it, ignoreCase = true) || rawMake.contains(it, ignoreCase = true) || rawModel.contains(it, ignoreCase = true)
+        }
+
+        val isGarbage = listOf("אשפה", "דחס", "זבל", "garbage", "refuse", "waste", "טיאוט", "sweeper", "faun", "zoeller").any {
+            brand.contains(it, ignoreCase = true) || model.contains(it, ignoreCase = true) || rawMake.contains(it, ignoreCase = true) || rawModel.contains(it, ignoreCase = true)
+        }
+
         return when {
+            isGarbage -> "$brand $model garbage truck"
+            isAtvOrSbs -> "$brand $model ATV"
             isMachinery -> "$brand $model"
             model.isNotBlank() && !model.equals("car", ignoreCase = true) -> "$brand $model car"
             brand.isNotBlank() && !brand.equals("car", ignoreCase = true) -> "$brand car vehicle"

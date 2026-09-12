@@ -250,7 +250,8 @@ private fun HistoryItemCard(
                             trimLevel = item.trimLevel,
                             fuel = item.fuelType,
                             category = item.modelType,
-                            year = item.year
+                            year = item.year,
+                            licensePlate = item.licensePlate.filter { it.isDigit() }.toLongOrNull()
                         )
                         Surface(
                             shape = RoundedCornerShape(6.dp),

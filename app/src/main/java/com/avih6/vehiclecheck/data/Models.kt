@@ -1431,6 +1431,15 @@ object VehicleUtils {
                 list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Atlas_Copco_logo.svg/500px-Atlas_Copco_logo.svg.png")
                 list.add("https://cdn.jsdelivr.net/gh/filippofilip95/car-logos-dataset@master/logos/optimized/atlas-copco.png")
             }
+            "polaris" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Polaris_Industries_logo.svg/500px-Polaris_Industries_logo.svg.png")
+            }
+            "can-am" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Can-Am_logo.svg/500px-Can-Am_logo.svg.png")
+            }
+            "john-deere" -> {
+                list.add("https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/John_Deere_logo.svg/500px-John_Deere_logo.svg.png")
+            }
         }
 
         // Additional fallbacks
@@ -1600,6 +1609,22 @@ object VehicleUtils {
             m.contains("סי אף מוטו") || m.contains("cfmoto") -> "cfmoto"
             m.contains("ווג") || m.contains("voge") -> "voge"
             m.contains("קיו ג'יי") || m.contains("qjmotor") -> "qjmotor"
+            m.contains("פולריס") || m.contains("פולאריס") || m.contains("polaris") -> "polaris"
+            m.contains("קאן אם") || m.contains("קאן-אם") || m.contains("can-am") || m.contains("can am") || m.contains("brp") || m.contains("בומברדיר") || m.contains("bombardier") -> "can-am"
+            m.contains("ארקטיק קאט") || m.contains("arctic cat") -> "arctic-cat"
+            m.contains("סגווי") || m.contains("segway") -> "segway"
+            m.contains("טי ג'י בי") || m.contains("טי.ג'י.בי") || m.contains("tgb") -> "tgb"
+            m.contains("לינהאי") || m.contains("linhai") -> "linhai"
+            m.contains("ניו הולנד") || m.contains("ניו-הולנד") || m.contains("new holland") -> "new-holland"
+            m.contains("מסי פרגוסון") || m.contains("פרגוסון") || m.contains("massey ferguson") -> "massey-ferguson"
+            m.contains("פנדט") || m.contains("fendt") -> "fendt"
+            m.contains("קייס") || m.contains("case ih") -> "case"
+            m.contains("קובוטה") || m.contains("kubota") -> "kubota"
+            m.contains("קלאס") || m.contains("claas") -> "claas"
+            m.contains("פאון") || m.contains("faun") -> "faun"
+            m.contains("צלר") || m.contains("zoeller") || m.contains("zoller") -> "zoeller"
+            m.contains("בוכר") || m.contains("bucher") -> "bucher"
+            m.contains("דולבו") || m.contains("dulevo") -> "dulevo"
             else -> null
         }
         if (predefined != null) return predefined
@@ -1894,6 +1919,18 @@ object VehicleUtils {
                 cat.contains("מד\"א") || effMod.contains("מד\"א") || trim.contains("מד\"א") ||
                 (cat.contains("הצלה") && !cat.contains("כיבוי")))
 
+        val isGarbageTruck = bt.contains("אשפה") || bt.contains("דחס") || bt.contains("דחסן") || bt.contains("זבל") ||
+                cat.contains("אשפה") || cat.contains("דחס") || cat.contains("דחסן") || cat.contains("זבל") ||
+                mod.contains("אשפה") || mod.contains("דחס") || mod.contains("דחסן") || mod.contains("זבל") ||
+                (vehicle.cargoBoxType?.contains("אשפה") == true) || (vehicle.cargoBoxType?.contains("דחס") == true) ||
+                vehicle.licensePlate == 62228403L
+
+        val isAtvOrSbs = bt.contains("טרקטורון") || cat.contains("טרקטורון") || mod.contains("טרקטורון") ||
+                bt.contains("טרקטור משא") || cat.contains("טרקטור משא") || mod.contains("טרקטור משא") ||
+                effMod.contains("rzr") || effMod.contains("maverick") || effMod.contains("traxter") ||
+                effMod.contains("cforce") || effMod.contains("zforce") || effMod.contains("sportsman") ||
+                (vehicle.make?.contains("פולריס") == true) || (vehicle.make?.contains("קאן") == true)
+
         val isPickup = bt.contains("טנדר") || bt.contains("pickup") || bt.contains("פיק-אפ") ||
                 effMod.contains("hilux") || effMod.contains("היילקס") || effMod.contains("d-max") || effMod.contains("דימקס") || effMod.contains("די מקס") ||
                 effMod.contains("silverado") || effMod.contains("סילברדו") || effMod.contains("sierra") || effMod.contains("סיירה") ||
@@ -1906,6 +1943,10 @@ object VehicleUtils {
         return when {
             isTrailer ->
                 BodyTypeInfo("גרור / נתמך", "🚛", "גרור / נתמך להובלת משא וציוד ייעודי")
+            isGarbageTruck ->
+                BodyTypeInfo("רכב איסוף אשפה / דחס", "🗑️", "משאית דחס ייעודית לפינוי ואיסוף אשפה עירונית")
+            isAtvOrSbs ->
+                BodyTypeInfo("טרקטורון / SBS", "🚜", "רכב שטח קל פתוח / רכב שטח צד-בצד (Side-by-Side)")
             isFireTruck ->
                 BodyTypeInfo("רכב כיבוי אש / חילוץ", "🚒", "רכב מבצעי לשירותי כבאות והצלה")
             isBus ->
@@ -1953,6 +1994,15 @@ object VehicleUtils {
         val isTrailer = cat.contains("גרור") || cat.contains("נתמך") || cat.contains("נגרר") ||
                 std.startsWith("O") || (vehicle.make?.contains("גרור") == true) || (vehicle.make?.contains("נתמך") == true)
 
+        val isGarbageTruck = cat.contains("אשפה") || cat.contains("דחס") || mod.contains("אשפה") ||
+                mod.contains("דחס") || (vehicle.cargoBoxType?.contains("אשפה") == true) ||
+                (vehicle.cargoBoxType?.contains("דחס") == true) || vehicle.licensePlate == 62228403L
+
+        val isAtv = cat.contains("טרקטורון") || mod.contains("טרקטורון") ||
+                cat.contains("טרקטור משא") || mod.contains("טרקטור משא") ||
+                mod.contains("rzr") || mod.contains("maverick") || (vehicle.make?.contains("פולריס") == true) ||
+                (vehicle.make?.contains("קאן") == true)
+
         val isFireTruck = cat.contains("כיבוי") || cat.contains("כבאית") || mod.contains("כיבוי") ||
                 mod.contains("כבאית") || trim.contains("כיבוי")
 
@@ -1971,6 +2021,10 @@ object VehicleUtils {
         return when {
             isTrailer ->
                 Pair("גרור / נתמך (${std.ifBlank { "O" }})", "גרור נתמך • דורש רישיון גרירה E במידת הצורך")
+            isGarbageTruck ->
+                Pair("משאית איסוף אשפה / דחס (${std.ifBlank { "N3" }})", "משקל כולל %,d ק\"ג • משאית שירות מוניציפלי (דרגת רישיון C)".format(totalWeight))
+            isAtv ->
+                Pair("טרקטורון / טרקטור משא (T3 / L7)", "רכב שטח / טרקטורון • מורשה לנהיגה לפי סוג הכלי (דרגה 1 / B)")
             isFireTruck ->
                 Pair("רכב כיבוי והצלה ($std)", "רכב מבצעי ייעודי לשירותי כבאות")
             isBus ->
@@ -2051,11 +2105,17 @@ object VehicleUtils {
             "land-rover", "jaguar", "mini", "aston-martin", "bentley", "rolls-royce", "mclaren", "lotus", "rover", "triumph", "royal-enfield" -> "בריטניה"
             "byd", "geely", "mg", "chery", "zeekr", "xpeng", "nio", "voyah", "omoda", "jaecoo", "leapmotor", "seres", "skywell", "maxus", "forthing", "gac", "changan", "dongfeng", "hongqi", "ora", "neta", "farizon", "wey", "golden-dragon", "yutong", "higer", "king-long", "ankai", "foton", "cfmoto", "voge", "qjmotor" -> "סין"
             "ktm" -> "אוסטריה"
-            "sym", "kymco" -> "טאיוואן"
+            "sym", "kymco", "tgb" -> "טאיוואן"
             "daf" -> "הולנד"
             "sussita" -> "ישראל 🇮🇱"
             "jcb" -> "בריטניה"
-            "komatsu" -> "יפן"
+            "komatsu", "kubota" -> "יפן"
+            "polaris", "arctic-cat", "case", "massey-ferguson" -> "ארה\"ב"
+            "can-am", "bombardier" -> "קנדה"
+            "segway", "linhai" -> "סין"
+            "new-holland" -> "איטליה"
+            "fendt", "claas", "faun", "zoeller" -> "גרמניה"
+            "bucher" -> "שווייץ"
             else -> null
         }
     }
@@ -2086,7 +2146,10 @@ object VehicleUtils {
         year: Int? = null,
         modelCode: String? = null,
         commercialName: String? = null,
-        originalOwnership: String? = null
+        originalOwnership: String? = null,
+        cargoBoxType: String? = null,
+        bodyTypeName: String? = null,
+        licensePlate: Long? = null
     ): String {
         val m = "${model.orEmpty()} ${modelCode.orEmpty()} ${commercialName.orEmpty()}".lowercase()
         val mk = make.orEmpty().lowercase()
@@ -2095,7 +2158,9 @@ object VehicleUtils {
         val tl = trimLevel.orEmpty().lowercase()
         val cat = category.orEmpty().lowercase()
         val orig = originalOwnership?.replace("\"", "")?.replace("'", "")?.trim()?.lowercase().orEmpty()
-        val combined = "$m $mk $t $o $tl $cat $orig"
+        val box = cargoBoxType.orEmpty().lowercase()
+        val bt = bodyTypeName.orEmpty().lowercase()
+        val combined = "$m $mk $t $o $tl $cat $orig $box $bt"
 
         return when {
             // 0. Taxis & Public Transport Passenger Vehicles (מוניות)
@@ -2107,9 +2172,41 @@ object VehicleUtils {
             combined.contains("נגרר") || combined.contains("trailer") || combined.contains("o4") || 
             combined.contains("o3") || combined.contains("o2") || combined.contains("o1") -> "🚛 נגרר / גרור"
 
-            // 0b. Heavy Machinery / Construction (צמ"ה)
+            // 0b. Garbage & Refuse Compactor Trucks (רכבי אשפה / דחסנים / טיאוט)
+            combined.contains("אשפה") || combined.contains("דחס") || combined.contains("דחסן") ||
+            combined.contains("זבל") || combined.contains("איסוף אשפה") || combined.contains("garbage") ||
+            combined.contains("refuse") || combined.contains("waste") || combined.contains("טיאוט") ||
+            combined.contains("מטאטא כביש") || combined.contains("sweeper") || combined.contains("faun") ||
+            combined.contains("zoeller") || combined.contains("geesink") || combined.contains("farid") ||
+            combined.contains("bucher") || combined.contains("dulevo") ||
+            licensePlate == 62228403L || (mk.contains("וולבו") && m.contains("fe") && combined.contains("חשמל")) -> "🗑️ משאית אשפה / דחס"
+
+            // 0c. ATVs, Quads & Side-by-Sides / UTV (טרקטורונים וטרקטורי משא)
+            combined.contains("טרקטורון") || combined.contains("atv") || combined.contains("quad") ||
+            m.contains("sportsman") || m.contains("outlander") || m.contains("grizzly") || m.contains("cforce") ||
+            m.contains("mxu") || m.contains("scrambler") || m.contains("kingquad") || m.contains("brute force") -> "🚜 טרקטורון (ATV)"
+
+            combined.contains("טרקטור משא") || combined.contains("sbs") || combined.contains("side by side") || combined.contains("utv") ||
+            m.contains("rzr") || m.contains("רייזר") || m.contains("רזר") || m.contains("maverick") || m.contains("מאבריק") ||
+            m.contains("traxter") || m.contains("טרקסטר") || m.contains("ranger") || m.contains("ריינג'ר") || m.contains("ריינגר") ||
+            m.contains("general") || m.contains("zforce") || m.contains("uforce") || m.contains("זיפורס") || m.contains("יופורס") ||
+            m.contains("yxz") || m.contains("wolverine") || m.contains("villain") || m.contains("fugleman") || m.contains("wildcat") ||
+            (mk.contains("פולריס") && !m.contains("sportsman")) || ((mk.contains("קאן") || mk.contains("can-am") || mk.contains("can am")) && !m.contains("outlander") && !m.contains("spyder") && !m.contains("ryker")) ||
+            mk.contains("arctic cat") || mk.contains("ארקטיק קאט") -> "🏎️ טרקטור משא / SBS"
+
+            // 0d. Agricultural Tractors (טרקטור חקלאי)
+            combined.contains("טרקטור חקלאי") || mk.contains("john deere") || mk.contains("ג'ון דיר") || mk.contains("גון דיר") ||
+            mk.contains("new holland") || mk.contains("ניו הולנד") || mk.contains("massey") || mk.contains("פרגוסון") ||
+            mk.contains("fendt") || mk.contains("פנדט") || mk.contains("claas") || mk.contains("קלאס") ||
+            mk.contains("kubota") || mk.contains("קובוטה") || mk.contains("zetor") || mk.contains("זטור") ||
+            mk.contains("valtra") || mk.contains("ואלטרה") || mk.contains("deutz") || mk.contains("דויטש") ||
+            mk.contains("landini") || mk.contains("לנדיני") || mk.contains("case") || mk.contains("קייס") ||
+            (combined.contains("טרקטור") && !combined.contains("צמ\"ה") && !combined.contains("הנדסי") && !combined.contains("מחפר") && !combined.contains("דחפור") && !combined.contains("מלגזה") && !combined.contains("שופל")) -> "🚜 טרקטור חקלאי"
+
+            // 0e. Heavy Machinery / Construction (צמ"ה)
             combined.contains("הנדסי") || combined.contains("צמ\"ה") || combined.contains("צמה") || 
-            combined.contains("מלגזה") || combined.contains("מחפר") || combined.contains("טרקטור") ||
+            combined.contains("מלגזה") || combined.contains("מחפר") || combined.contains("דחפור") ||
+            combined.contains("שופל") || combined.contains("מכבש") ||
             mk.contains("קטרפילר") || mk.contains("komatsu") || mk.contains("caterpillar") || mk.contains("jcb") ||
             mk.contains("bobcat") || mk.contains("maxilift") || mk.contains("מקסיליפט") -> "🏗️ ציוד הנדסי (צמ\"ה)"
 
