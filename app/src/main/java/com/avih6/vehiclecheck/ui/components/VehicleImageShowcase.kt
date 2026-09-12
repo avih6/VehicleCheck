@@ -47,22 +47,37 @@ fun VehicleImageShowcase(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    var images by remember { mutableStateOf<List<CarGalleryImage>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    val cacheKey = remember(hebrewMake, modelName, year, color, trimLevel, category) {
+        WikimediaGalleryService.getShowcaseCacheKey(hebrewMake, modelName, year, color, trimLevel, category)
+    }
+
+    val cachedImages = remember(cacheKey) {
+        WikimediaGalleryService.getCachedShowcaseImages(cacheKey)
+    }
+
+    var images by remember(cacheKey) {
+        mutableStateOf(cachedImages ?: emptyList())
+    }
+    var isLoading by remember(cacheKey) {
+        mutableStateOf(images.isEmpty())
+    }
     var selectedFullscreenIndex by remember { mutableStateOf<Int?>(null) }
 
-    LaunchedEffect(hebrewMake, modelName, year, color, trimLevel, category) {
-        isLoading = true
-        images = WikimediaGalleryService.fetchCarImagesSpecific(
-            make = hebrewMake.orEmpty(),
-            model = modelName.orEmpty(),
-            year = year,
-            colorHeb = color,
-            trimLevel = trimLevel,
-            category = category,
-            limit = 12
-        )
-        isLoading = false
+    LaunchedEffect(cacheKey) {
+        if (images.isEmpty()) {
+            isLoading = true
+            val fetched = WikimediaGalleryService.fetchCarImagesSpecific(
+                make = hebrewMake.orEmpty(),
+                model = modelName.orEmpty(),
+                year = year,
+                colorHeb = color,
+                trimLevel = trimLevel,
+                category = category,
+                limit = 12
+            )
+            images = fetched
+            isLoading = false
+        }
     }
 
     val cardPagerState = rememberPagerState(

@@ -32,6 +32,39 @@ object WikimediaGalleryService {
 
     private const val USER_AGENT = "VehicleCheckApp/1.0 (Android; open-source; https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)"
 
+    private class SimpleLruCache<K, V>(private val maxSize: Int) {
+        private val map = object : LinkedHashMap<K, V>(maxSize, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<K, V>?): Boolean {
+                return size > maxSize
+            }
+        }
+
+        @Synchronized
+        fun get(key: K): V? = map[key]
+
+        @Synchronized
+        fun put(key: K, value: V) {
+            map[key] = value
+        }
+    }
+
+    private val showcaseCache = SimpleLruCache<String, List<CarGalleryImage>>(60)
+    private val serviceScope = kotlinx.coroutines.CoroutineScope(Dispatchers.IO + kotlinx.coroutines.SupervisorJob())
+    private val inFlightShowcase = java.util.concurrent.ConcurrentHashMap<String, kotlinx.coroutines.Deferred<List<CarGalleryImage>>>()
+
+    fun getShowcaseCacheKey(
+        make: String?,
+        model: String?,
+        year: Int?,
+        colorHeb: String?,
+        trimLevel: String? = null,
+        category: String? = null
+    ): String {
+        return "${make.orEmpty().trim().lowercase()}_${model.orEmpty().trim().lowercase()}_${year ?: 0}_${colorHeb.orEmpty().trim().lowercase()}_${trimLevel.orEmpty().trim().lowercase()}_${category.orEmpty().trim().lowercase()}"
+    }
+
+    fun getCachedShowcaseImages(key: String): List<CarGalleryImage>? = showcaseCache.get(key)
+
     suspend fun fetchCarImages(
         rawMake: String,
         rawModel: String = "",
@@ -41,6 +74,33 @@ object WikimediaGalleryService {
     }
 
     suspend fun fetchCarImagesSpecific(
+        make: String,
+        model: String,
+        year: Int?,
+        colorHeb: String?,
+        trimLevel: String? = null,
+        category: String? = null,
+        limit: Int = 12
+    ): List<CarGalleryImage> = withContext(Dispatchers.IO) {
+        val cacheKey = getShowcaseCacheKey(make, model, year, colorHeb, trimLevel, category)
+        showcaseCache.get(cacheKey)?.let { return@withContext it }
+
+        // Deduplicate in-flight requests and persist download across UI recompositions/tab-switches
+        val deferred = inFlightShowcase.computeIfAbsent(cacheKey) {
+            serviceScope.async {
+                try {
+                    doFetchCarImagesSpecific(make, model, year, colorHeb, trimLevel, category, limit).also {
+                        showcaseCache.put(cacheKey, it)
+                    }
+                } finally {
+                    inFlightShowcase.remove(cacheKey)
+                }
+            }
+        }
+        deferred.await()
+    }
+
+    private suspend fun doFetchCarImagesSpecific(
         make: String,
         model: String,
         year: Int?,
