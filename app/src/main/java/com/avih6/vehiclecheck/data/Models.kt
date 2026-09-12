@@ -1901,7 +1901,7 @@ object VehicleUtils {
 
         return when {
             isTrailer ->
-                BodyTypeInfo("גרור / נתמך (נגרר O1-O4)", "🚛", "גרור / נתמך להובלת משא וציוד ייעודי")
+                BodyTypeInfo("גרור / נתמך", "🚛", "גרור / נתמך להובלת משא וציוד ייעודי")
             isFireTruck ->
                 BodyTypeInfo("רכב כיבוי אש / חילוץ", "🚒", "רכב מבצעי לשירותי כבאות והצלה")
             isBus ->
@@ -1909,13 +1909,13 @@ object VehicleUtils {
             isAmbulanceOrRescue ->
                 BodyTypeInfo("אמבולנס / רכב הצלה", "🚑", "רכב מבצעי לשירותי רפואה והצלה")
             isPickup ->
-                BodyTypeInfo("טנדר (פיק-אפ)", "🛻", "רכב משא קל עם ארגז פתוח / סגור")
+                BodyTypeInfo("טנדר", "🛻", "רכב משא קל עם ארגז פתוח / סגור")
             bt.contains("האצ'בק") || bt.contains("hatchback") ->
                 BodyTypeInfo("האצ'בק", "🚗", "רכב קומפקטי עם דלת תא מטען אחורית נפתחת כלפי מעלה")
             bt.contains("סטיישן") || bt.contains("station") || bt.contains("wagon") || bt.contains("estate") ->
-                BodyTypeInfo("סטיישן (Wagon)", "🚗", "מרכב מוארך עם נפח תא מטען גדול במיוחד")
+                BodyTypeInfo("סטיישן", "🚗", "מרכב מוארך עם נפח תא מטען גדול במיוחד")
             bt.contains("קופה") || bt.contains("coupe") ->
-                BodyTypeInfo("קופה (Coupe)", "🏎️", "רכב ספורטיבי בעל מרכב 2-3 דלתות נמוך ואווירודינמי")
+                BodyTypeInfo("קופה", "🏎️", "רכב ספורטיבי בעל מרכב 2-3 דלתות נמוך ואווירודינמי")
             bt.contains("קבריולט") || bt.contains("רודסטר") || bt.contains("convertible") || bt.contains("cabriolet") || bt.contains("roadster") ->
                 BodyTypeInfo("קבריולט / גג נפתח", "🏎️", "רכב עם גג בד או קשיח מתקפל")
             bt.contains("מיניוואן") || bt.contains("minivan") || bt.contains("mpv") || (seats in 7..9 && !bt.contains("שטח") && !bt.contains("suv")) ->
@@ -1926,9 +1926,9 @@ object VehicleUtils {
             effMod.contains("cj") || effMod.contains("סי גי") || effMod.contains("סי.גי") || effMod.contains("סופה") ||
             (vehicle.make?.contains("וויליס") == true) || (vehicle.make?.contains("ויליס") == true) ||
             (vehicle.make?.contains("ג'יפ") == true) || (vehicle.make?.contains("jeep", ignoreCase = true) == true) ->
-                BodyTypeInfo("רכב פנאי-שטח (SUV)", "🚙", "מרכב מוגבה המשלב נוחות כביש עם יכולת תנועה בשטח")
+                BodyTypeInfo("רכב פנאי-שטח", "🚙", "מרכב מוגבה המשלב נוחות כביש עם יכולת תנועה בשטח")
             bt.contains("סדאן") || bt.contains("sedan") || bt.contains("saloon") ->
-                BodyTypeInfo("סדאן (Sedan)", "🚗", "מרכב קלאסי בעל 4 דלתות ותא מטען נפרד")
+                BodyTypeInfo("סדאן", "🚗", "מרכב קלאסי בעל 4 דלתות ותא מטען נפרד")
             else ->
                 BodyTypeInfo(
                     title = if (bt.isNotBlank()) bt.replaceFirstChar { it.uppercase() } else "רכב נוסעים",

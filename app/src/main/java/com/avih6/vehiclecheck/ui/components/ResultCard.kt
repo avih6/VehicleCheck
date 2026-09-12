@@ -285,16 +285,44 @@ fun ResultCard(
                 border = BorderStroke(1.5.dp, Color(0xFFD32F2F).copy(alpha = 0.7f))
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
                             text = "קריאת שירות (ריקול) פתוחה לרכב!",
                             fontWeight = FontWeight.Black,
                             color = Color(0xFFD32F2F),
                             fontSize = 15.sp
                         )
+                        firstRecall.recallId?.let { rId ->
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFD32F2F).copy(alpha = 0.15f),
+                                border = BorderStroke(1.dp, Color(0xFFD32F2F).copy(alpha = 0.5f))
+                            ) {
+                                Text(
+                                    text = "קריאה מס' #$rId",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = Color(0xFFD32F2F),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
                     }
 
                     Spacer(Modifier.height(8.dp))
+
+                    firstRecall.recallId?.let { rId ->
+                        Text(
+                            text = "מספר קריאה: #$rId",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
 
                     firstRecall.faultDescription?.let {
                         Text(
@@ -861,9 +889,9 @@ fun ResultCard(
             val hasRecall = recalls.isNotEmpty()
             StatusPill(
                 title = "ריקול",
-                value = if (hasRecall) "פתוח ⚠️" else "תקין",
+                value = if (hasRecall) "פתוח" else "תקין",
                 isPositive = !hasRecall,
-                icon = if (hasRecall) Icons.Default.Warning else Icons.Default.CheckCircle,
+                icon = if (hasRecall) Icons.Default.Build else Icons.Default.CheckCircle,
                 modifier = Modifier.weight(1f).fillMaxHeight()
             )
         }

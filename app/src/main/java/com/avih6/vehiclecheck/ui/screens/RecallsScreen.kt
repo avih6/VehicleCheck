@@ -96,26 +96,30 @@ fun RecallsScreen(
     }
 
     val filteredRecalls = remember(allRecalls, searchQuery, selectedFilterYear, selectedFilterCategory) {
+        val rawQ = searchQuery.trim().lowercase()
+        val q = rawQ.removePrefix("#").trim()
+        val isNumericSearch = q.isNotEmpty() && q.all { it.isDigit() }
+
         allRecalls.filter { item ->
-            val matchesQuery = if (searchQuery.isBlank()) true else {
-                val q = searchQuery.trim().lowercase()
-                (item.makeName?.lowercase()?.contains(q) == true) ||
-                (item.model?.lowercase()?.contains(q) == true) ||
-                (item.faultDescription?.lowercase()?.contains(q) == true) ||
-                (item.faultType?.lowercase()?.contains(q) == true) ||
-                (item.importerName?.lowercase()?.contains(q) == true) ||
-                (item.recallId?.toString()?.contains(q) == true)
+            val matchesQuery = if (q.isBlank()) true else {
+                (item.recallId?.toString()?.contains(q) == true) ||
+                (item.makeName?.lowercase()?.contains(rawQ) == true) ||
+                (item.model?.lowercase()?.contains(rawQ) == true) ||
+                (item.faultDescription?.lowercase()?.contains(rawQ) == true) ||
+                (item.faultType?.lowercase()?.contains(rawQ) == true) ||
+                (item.importerName?.lowercase()?.contains(rawQ) == true)
             }
 
             val yr = item.recallYear ?: 0
-            val matchesYear = when (selectedFilterYear) {
-                "הכל" -> true
-                "2010-2014" -> yr in 2010..2014
-                "לפני 2010" -> yr in 1..2009
+            val matchesYear = when {
+                isNumericSearch -> true
+                selectedFilterYear == "הכל" -> true
+                selectedFilterYear == "2010-2014" -> yr in 2010..2014
+                selectedFilterYear == "לפני 2010" -> yr in 1..2009
                 else -> item.recallYear?.toString() == selectedFilterYear
             }
 
-            val matchesCategory = if (selectedFilterCategory == "הכל") true else {
+            val matchesCategory = if (isNumericSearch || selectedFilterCategory == "הכל") true else {
                 item.faultType?.contains(selectedFilterCategory) == true ||
                 item.faultDescription?.contains(selectedFilterCategory) == true
             }
@@ -134,8 +138,8 @@ fun RecallsScreen(
             value = searchQuery,
             onValueChange = { searchQuery = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("חיפוש יצרן, דגם, תקלה או מספר ריקול") },
-            placeholder = { Text("למשל: FORD, TOYOTA, בלמים, כריות אוויר...") },
+            label = { Text("חיפוש יצרן, דגם, תקלה או מספר קריאה (ריקול)") },
+            placeholder = { Text("למשל: 11498, טויוטה, יונדאי, בלמים...") },
             leadingIcon = {
                 Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             },
