@@ -286,13 +286,6 @@ fun ResultCard(
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.Warning,
-                            contentDescription = null,
-                            tint = Color(0xFFD32F2F),
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(Modifier.width(8.dp))
                         Text(
                             text = "קריאת שירות (ריקול) פתוחה לרכב!",
                             fontWeight = FontWeight.Black,
@@ -417,7 +410,9 @@ fun ResultCard(
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                 val cleanDigits = (vehicle.licensePlate?.toString() ?: formattedPlate).filter { it.isDigit() }
                                 clipboard.setPrimaryClip(ClipData.newPlainText("Plate", cleanDigits))
-                                Toast.makeText(context, "מספר רכב הועתק ללוח", Toast.LENGTH_SHORT).show()
+                                if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) {
+                                    Toast.makeText(context, "מספר רכב הועתק ללוח", Toast.LENGTH_SHORT).show()
+                                }
                                 logResultCardEvent("result_copy_plate_clicked")
                             }
                             .semantics(mergeDescendants = true) {
@@ -441,7 +436,9 @@ fun ResultCard(
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                     val cleanDigits = (vehicle.licensePlate?.toString() ?: formattedPlate).filter { it.isDigit() }
                                     clipboard.setPrimaryClip(ClipData.newPlainText("Plate", cleanDigits))
-                                    Toast.makeText(context, "מספר רכב הועתק ללוח", Toast.LENGTH_SHORT).show()
+                                    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) {
+                                        Toast.makeText(context, "מספר רכב הועתק ללוח", Toast.LENGTH_SHORT).show()
+                                    }
                                     logResultCardEvent("result_copy_plate_clicked")
                                 },
                                 tooltipText = "העתק מספר רכב",
@@ -2945,7 +2942,9 @@ private fun SpecRow(
             ) {
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 clipboard.setPrimaryClip(ClipData.newPlainText(cleanLabel, textToCopy))
-                Toast.makeText(context, "$cleanLabel הועתק ללוח", Toast.LENGTH_SHORT).show()
+                if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) {
+                    Toast.makeText(context, "$cleanLabel הועתק ללוח", Toast.LENGTH_SHORT).show()
+                }
             }
             .padding(horizontal = 4.dp, vertical = 4.dp)
     } else {

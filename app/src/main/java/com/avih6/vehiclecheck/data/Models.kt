@@ -892,6 +892,18 @@ object VehicleUtils {
             if (mc.contains("XP 500") || mc.contains("TMAX") || mn.contains("TMAX") || mn.contains("טימקס")) return "TMAX"
         }
 
+        // Iveco / איווקו / איבקו
+        if (mk.contains("איווקו") || mk.contains("איבקו") || mk.contains("IVECO", ignoreCase = true)) {
+            if (mc.contains("120E") || mc.contains("135E") || mc.contains("150E") || mc.contains("160E") ||
+                mc.contains("180E") || mc.contains("190E") || mc.contains("75E") || mc.contains("80E") ||
+                mc.contains("90E") || mc.contains("100E") || mc.contains("140E") || mc.contains("EUROCARGO") ||
+                mn.contains("EUROCARGO") || mn.contains("יורוקרגו")) return "יורוקרגו (Eurocargo)"
+            if (mc.contains("DAILY") || mc.contains("דיילי") || mn.contains("DAILY") || mn.contains("דיילי") ||
+                mc.contains("35S") || mc.contains("35C") || mc.contains("50C") || mc.contains("65C") || mc.contains("70C")) return "דיילי (Daily)"
+            if (mc.contains("STRALIS") || mc.contains("סטראליס") || mn.contains("STRALIS") || mn.contains("סטראליס")) return "סטראליס (Stralis)"
+            if (mc.contains("TRAKKER") || mc.contains("טראקר") || mn.contains("TRAKKER") || mn.contains("טראקר")) return "טראקר (Trakker)"
+        }
+
         return null
     }
 
@@ -915,6 +927,10 @@ object VehicleUtils {
                 "503" -> terms.addAll(listOf("503"))
                 "פלימות" -> terms.addAll(listOf("פלימות", "פלימוט", "PLYMOUTH"))
                 "אקונוליין (E-Series)" -> terms.addAll(listOf("E 34", "E-350", "ECONOLINE", "אקונוליין", "E 3", "E-3", "E350"))
+                "יורוקרגו (Eurocargo)" -> terms.addAll(listOf("120E18", "120E21", "120E22", "120E", "135E", "EUROCARGO", "יורוקרגו"))
+                "דיילי (Daily)" -> terms.addAll(listOf("DAILY", "דיילי", "35S", "50C", "65C"))
+                "סטראליס (Stralis)" -> terms.addAll(listOf("STRALIS", "סטראליס", "440S", "450S", "500S"))
+                "טראקר (Trakker)" -> terms.addAll(listOf("TRAKKER", "טראקר", "380T", "410T"))
                 else -> {
                     terms.add(known)
                     if (rawModel.isNotBlank()) terms.add(rawModel.split(" ").first())
@@ -2078,7 +2094,7 @@ object VehicleUtils {
 
             // 1. Firefighting & Rescue Vehicles (כיבוי אש / כבאית)
             combined.contains("כיבוי") || combined.contains("כבאית") || combined.contains("fire") ||
-            combined.contains("חילוץ") -> "🚒 כבאית / כיבוי אש"
+            combined.contains("חילוץ") -> "🚒 כבאית"
 
             // 2. Bus & Minibus (אוטובוס / אוטובוס זעיר) - Evaluated before Ambulance so buses aren't misclassified
             combined.contains("זעיר") && (combined.contains("אוטובוס") || t.contains("m2") || cat.contains("m2")) -> "🚐 אוטובוס זעיר"

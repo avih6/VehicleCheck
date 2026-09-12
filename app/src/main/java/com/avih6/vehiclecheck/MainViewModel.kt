@@ -1236,8 +1236,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 vehicle.effectiveVehicleCategory?.contains("גרור") == true ||
                 vehicle.effectiveVehicleCategory?.contains("נתמך") == true
         val isHeavyOrCommercial = isTrailer ||
+                !vehicle.vehicleCategoryHeavy.isNullOrBlank() ||
+                !vehicle.vinHeavy.isNullOrBlank() ||
                 (vehicle.effectiveVehicleCategory?.contains("משא") == true ||
+                 vehicle.effectiveVehicleCategory?.contains("מסחרי") == true ||
                  vehicle.effectiveVehicleCategory?.contains("אוטובוס") == true ||
+                 vehicle.effectiveVehicleCategory?.contains("כיבוי") == true ||
                  vehicle.effectiveStandardType?.startsWith("N") == true ||
                  vehicle.effectiveStandardType?.startsWith("M3") == true ||
                  vehicle.effectiveStandardType?.startsWith("M2") == true)
@@ -1256,7 +1260,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (modelCd != null && modelCd > 0) {
             candidateModelFilters.add("{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}")
         }
-        for (t in baseInfo.searchTerms.take(3)) {
+        for (t in baseInfo.searchTerms.take(4)) {
             if (t.isNotBlank() && t != vehicle.make) {
                 candidateModelFilters.add("{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$t\"}")
             }
@@ -1269,17 +1273,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         var totalActive = 0
         var singleCandidateFilter: String? = null
 
-        for (f in candidateModelFilters) {
-            try {
-                val c = NetworkClient.apiService.getSameModelActiveCount(resourceId = activeResourceId, filters = f, limit = 0).result?.total ?: 0
-                if (c > 1) {
-                    totalActive = c
-                    matchedFilter = f
-                    break
-                } else if (c == 1 && singleCandidateFilter == null) {
-                    singleCandidateFilter = f
-                }
-            } catch (_: Exception) {}
+        val alternateActiveResourceId = when {
+            isTwoWheeler -> null
+            activeResourceId == "cd3acc5c-03c3-4c89-9c54-d40f93c0d790" -> "053cea08-09bc-40ec-8f7a-156f0677aff3"
+            else -> "cd3acc5c-03c3-4c89-9c54-d40f93c0d790"
+        }
+
+        val resourcesToSearch = listOfNotNull(activeResourceId, alternateActiveResourceId)
+
+        for (resId in resourcesToSearch) {
+            for (f in candidateModelFilters) {
+                try {
+                    val c = NetworkClient.apiService.getSameModelActiveCount(resourceId = resId, filters = f, limit = 0).result?.total ?: 0
+                    if (c > 1) {
+                        totalActive = c
+                        matchedFilter = f
+                        break
+                    } else if (c == 1 && singleCandidateFilter == null) {
+                        singleCandidateFilter = f
+                    }
+                } catch (_: Exception) {}
+            }
+            if (totalActive > 1) break
         }
 
         if (totalActive == 0 && singleCandidateFilter != null) {
@@ -1288,26 +1303,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         // If totalActive is <= 1 and search terms exist, try query (q) parameter within tozeret_cd
-        // to match models where freeform clerk names differ (e.g. Willys CJ, Ford E-350 / E 34)
+        // to match models where freeform clerk names differ (e.g. Willys CJ, Ford E-350 / E 34, Iveco Eurocargo)
         var matchedQueryTerm: String? = null
         if (totalActive <= 1 && baseInfo.searchTerms.isNotEmpty()) {
-            for (term in baseInfo.searchTerms) {
-                if (term.isNotBlank() && term != vehicle.make) {
-                    try {
-                        val qc = NetworkClient.apiService.getSameModelActiveCount(
-                            resourceId = activeResourceId,
-                            filters = "{\"tozeret_cd\":$makeCd}",
-                            query = term,
-                            limit = 0
-                        ).result?.total ?: 0
-                        if (qc > totalActive) {
-                            totalActive = qc
-                            matchedQueryTerm = term
-                            matchedFilter = null
-                            break
-                        }
-                    } catch (_: Exception) {}
+            for (resId in resourcesToSearch) {
+                for (term in baseInfo.searchTerms) {
+                    if (term.isNotBlank() && term != vehicle.make) {
+                        try {
+                            val qc = NetworkClient.apiService.getSameModelActiveCount(
+                                resourceId = resId,
+                                filters = "{\"tozeret_cd\":$makeCd}",
+                                query = term,
+                                limit = 0
+                            ).result?.total ?: 0
+                            if (qc > totalActive) {
+                                totalActive = qc
+                                matchedQueryTerm = term
+                                matchedFilter = null
+                                break
+                            }
+                        } catch (_: Exception) {}
+                    }
                 }
+                if (totalActive > 1) break
             }
         }
 

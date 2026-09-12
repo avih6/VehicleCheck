@@ -153,7 +153,9 @@ fun PledgesInAppBrowserDialog(
                                 onClick = {
                                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                     clipboard.setPrimaryClip(ClipData.newPlainText("Plate", cleanDigits))
-                                    Toast.makeText(context, "מספר רכב $cleanDigits הועתק ללוח!", Toast.LENGTH_SHORT).show()
+                                    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) {
+                                        Toast.makeText(context, "מספר רכב $cleanDigits הועתק ללוח!", Toast.LENGTH_SHORT).show()
+                                    }
                                 },
                                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                                 shape = RoundedCornerShape(8.dp),
