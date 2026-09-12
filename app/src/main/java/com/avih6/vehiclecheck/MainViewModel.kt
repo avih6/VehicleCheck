@@ -2807,7 +2807,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val adTrace = performance.newTrace("ad_load_latency")
         adTrace.start()
 
-        val adUnitId = if (BuildConfig.DEBUG) "ca-app-pub-3940256099942544/2247696110" else "ca-app-pub-6647546375254792/3189297317"
+        val adUnitId = "ca-app-pub-2696004741445434/9903551922"
 
         val adLoader = AdLoader.Builder(context, adUnitId)
             .forNativeAd { ad: NativeAd ->
