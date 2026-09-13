@@ -534,8 +534,9 @@ fun ResultCard(
 
                 // Brand Emblem Badge (Centered & High Contrast White Badge)
                 AutoBrandLogo(
-                    hebrewMake = vehicle.make,
+                    hebrewMake = vehicle.effectiveMake ?: vehicle.make,
                     modelName = vehicle.effectiveModel,
+                    classification = quickClassification,
                     isEngineeringEquipment = isEngineeringEquipment,
                     size = 96.dp
                 )
@@ -677,16 +678,18 @@ fun ResultCard(
                         val isEmergency = quickClassification.contains("אמבולנס") || quickClassification.contains("הצלה") || quickClassification.contains("כיבוי") || quickClassification.contains("כבאית")
                         val isTaxi = quickClassification.contains("מונית")
                         val isCollectorChip = quickClassification.contains("אספנות")
-                        val isGarbage = quickClassification.contains("אשפה") || quickClassification.contains("דחס")
+                        val isGarbage = quickClassification.contains("זבל") || quickClassification.contains("אשפה") || quickClassification.contains("דחס")
                         val isAtv = quickClassification.contains("טרקטורון") || quickClassification.contains("SBS") || quickClassification.contains("טרקטור משא")
-                        val isAgri = quickClassification.contains("טרקטור חקלאי")
+                        val isGolf = quickClassification.contains("גולף")
+                        val isTow = quickClassification.contains("גרר") || quickClassification.contains("חילוץ")
                         val chipColor = when {
                             isEmergency -> Color(0xFFE53935)
                             isTaxi -> Color(0xFFE65100)
                             isCollectorChip -> Color(0xFFFFB300)
                             isGarbage -> Color(0xFF00897B)
                             isAtv -> Color(0xFFE65100)
-                            isAgri -> Color(0xFF558B2F)
+                            isGolf -> Color(0xFF2E7D32)
+                            isTow -> Color(0xFFF57C00)
                             else -> MaterialTheme.colorScheme.primary
                         }
                         Surface(
@@ -1040,12 +1043,13 @@ fun ResultCard(
                         })
                         showStatsDialog = true
                     },
-                    onLogEvent = onLogEvent
+                    onLogEvent = onLogEvent,
+                    quickClassification = quickClassification
                 )
                 1 -> TechSpecTabContent(vehicle, techSpec)
                 2 -> SafetyTabContent(vehicle, techSpec, safetyDiscount, recalls)
                 3 -> EnvironmentTabContent(vehicle, techSpec, dieselFilterStatus)
-                4 -> StatisticsTabContent(vehicle, stats, monthlyDeliveries)
+                4 -> StatisticsTabContent(vehicle, stats, monthlyDeliveries, quickClassification)
             }
         }
     }
@@ -1071,7 +1075,8 @@ private fun GeneralTabContent(
     cargoTieDown: CargoTieDownRecord? = null,
     busFleet: BusFleetRecord? = null,
     onShowAllCounts: () -> Unit,
-    onLogEvent: ((String, android.os.Bundle?) -> Unit)? = null
+    onLogEvent: ((String, android.os.Bundle?) -> Unit)? = null,
+    quickClassification: String = ""
 ) {
     val context = LocalContext.current
 
@@ -1451,7 +1456,8 @@ private fun GeneralTabContent(
 
                 Spacer(Modifier.height(12.dp))
 
-                SpecRow("קבוצת רישוי ומשקל:", legalClass, isHighlighted = true)
+                SpecRow("סיווג ראשי:", quickClassification, isHighlighted = true)
+                SpecRow("קבוצת רישוי ומשקל:", legalClass)
                 SpecRow("דרגת רישיון נדרשת:", legalLicenseNote)
 
                 val stdLegal = (vehicle.effectiveStandardType ?: vehicle.standardType).orEmpty().trim().uppercase()
@@ -3285,7 +3291,8 @@ private fun buildComprehensiveShareText(
 private fun StatisticsTabContent(
     vehicle: VehicleRecord,
     stats: ModelStatistics?,
-    monthlyDeliveries: List<MonthlyDeliveryRecord> = emptyList()
+    monthlyDeliveries: List<MonthlyDeliveryRecord> = emptyList(),
+    quickClassification: String = ""
 ) {
     val context = LocalContext.current
     val brandLogoUrl = VehicleUtils.getBrandLogoUrl(vehicle.make)
@@ -3320,8 +3327,9 @@ private fun StatisticsTabContent(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 AutoBrandLogo(
-                    hebrewMake = vehicle.make,
+                    hebrewMake = vehicle.effectiveMake ?: vehicle.make,
                     modelName = vehicle.effectiveModel,
+                    classification = quickClassification,
                     size = 72.dp
                 )
                 Spacer(Modifier.height(8.dp))
@@ -4042,6 +4050,7 @@ fun AutoBrandLogo(
     hebrewMake: String?,
     modifier: Modifier = Modifier,
     modelName: String? = null,
+    classification: String? = null,
     size: androidx.compose.ui.unit.Dp = 80.dp,
     isEngineeringEquipment: Boolean = false,
     useWhiteBackground: Boolean = true
@@ -4060,12 +4069,41 @@ fun AutoBrandLogo(
             modifier = Modifier.fillMaxSize().padding(4.dp),
             contentAlignment = Alignment.Center
         ) {
+            val classStr = classification.orEmpty().lowercase()
             val isTrailer = slug == "trailer" || (hebrewMake != null && (hebrewMake.contains("סירני") || hebrewMake.contains("גרור") || hebrewMake.contains("נתמך")))
-            val isTractor = hebrewMake?.contains("טרקטור") == true || modelName?.contains("טרקטור") == true
+            val isAgriTractor = (slug in setOf("john-deere", "massey-ferguson", "new-holland", "fendt", "claas", "case", "kubota")) ||
+                    (hebrewMake?.contains("טרקטור חקלאי") == true)
+
+            val isAtv = classStr.contains("טרקטורון") || classStr.contains("sbs") || classStr.contains("טרקטור משא") ||
+                    (slug in setOf("polaris", "can-am", "arctic-cat", "cfmoto", "segway", "tgb", "linhai")) ||
+                    (hebrewMake?.contains("טרקטורון") == true) || (modelName?.contains("טרקטורון") == true) ||
+                    (hebrewMake?.contains("טרקטור משא") == true) || (modelName?.contains("טרקטור משא") == true) ||
+                    (modelName?.contains("rzr", ignoreCase = true) == true) || (modelName?.contains("maverick", ignoreCase = true) == true)
+
+            val isPublicTransit = classStr.contains("אוטובוס") || classStr.contains("היסעים") || classStr.contains("תחב\"צ") ||
+                    (slug in setOf("golden-dragon", "yutong", "higer", "king-long", "ankai", "foton")) ||
+                    (hebrewMake?.contains("אוטובוס") == true) || (modelName?.contains("אוטובוס") == true)
+
+            val isTruckOrTow = classStr.contains("משאית") || classStr.contains("גרר") || classStr.contains("זבל") || classStr.contains("דחס") || classStr.contains("משא כבד") ||
+                    (slug in setOf("scania", "man", "daf", "iveco", "mack", "faun", "zoeller", "bucher", "dulevo")) ||
+                    (hebrewMake?.contains("משאית") == true) || (modelName?.contains("משאית") == true) ||
+                    (hebrewMake?.contains("גרר") == true) || (modelName?.contains("גרר") == true) ||
+                    (hebrewMake?.contains("דחס") == true) || (hebrewMake?.contains("אשפה") == true)
+
+            val isTwoWheeler = classStr.contains("אופנוע") || classStr.contains("קטנוע") ||
+                    (slug in setOf("yamaha", "kawasaki", "honda", "suzuki", "ktm", "husqvarna", "ducati", "harley-davidson", "triumph", "sym", "kymco", "piaggio", "vespa", "voge", "qjmotor", "benelli", "aprilia", "moto-guzzi", "royal-enfield")) ||
+                    (hebrewMake?.contains("אופנוע") == true) || (modelName?.contains("אופנוע") == true) || (hebrewMake?.contains("קטנוע") == true) || (modelName?.contains("קטנוע") == true)
+
+            val isTaxi = classStr.contains("מונית") || (hebrewMake?.contains("מונית") == true) || (modelName?.contains("מונית") == true)
+
             val fallbackIcon = when {
                 isEngineeringEquipment -> Icons.Default.Construction
-                isTractor -> Icons.Default.Agriculture
-                isTrailer -> Icons.Default.LocalShipping
+                isAgriTractor -> Icons.Default.Agriculture
+                isAtv -> Icons.Default.Agriculture
+                isPublicTransit -> Icons.Default.DirectionsBus
+                isTruckOrTow || isTrailer -> Icons.Default.LocalShipping
+                isTwoWheeler -> Icons.Default.TwoWheeler
+                isTaxi -> Icons.Default.LocalTaxi
                 else -> Icons.Default.DirectionsCar
             }
 

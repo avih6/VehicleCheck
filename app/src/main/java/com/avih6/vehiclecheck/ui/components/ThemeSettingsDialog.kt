@@ -194,6 +194,8 @@ fun ThemeSettingsDialog(
                                             }
                                             localeManager?.applicationLocales = appLocales
                                         }
+                                        onDismiss()
+                                        (context as? android.app.Activity)?.recreate()
                                     }
                                 )
                             }

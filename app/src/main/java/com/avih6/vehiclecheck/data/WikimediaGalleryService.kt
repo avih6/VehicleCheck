@@ -135,12 +135,25 @@ object WikimediaGalleryService {
                 modelClean.contains("zforce", ignoreCase = true) || modelClean.contains("sportsman", ignoreCase = true) ||
                 modelClean.contains("outlander", ignoreCase = true) || modelClean.contains("atv", ignoreCase = true) ||
                 modelClean.contains("quad", ignoreCase = true)
+        val isGolfCart = catLower.contains("גולף") || trimLower.contains("גולף") ||
+                brand.contains("club car", ignoreCase = true) || brand.contains("ezgo", ignoreCase = true) ||
+                brand.contains("קלאב") || modelClean.contains("carryall", ignoreCase = true) ||
+                modelClean.contains("golf", ignoreCase = true)
+
         val isIsraeliPreferred = isAmbulance || isBus || isPolice || isTaxi || isGarbage
 
         val candidatesMap = mutableMapOf<String, CarGalleryImage>()
 
         // 1. Prepare multi-tier parallel queries with Israeli preference
         val commonsQueries = mutableListOf<String>()
+
+        if (isGolfCart) {
+            commonsQueries.add("$brand $modelClean")
+            commonsQueries.add("Club Car $modelClean")
+            commonsQueries.add("Club Car golf cart")
+            commonsQueries.add("$brand golf cart")
+            commonsQueries.add("golf cart")
+        }
 
         if (isGarbage) {
             commonsQueries.add("Israel garbage truck")
@@ -344,7 +357,7 @@ object WikimediaGalleryService {
         "boat", "ship", "ferry", "vessel", "yacht", "harbor", "port", "barge",
         "medal", "coin", "banknote", "currency", "stamp", "stamps", "trophy", "award",
         "engine", "switch", "button", "gauge", "gauges", "speedometer",
-        "tachometer", "odometer", "dashboard", "interior", "steering wheel", "pedal", "pedals",
+        "tachometer", "odometer", "dashboard", "dashboards", "interior", "interiors", "cockpit", "steering wheel", "pedal", "pedals",
         "gearbox", "transmission", "shifter", "knob", "console", "exhaust",
         "muffler", "tailpipe", "headlight", "taillight", "indicator", "lamp",
         "caliper", "rotor", "radiator", "battery", "intake", "manifold",
@@ -354,11 +367,12 @@ object WikimediaGalleryService {
         "advertisement", "advert", "ad", "newspaper", "clipping", "poster", "brochure", "flyer", "leaflet",
         "pamphlet", "receipt", "invoice", "press release", "article",
         "letterhead", "magazine", "catalog", "catalogue", "price list", "tariff",
-        "portrait", "singer", "actor", "actress", "politician", "minister", "president",
+        "portrait", "portraits", "singer", "actor", "actress", "politician", "minister", "president",
         "driver", "racer", "biography", "obituary", "soldier", "army",
         "concert", "album", "cover", "band", "music", "song", "person", "headshot", "selfie",
         "peas", "pea", "vegetable", "vegetables", "fruit", "fruits", "food", "dish", "recipe",
-        "cooking", "cuisine", "animal", "animals", "bird", "birds", "fish", "dog", "dogs", "cat", "cats", "cow", "horse", "sheep"
+        "cooking", "cuisine", "animal", "animals", "bird", "birds", "fish", "dog", "dogs", "cat", "cats", "cow", "horse", "sheep",
+        "charger", "charging", "inauguration", "launch", "coco", "shop", "store", "mall", "stand", "booth", "baldy", "alexandre"
     )
 
     private val blockedPhrases = listOf(
@@ -366,11 +380,17 @@ object WikimediaGalleryService {
         "aerial view", "aerial photo", "satellite view", "satellite image", "head office",
         "vin plate", "identification plate", "plate number", "door panel", "close-up", "closeup",
         "october 7", "bundesarchiv bild", "israeli singer", "pikiwiki", "piki_wiki", "leonard cohen",
+        "charging station", "charging point", "ev charger", "charge point", "car charger",
+        "showroom exterior", "shop front", "store front", "car show booth", "auto show stand",
+        "salão do automóvel", "salon de l'auto", "auto salon", "messe frankfurt",
+        "automobile dashboards", "interiors of automobiles", "car interior", "vehicle interior",
+        "byd shop", "byd coco",
+        "wikiportraits", "randy g", "alexandre baldy",
         "חופשי ומאושר", "אתניקס", "אתניx", "כינוס פוליטי", "בית קברות"
     )
 
-    private fun isJunkOrNonVehicle(title: String, description: String = "", artist: String = ""): Boolean {
-        val comb = "$title $description $artist".lowercase()
+    private fun isJunkOrNonVehicle(title: String, description: String = "", artist: String = "", categories: String = ""): Boolean {
+        val comb = "$title $description $artist $categories".lowercase()
 
         // 1. Check blocked multi-word phrases
         if (blockedPhrases.any { comb.contains(it) }) return true
@@ -400,7 +420,7 @@ object WikimediaGalleryService {
 
         if (cleanMake.isBlank() && cleanModel.isBlank()) {
             // Rich multi-car gallery for "הכל" with full infinite scrolling support
-            val query = "Toyota OR Hyundai OR Tesla OR Kia OR Mazda OR Honda OR Mercedes OR BMW OR Audi OR BYD car"
+            val query = "Toyota car OR Hyundai car OR Tesla car OR Kia car OR Mazda car OR BYD car OR Mercedes car OR BMW car"
             val result = fetchCommonsSearch(query, offset, limit)
             return@withContext result
         }
@@ -439,12 +459,12 @@ object WikimediaGalleryService {
         }
     }
 
-    suspend fun fetchCommonsSearch(
+    private suspend fun fetchCommonsSearchSingle(
         rawQuery: String,
-        offset: Int = 0,
-        limit: Int = 40
+        offset: Int,
+        limit: Int = 50
     ): GalleryPageResult = withContext(Dispatchers.IO) {
-        val lightExclusions = " -logo -icon -diagram -flag -train -locomotive -aircraft -ship"
+        val lightExclusions = " -pdf -doc -text -logo -icon -diagram -flag -train -locomotive -aircraft -ship"
         val fullQuery = "$rawQuery$lightExclusions"
         val encodedQuery = URLEncoder.encode(fullQuery, "UTF-8")
         val offsetParam = if (offset > 0) "&gsroffset=$offset" else ""
@@ -498,6 +518,7 @@ object WikimediaGalleryService {
                             .trim()
 
                         val rawDesc = extMetadata?.optJSONObject("ImageDescription")?.optString("value").orEmpty()
+                        val rawCategories = extMetadata?.optJSONObject("Categories")?.optString("value").orEmpty()
                         val cleanDesc = cleanImageDescription(rawDesc)
                         val altText = if (cleanDesc.isNotBlank() && cleanDesc.length > 5) cleanDesc else if (title.isNotBlank()) "תמונת רכב: $title" else "תמונת רכב ממאגר ויקימדיה"
 
@@ -507,7 +528,7 @@ object WikimediaGalleryService {
                                               checkPath.endsWith(".png", ignoreCase = true) ||
                                               checkPath.endsWith(".webp", ignoreCase = true)
 
-                        val isJunk = isJunkOrNonVehicle(title, cleanDesc, cleanArtist)
+                        val isJunk = isJunkOrNonVehicle(title, cleanDesc, cleanArtist, rawCategories)
 
                         if (thumbUrl.isNotBlank() && isValidExtension && !isJunk) {
                             results.add(CarGalleryImage(
@@ -532,6 +553,31 @@ object WikimediaGalleryService {
         } catch (_: Exception) {
             GalleryPageResult(emptyList(), null)
         }
+    }
+
+    suspend fun fetchCommonsSearch(
+        rawQuery: String,
+        offset: Int = 0,
+        limit: Int = 40
+    ): GalleryPageResult = withContext(Dispatchers.IO) {
+        val accumulated = mutableListOf<CarGalleryImage>()
+        var currentOffset: Int? = offset
+        var iterations = 0
+
+        while (accumulated.size < limit && iterations < 3) {
+            iterations++
+            val page = fetchCommonsSearchSingle(rawQuery, currentOffset ?: 0, limit = 50)
+            accumulated.addAll(page.images)
+            currentOffset = page.nextOffset
+            if (page.nextOffset == null || page.images.isEmpty()) break
+        }
+
+        val seen = mutableSetOf<String>()
+        val distinct = accumulated.filter { seen.add(it.imageUrl) }
+        GalleryPageResult(
+            images = distinct.take(limit),
+            nextOffset = if (distinct.size >= limit) currentOffset else null
+        )
     }
 
     suspend fun fetchWikipediaSearch(
@@ -756,7 +802,7 @@ object WikimediaGalleryService {
         }
 
         val modelLower = model.lowercase().trim()
-        val hasSpecificModel = modelLower.isNotBlank() && !modelLower.equals("car", ignoreCase = true)
+        val  hasSpecificModel = modelLower.isNotBlank() && !modelLower.equals("car", ignoreCase = true)
         if (hasSpecificModel) {
             if (textToSearch.contains(modelLower)) {
                 score += 1500 // Strongly prioritize matching the exact car model
@@ -831,7 +877,12 @@ object WikimediaGalleryService {
             brand.contains(it, ignoreCase = true) || model.contains(it, ignoreCase = true) || rawMake.contains(it, ignoreCase = true) || rawModel.contains(it, ignoreCase = true)
         }
 
+        val isGolfCart = listOf("club car", "ezgo", "ez-go", "גולף", "קלאב", "איזיגו", "golf cart", "carryall").any {
+            brand.contains(it, ignoreCase = true) || model.contains(it, ignoreCase = true) || rawMake.contains(it, ignoreCase = true) || rawModel.contains(it, ignoreCase = true)
+        }
+
         return when {
+            isGolfCart -> if (model.isNotBlank() && !model.equals("car", ignoreCase = true) && !model.equals("golf cart", ignoreCase = true)) "$brand $model" else "$brand golf cart"
             isGarbage -> "$brand $model garbage truck"
             isAtvOrSbs -> "$brand $model ATV"
             isMachinery -> "$brand $model"
@@ -840,4 +891,4 @@ object WikimediaGalleryService {
             else -> "automobiles passenger cars vehicle"
         }
     }
-}
+}

@@ -570,8 +570,13 @@ fun MainAppShell(viewModel: MainViewModel) {
                         val currentSearchState = viewModel.searchState.collectAsState().value
                         val initialQuery = if (currentSearchState is com.avih6.vehiclecheck.data.SearchState.Success) {
                             val v = currentSearchState.vehicle
-                            val (makeEn, modelEn) = com.avih6.vehiclecheck.data.VehicleUtils.getEnglishMakeAndModel(v.make, v.model)
-                            "$makeEn $modelEn"
+                            val (makeEn, modelEn) = com.avih6.vehiclecheck.data.VehicleUtils.getEnglishMakeAndModel(
+                                hebrewMake = v.effectiveMake ?: v.make,
+                                model = v.effectiveModel ?: v.model,
+                                trimLevel = v.trimLevel,
+                                category = v.effectiveVehicleCategory ?: v.vehicleCategory
+                            )
+                            if (modelEn.isNotBlank() && modelEn != "car") "$makeEn $modelEn".trim() else makeEn.trim().ifBlank { "הכל" }
                         } else "הכל"
 
                         com.avih6.vehiclecheck.ui.screens.GalleryScreen(

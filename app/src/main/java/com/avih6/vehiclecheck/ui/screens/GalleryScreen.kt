@@ -88,7 +88,7 @@ fun GalleryScreen(
             "שברולט", "מרצדס", "ב.מ.וו", "אאודי", "פולקסווגן", "BYD", "ג'ילי", "MG", "קופרה",
             "פורד", "פיג'ו", "רנו", "סיטרואן", "וולוו", "סוזוקי", "הונדה",
             "מיצובישי", "ניסאן", "סיאט", "דאצ'יה", "לקסוס", "פורשה", "ג'יפ", "קאדילאק",
-            "פולריס", "קאן-אם", "CFMOTO"
+            "פולריס", "קאן-אם", "CFMOTO", "קלאב קאר"
         )
     }
 
@@ -202,9 +202,7 @@ fun GalleryScreen(
                 }
             }
 
-            val words = brandOrQuery.trim().split(" ")
-            val make = words.firstOrNull() ?: ""
-            val model = if (words.size > 1) words.drop(1).joinToString(" ") else ""
+            val (make, model) = parseMakeAndModelFromQuery(brandOrQuery)
             val page = WikimediaGalleryService.fetchGalleryPage(make, model, offset = 0, limit = 40)
             images = page.images
             nextOffset = page.nextOffset
@@ -227,9 +225,7 @@ fun GalleryScreen(
                 selectedBrand
             }
 
-            val words = currentQuery.trim().split(" ")
-            val make = words.firstOrNull() ?: ""
-            val model = if (words.size > 1) words.drop(1).joinToString(" ") else ""
+            val (make, model) = parseMakeAndModelFromQuery(currentQuery)
             val page = WikimediaGalleryService.fetchGalleryPage(make, model, offset = offset, limit = 40)
             
             // Deduplicate by URL
@@ -282,16 +278,43 @@ fun GalleryScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
+                            var isFullImageLoaded by remember(imageItem.imageUrl) { mutableStateOf(false) }
+
+                            // 1. Instant thumbnail from cache (already loaded in grid, zero delay!)
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(imageItem.thumbUrl)
+                                    .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Fit
+                            )
+
+                            // 2. High-res image loaded smoothly on top
                             AsyncImage(
                                 model = ImageRequest.Builder(context)
                                     .data(imageItem.imageUrl)
                                     .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
                                     .crossfade(true)
+                                    .listener(
+                                        onSuccess = { _, _ -> isFullImageLoaded = true },
+                                        onError = { _, _ -> isFullImageLoaded = true }
+                                    )
                                     .build(),
                                 contentDescription = imageItem.altText.ifBlank { imageItem.title },
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Fit
                             )
+
+                            if (!isFullImageLoaded) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(28.dp).align(Alignment.Center),
+                                    color = Color.White.copy(alpha = 0.65f),
+                                    strokeWidth = 2.dp
+                                )
+                            }
                         }
                     }
                 }
@@ -402,7 +425,7 @@ fun GalleryScreen(
                         }
                     }
 
-                    // Bottom Rich Info Card (Title, License, Artist, Clickable Source Link)
+                    // Bottom Rich Info Card (Title, License, Artist, Clickable Source Link & Model Stats)
                     androidx.compose.animation.AnimatedVisibility(
                         visible = showOverlays,
                         enter = androidx.compose.animation.fadeIn(),
@@ -412,10 +435,11 @@ fun GalleryScreen(
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
-                            color = Color.Black.copy(alpha = 0.75f),
+                                .navigationBarsPadding()
+                                .padding(start = 16.dp, end = 16.dp, bottom = 22.dp),
+                            color = Color.Black.copy(alpha = 0.85f),
                             shape = RoundedCornerShape(16.dp),
-                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f))
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.22f))
                         ) {
                             Column(
                                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
@@ -431,6 +455,38 @@ fun GalleryScreen(
                                     maxLines = 2,
                                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                 )
+
+                                // Recognized Car Model (Gov DB verified) with navigation to Statistics screen
+                                val recognized = remember(currentImage.title, currentImage.description, makeToModelsMap) {
+                                    detectRecognizedVehicleModel(currentImage.title, currentImage.description, makeToModelsMap)
+                                }
+                                if (recognized != null) {
+                                    val (recMake, recModel) = recognized
+                                    val fullQuery = "$recMake $recModel".trim()
+                                    Spacer(Modifier.height(6.dp))
+                                    FilledTonalButton(
+                                        onClick = {
+                                            viewModel?.searchModelStatistics(fullQuery)
+                                            viewModel?.setSelectedTab(2)
+                                            selectedImageIndexForViewer = null
+                                        },
+                                        colors = ButtonDefaults.filledTonalButtonColors(
+                                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                        ),
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                        modifier = Modifier.handCursor()
+                                    ) {
+                                        Icon(Icons.Default.BarChart, contentDescription = null, modifier = Modifier.size(15.dp))
+                                        Spacer(Modifier.width(6.dp))
+                                        Text(
+                                            text = "דגם מאומת: $fullQuery • צפה בסטטיסטיקה ומפרט",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
 
                                 Spacer(Modifier.height(4.dp))
 
@@ -736,8 +792,14 @@ fun GalleryScreen(
                         modifier = Modifier.size(64.dp)
                     )
                     Spacer(Modifier.height(12.dp))
+                    val displayTarget = when {
+                        searchQuery.isNotBlank() -> "\"$searchQuery\""
+                        selectedBrand == "הכל" -> "כל הרכבים"
+                        selectedModel != "כל הדגמים" -> "\"$selectedBrand $selectedModel\""
+                        else -> "\"$selectedBrand\""
+                    }
                     Text(
-                        text = "לא נמצאו תמונות עבור \"${if (searchQuery.isNotBlank()) searchQuery else "$selectedBrand $selectedModel"}\".\nבחר באחד היצרנים או הדגמים למעלה.",
+                        text = "לא נמצאו תמונות עבור $displayTarget.\nבחר באחד היצרנים או הדגמים למעלה.",
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium
@@ -793,6 +855,46 @@ fun GalleryScreen(
                                 contentScale = ContentScale.Crop
                             )
 
+                            // Certified model chip (links to statistics)
+                            val recognized = remember(item.title, item.description, makeToModelsMap) {
+                                detectRecognizedVehicleModel(item.title, item.description, makeToModelsMap)
+                            }
+                            if (recognized != null) {
+                                val (recMake, recModel) = recognized
+                                Surface(
+                                    modifier = Modifier
+                                        .align(Alignment.TopStart)
+                                        .padding(6.dp)
+                                        .clickable {
+                                            viewModel?.searchModelStatistics("$recMake $recModel".trim())
+                                            viewModel?.setSelectedTab(2)
+                                        },
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color.Black.copy(alpha = 0.75f),
+                                    border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Default.BarChart,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(11.dp)
+                                        )
+                                        Spacer(Modifier.width(3.dp))
+                                        Text(
+                                            text = "$recMake $recModel".trim(),
+                                            color = Color.White,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
+                            }
+
                             // Title overlay on bottom
                             Surface(
                                 modifier = Modifier
@@ -844,4 +946,145 @@ fun GalleryScreen(
             }
         }
     }
+}
+
+fun detectRecognizedVehicleModel(
+    title: String,
+    description: String,
+    makeToModelsMap: Map<String, List<String>> = emptyMap()
+): Pair<String, String>? {
+    val text = "$title $description".lowercase()
+
+    val specificModels = listOf(
+        "atto 3" to ("BYD" to "Atto 3"),
+        "atto3" to ("BYD" to "Atto 3"),
+        "dolphin" to ("BYD" to "Dolphin"),
+        "seal u" to ("BYD" to "Seal U"),
+        "seal" to ("BYD" to "Seal"),
+        "tang" to ("BYD" to "Tang"),
+        "han" to ("BYD" to "Han"),
+        "model 3" to ("טסלה" to "Model 3"),
+        "model y" to ("טסלה" to "Model Y"),
+        "model s" to ("טסלה" to "Model S"),
+        "model x" to ("טסלה" to "Model X"),
+        "cybertruck" to ("טסלה" to "Cybertruck"),
+        "corolla cross" to ("טויוטה" to "Corolla Cross"),
+        "corolla" to ("טויוטה" to "Corolla"),
+        "yaris cross" to ("טויוטה" to "Yaris Cross"),
+        "yaris" to ("טויוטה" to "Yaris"),
+        "rav4" to ("טויוטה" to "RAV4"),
+        "land cruiser" to ("טויוטה" to "Land Cruiser"),
+        "camry" to ("טויוטה" to "Camry"),
+        "c-hr" to ("טויוטה" to "C-HR"),
+        "hilux" to ("טויוטה" to "Hilux"),
+        "tucson" to ("יונדאי" to "Tucson"),
+        "ioniq 5" to ("יונדאי" to "Ioniq 5"),
+        "ioniq 6" to ("יונדאי" to "Ioniq 6"),
+        "ioniq" to ("יונדאי" to "Ioniq"),
+        "kona" to ("יונדאי" to "Kona"),
+        "elantra" to ("יונדאי" to "Elantra"),
+        "santa fe" to ("יונדאי" to "Santa Fe"),
+        "i10" to ("יונדאי" to "i10"),
+        "i20" to ("יונדאי" to "i20"),
+        "i30" to ("יונדאי" to "i30"),
+        "sportage" to ("קיה" to "Sportage"),
+        "picanto" to ("קיה" to "Picanto"),
+        "niro" to ("קיה" to "Niro"),
+        "ev6" to ("קיה" to "EV6"),
+        "ev9" to ("קיה" to "EV9"),
+        "stonic" to ("קיה" to "Stonic"),
+        "sorento" to ("קיה" to "Sorento"),
+        "octavia" to ("סקודה" to "Octavia"),
+        "kodiaq" to ("סקודה" to "Kodiaq"),
+        "karoq" to ("סקודה" to "Karoq"),
+        "superb" to ("סקודה" to "Superb"),
+        "kamiq" to ("סקודה" to "Kamiq"),
+        "fabia" to ("סקודה" to "Fabia"),
+        "enyaq" to ("סקודה" to "Enyaq"),
+        "golf" to ("פולקסווגן" to "Golf"),
+        "polo" to ("פולקסווגן" to "Polo"),
+        "tiguan" to ("פולקסווגן" to "Tiguan"),
+        "t-roc" to ("פולקסווגן" to "T-Roc"),
+        "passat" to ("פולקסווגן" to "Passat"),
+        "id.4" to ("פולקסווגן" to "ID.4"),
+        "id.3" to ("פולקסווגן" to "ID.3"),
+        "cx-5" to ("מאזדה" to "CX-5"),
+        "cx-30" to ("מאזדה" to "CX-30"),
+        "mazda 3" to ("מאזדה" to "Mazda 3"),
+        "mazda 2" to ("מאזדה" to "Mazda 2"),
+        "mazda 6" to ("מאזדה" to "Mazda 6"),
+        "formentor" to ("קופרה" to "Formentor"),
+        "ibiza" to ("סיאט" to "Ibiza"),
+        "arona" to ("סיאט" to "Arona"),
+        "ateca" to ("סיאט" to "Ateca"),
+        "leon" to ("סיאט" to "Leon"),
+        "carryall" to ("קלאב קאר" to "Carryall"),
+        "rzr" to ("פולריס" to "RZR"),
+        "sportsman" to ("פולריס" to "Sportsman"),
+        "ranger" to ("פולריס" to "Ranger"),
+        "general" to ("פולריס" to "General"),
+        "maverick" to ("קאן-אם" to "Maverick"),
+        "traxter" to ("קאן-אם" to "Traxter"),
+        "outlander" to ("מיצובישי" to "Outlander"),
+        "cforce" to ("CFMOTO" to "CForce"),
+        "zforce" to ("CFMOTO" to "ZForce"),
+        "uforce" to ("CFMOTO" to "UForce"),
+        "forester" to ("סובארו" to "Forester"),
+        "crosstrek" to ("סובארו" to "Crosstrek"),
+        "outback" to ("סובארו" to "Outback"),
+        "geometry c" to ("ג'ילי" to "Geometry C"),
+        "mg 4" to ("MG" to "MG 4"),
+        "mg zs" to ("MG" to "MG ZS"),
+        "fe electric" to ("וולוו" to "FE"),
+        "volvo fe" to ("וולוו" to "FE")
+    )
+
+    for ((key, pair) in specificModels) {
+        if (text.contains(key)) {
+            return pair
+        }
+    }
+
+    for ((make, models) in makeToModelsMap) {
+        val makeLower = make.lowercase()
+        if (text.contains(makeLower)) {
+            for (model in models.sortedByDescending { it.length }) {
+                if (model != "כל הדגמים" && model.length >= 3 && text.contains(model.lowercase())) {
+                    return Pair(make, model)
+                }
+            }
+        }
+    }
+
+    return null
+}
+
+private fun parseMakeAndModelFromQuery(text: String): Pair<String, String> {
+    val trimmed = text.trim()
+    val lower = trimmed.lowercase()
+    val twoWordMakes = listOf(
+        "club car", "club-car", "קלאב קאר", "קלאב-קאר", "קלאבקאר",
+        "land rover", "land-rover", "לנד רובר",
+        "alfa romeo", "alfa-romeo", "אלפא רומיאו", "אלפא רומאו",
+        "aston martin", "aston-martin", "אסטון מרטין",
+        "rolls royce", "rolls-royce", "רולס רויס",
+        "mercedes benz", "mercedes-benz", "מרצדס בנץ",
+        "golden dragon", "golden-dragon", "גולדן דרגון",
+        "king long", "king-long", "קינג לונג",
+        "john deere", "john-deere", "ג'ון דיר",
+        "new holland", "new-holland", "ניו הולנד",
+        "massey ferguson", "massey-ferguson", "מסי פרגוסון",
+        "arctic cat", "arctic-cat", "ארקטיק קאט"
+    )
+    for (twoWord in twoWordMakes) {
+        if (lower.startsWith(twoWord)) {
+            val make = trimmed.substring(0, twoWord.length).trim()
+            val model = trimmed.substring(twoWord.length).trim()
+            return Pair(make, model)
+        }
+    }
+    val words = trimmed.split(" ")
+    val make = words.firstOrNull() ?: ""
+    val model = if (words.size > 1) words.drop(1).joinToString(" ") else ""
+    return Pair(make, model)
 }
