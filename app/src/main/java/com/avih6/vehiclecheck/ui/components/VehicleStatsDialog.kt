@@ -77,7 +77,8 @@ fun VehicleStatsDialog(
 
                 // Pure Brand Emblem Large (105dp)
                 AutoBrandLogo(
-                    hebrewMake = vehicle.make,
+                    hebrewMake = vehicle.effectiveMake ?: vehicle.make,
+                    modelName = vehicle.effectiveModel ?: vehicle.model,
                     size = 105.dp
                 )
 

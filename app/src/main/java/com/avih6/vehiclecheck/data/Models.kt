@@ -1978,7 +1978,11 @@ object VehicleUtils {
         val subtitle: String
     )
 
-    fun resolveBodyType(vehicle: VehicleRecord, techSpec: VehicleTechnicalSpecRecord?): BodyTypeInfo {
+    fun resolveBodyType(
+        vehicle: VehicleRecord,
+        techSpec: VehicleTechnicalSpecRecord?,
+        quickClassification: String? = null
+    ): BodyTypeInfo {
         val bt = techSpec?.bodyType.orEmpty().trim().lowercase()
         val mod = vehicle.model.orEmpty().trim().lowercase()
         val cat = (vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory).orEmpty().trim().lowercase()
@@ -1986,6 +1990,22 @@ object VehicleUtils {
         val seats = vehicle.effectiveSeats ?: techSpec?.seats ?: 0
         val trim = vehicle.trimLevel.orEmpty().trim().lowercase()
         val effMod = (vehicle.effectiveModel ?: vehicle.model ?: vehicle.modelCode).orEmpty().trim().lowercase()
+
+        val qc = quickClassification ?: resolveQuickClassification(
+            make = vehicle.make,
+            model = vehicle.model,
+            modelType = vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory,
+            ownership = vehicle.ownership,
+            trimLevel = vehicle.trimLevel,
+            fuel = vehicle.fuelType,
+            category = vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory,
+            year = vehicle.year,
+            modelCode = vehicle.modelCode,
+            commercialName = vehicle.effectiveModel,
+            cargoBoxType = vehicle.cargoBoxType,
+            bodyTypeName = vehicle.bodyTypeName,
+            licensePlate = vehicle.licensePlate
+        )
 
         val isTrailer = cat.contains("גרור") || cat.contains("נתמך") || cat.contains("נגרר") ||
                 bt.contains("גרור") || bt.contains("נתמך") || std.startsWith("O") ||
@@ -2041,49 +2061,106 @@ object VehicleUtils {
                 (vehicle.make?.contains("ez-go") == true) || (vehicle.make?.contains("איזיגו") == true) ||
                 vehicle.licensePlate in setOf(19288202L, 19290302L, 19288302L, 50376103L, 50380503L, 50381203L, 35222901L, 9318375L)
 
+        val isMinivan = qc.contains("מיניוואן") ||
+                ((bt.contains("מיניוואן") || bt.contains("minivan")) && seats in 6..9) ||
+                (effMod.contains("carnival") || effMod.contains("קרניבל") ||
+                 effMod.contains("sienna") || effMod.contains("סיינה") ||
+                 effMod.contains("voyager") || effMod.contains("וויאג'ר") ||
+                 effMod.contains("pacifica") || effMod.contains("פסיפיקה") ||
+                 effMod.contains("galaxy") || effMod.contains("sharan") ||
+                 effMod.contains("routan") || effMod.contains("grand scenic") ||
+                 effMod.contains("lodgy") || effMod.contains("לודג'י"))
+
+        val isSuv = qc.contains("פנאי-שטח") || bt.contains("שטח") || bt.contains("suv") ||
+                bt.contains("קרוסאובר") || bt.contains("crossover") ||
+                effMod.contains("cj") || effMod.contains("סי גי") || effMod.contains("סי.גי") || effMod.contains("סופה") ||
+                (vehicle.make?.contains("וויליס") == true) || (vehicle.make?.contains("ויליס") == true) ||
+                (vehicle.make?.contains("ג'יפ") == true) || (vehicle.make?.contains("jeep", ignoreCase = true) == true)
+
+        val isSedan = bt.contains("סדאן") || bt.contains("sedan") || bt.contains("saloon") ||
+                effMod.contains("avalon") || effMod.contains("אבלון") || effMod.contains("אוולון") ||
+                effMod.contains("camry") || effMod.contains("קאמרי") ||
+                effMod.contains("corolla") || effMod.contains("קורולה") ||
+                effMod.contains("civic") || effMod.contains("סיוויק") ||
+                effMod.contains("accord") || effMod.contains("אקורד") ||
+                effMod.contains("octavia") || effMod.contains("אוקטביה") ||
+                effMod.contains("superb") || effMod.contains("סופרב") ||
+                effMod.contains("passat") || effMod.contains("פאסאט") || effMod.contains("פאסט") ||
+                effMod.contains("elantra") || effMod.contains("אלנטרה") ||
+                effMod.contains("sonata") || effMod.contains("סונטה") ||
+                effMod.contains("mazda 3") || effMod.contains("מאזדה 3") ||
+                effMod.contains("mazda 6") || effMod.contains("מאזדה 6") ||
+                effMod.contains("altima") || effMod.contains("אלטימה") ||
+                effMod.contains("maxima") || effMod.contains("מקסימה") ||
+                effMod.contains("impala") || effMod.contains("אימפלה") ||
+                effMod.contains("malibu") || effMod.contains("מליבו") ||
+                effMod.contains("charger") || effMod.contains("צ'ארג'ר") ||
+                effMod.contains("model 3") || effMod.contains("model s") ||
+                effMod.contains("ioniq 6") || effMod.contains("seal") ||
+                (techSpec?.doors == 4 && seats in 4..5 &&
+                 !bt.contains("סטיישן") && !bt.contains("wagon") && !bt.contains("האצ'בק") &&
+                 !bt.contains("שטח") && !bt.contains("suv") && !isPickup)
+
         return when {
             isTrailer && !isTowTruck ->
                 BodyTypeInfo("גרור / נתמך", "🚛", "גרור / נתמך להובלת משא וציוד ייעודי")
             isGarbageTruck ->
                 BodyTypeInfo("משאית זבל", "🚛", "משאית דחס ייעודית לפינוי ואיסוף אשפה עירונית")
             isTowTruck ->
-                BodyTypeInfo("רכב גרר וחילוץ", "🪝", "משאית גרר ייעודית עם פלטה / מנוף לגרירה וחילוץ כלי רכב")
+                BodyTypeInfo("רכב גרר וחילוץ", "🚛", "משאית גרר ייעודית עם פלטה / מנוף לגרירה וחילוץ כלי רכב")
             isGolfCart ->
-                BodyTypeInfo("רכב גולף", "🚗", "רכב תפעולי קל / כרכרת שירות לנסיעה באזורים סגורים ומסלולים")
+                BodyTypeInfo("רכב גולף", "🛺", "רכב תפעולי קל / כרכרת שירות לנסיעה באזורים סגורים ומסלולים")
             isAtvOrSbs ->
-                BodyTypeInfo("טרקטורון / SBS", "🚜", "רכב שטח קל פתוח / רכב שטח צד-בצד (Side-by-Side)")
-            isFireTruck ->
+                BodyTypeInfo(
+                    title = if (qc.contains("טרקטור משא") || qc.contains("SBS")) "טרקטור משא / SBS" else "טרקטורון",
+                    iconEmoji = if (qc.contains("טרקטור משא") || qc.contains("SBS")) "🏎️" else "🚜",
+                    subtitle = "רכב שטח קל פתוח / רכב שטח צד-בצד (Side-by-Side)"
+                )
+            isFireTruck || qc.contains("כבאית") ->
                 BodyTypeInfo("רכב כיבוי אש / חילוץ", "🚒", "רכב מבצעי לשירותי כבאות והצלה")
-            isBus ->
-                BodyTypeInfo("אוטובוס / היסעים", "🚌", "רכב להסעת נוסעים ציבורי / פרטי")
-            isAmbulanceOrRescue ->
+            isBus || qc.contains("אוטובוס") ->
+                BodyTypeInfo(
+                    title = if (qc.contains("זעיר")) "אוטובוס זעיר" else "אוטובוס / היסעים",
+                    iconEmoji = if (qc.contains("זעיר")) "🚐" else "🚌",
+                    subtitle = "רכב להסעת נוסעים ציבורי / פרטי"
+                )
+            isAmbulanceOrRescue || qc.contains("אמבולנס") ->
                 BodyTypeInfo("אמבולנס / רכב הצלה", "🚑", "רכב מבצעי לשירותי רפואה והצלה")
-            isPickup ->
+            qc.contains("מונית") ->
+                BodyTypeInfo(
+                    title = if (qc.contains("שירות")) "מונית שירות" else "מונית",
+                    iconEmoji = "🚕",
+                    subtitle = "רכב ציבורי מורשה להסעת נוסעים"
+                )
+            isPickup || qc.contains("טנדר") ->
                 BodyTypeInfo("טנדר", "🛻", "רכב משא קל עם ארגז פתוח / סגור")
-            bt.contains("האצ'בק") || bt.contains("hatchback") ->
-                BodyTypeInfo("האצ'בק", "🚗", "רכב קומפקטי עם דלת תא מטען אחורית נפתחת כלפי מעלה")
-            bt.contains("סטיישן") || bt.contains("station") || bt.contains("wagon") || bt.contains("estate") ->
-                BodyTypeInfo("סטיישן", "🚗", "מרכב מוארך עם נפח תא מטען גדול במיוחד")
-            bt.contains("קופה") || bt.contains("coupe") ->
-                BodyTypeInfo("קופה", "🏎️", "רכב ספורטיבי בעל מרכב 2-3 דלתות נמוך ואווירודינמי")
-            bt.contains("קבריולט") || bt.contains("רודסטר") || bt.contains("convertible") || bt.contains("cabriolet") || bt.contains("roadster") ->
-                BodyTypeInfo("קבריולט / גג נפתח", "🏎️", "רכב עם גג בד או קשיח מתקפל")
-            bt.contains("מיניוואן") || bt.contains("minivan") || bt.contains("mpv") || (seats in 7..9 && !bt.contains("שטח") && !bt.contains("suv")) ->
+            qc.contains("צמ\"ה") || qc.contains("הנדסי") ->
+                BodyTypeInfo("ציוד הנדסי (צמ\"ה)", "🏗️", "כלי הנדסי לעבודות תשתית ובנייה")
+            qc.contains("אופנוע") ->
+                BodyTypeInfo("אופנוע / קטנוע", "🏍️", "רכב דו-גלגלי מנועי")
+            qc.contains("משא") && !qc.contains("משא אחוד") ->
+                BodyTypeInfo("משאית / מסחרי", "🚚", "רכב משא והובלה כבדה")
+            qc.contains("מסחרית") || bt.contains("מסחרי") || bt.contains("משא אחוד") || bt.contains("van") || bt.contains("ואן") || bt.contains("וואן") || (cat.contains("משא אחוד")) ->
+                BodyTypeInfo("רכב מסחרי", "🚐", "רכב עבודה להובלת משא וציוד")
+            isMinivan ->
                 BodyTypeInfo("מיניוואן / מוביל נוסעים", "🚐", "רכב משפחתי מרווח להסעת 7-9 נוסעים")
-            bt.contains("מסחרי") || bt.contains("משא אחוד") || bt.contains("van") || bt.contains("ואן") || bt.contains("וואן") || (cat.contains("משא אחוד")) ->
-                BodyTypeInfo("רכב מסחרי / וואן", "🚐", "רכב עבודה להובלת משא וציוד")
-            bt.contains("שטח") || bt.contains("suv") || bt.contains("קרוסאובר") || bt.contains("crossover") ||
-            effMod.contains("cj") || effMod.contains("סי גי") || effMod.contains("סי.גי") || effMod.contains("סופה") ||
-            (vehicle.make?.contains("וויליס") == true) || (vehicle.make?.contains("ויליס") == true) ||
-            (vehicle.make?.contains("ג'יפ") == true) || (vehicle.make?.contains("jeep", ignoreCase = true) == true) ->
-                BodyTypeInfo("רכב פנאי-שטח", "🚙", "מרכב מוגבה המשלב נוחות כביש עם יכולת תנועה בשטח")
-            bt.contains("סדאן") || bt.contains("sedan") || bt.contains("saloon") ->
-                BodyTypeInfo("סדאן", "🚗", "מרכב קלאסי בעל 4 דלתות ותא מטען נפרד")
+            isSuv ->
+                BodyTypeInfo("רכב פנאי-שטח (SUV)", "🚙", "מרכב מוגבה המשלב נוחות כביש עם יכולת תנועה בשטח")
+            bt.contains("האצ'בק") || bt.contains("hatchback") || qc.contains("הצ'בק") ->
+                BodyTypeInfo("רכב פרטי (האצ'בק)", "🚗", "רכב קומפקטי עם דלת תא מטען אחורית נפתחת כלפי מעלה")
+            bt.contains("סטיישן") || bt.contains("station") || bt.contains("wagon") || bt.contains("estate") ->
+                BodyTypeInfo("רכב פרטי (סטיישן)", "🚗", "מרכב מוארך עם נפח תא מטען גדול במיוחד")
+            bt.contains("קופה") || bt.contains("coupe") ->
+                BodyTypeInfo("רכב ספורט (קופה)", "🏎️", "רכב ספורטיבי בעל מרכב 2-3 דלתות נמוך ואווירודינמי")
+            bt.contains("קבריולט") || bt.contains("רודסטר") || bt.contains("convertible") || bt.contains("cabriolet") || bt.contains("roadster") ->
+                BodyTypeInfo("רכב פתוח (קבריולט)", "🏎️", "רכב עם גג בד או קשיח מתקפל")
+            isSedan ->
+                BodyTypeInfo("רכב פרטי (סדאן)", "🚗", "מרכב קלאסי בעל 4 דלתות ותא מטען נפרד")
             else ->
                 BodyTypeInfo(
-                    title = if (bt.isNotBlank()) bt.replaceFirstChar { it.uppercase() } else "רכב נוסעים",
+                    title = if (bt.isNotBlank() && bt != "mpv") "רכב פרטי ($bt)" else "רכב פרטי",
                     iconEmoji = "🚗",
-                    subtitle = "מרכב רכב נוסעים סטנדרטי"
+                    subtitle = "מרכב רכב נוסעים פרטי סטנדרטי"
                 )
         }
     }
@@ -2317,7 +2394,7 @@ object VehicleUtils {
             box.contains("גרר") || box.contains("גרירה") || box.contains("חילוץ") ||
             bt.contains("גרר") || bt.contains("חילוץ") ||
             o.contains("שגריר") || orig.contains("שגריר") ||
-            licensePlate in setOf(8791362L, 8014415L, 5918050L, 5857814L, 1627812L, 1643412L, 3425789L) -> "🪝 רכב גרר"
+            licensePlate in setOf(8791362L, 8014415L, 5918050L, 5857814L, 1627812L, 1643412L, 3425789L) -> "🚛 רכב גרר"
 
             // 0c. ATVs, Quads & Side-by-Sides / UTV (טרקטורונים וטרקטורי משא)
             licensePlate in setOf(5031939L, 8376034L, 8632130L, 24982704L, 5815439L) ||
@@ -2340,7 +2417,7 @@ object VehicleUtils {
             mk.contains("yamaha golf") ||
             m.contains("carryall") || m.contains("קאריאול") || m.contains("קארי אול") ||
             m.contains("golf cart") || m.contains("גולף קארט") ||
-            combined.contains("כרכרת גולף") || combined.contains("עגלת גולף") -> "🚗 רכב גולף"
+            combined.contains("כרכרת גולף") || combined.contains("עגלת גולף") -> "🛺 רכב גולף"
 
             // 0e. Heavy Machinery / Construction (צמ"ה)
             combined.contains("הנדסי") || combined.contains("צמ\"ה") || combined.contains("צמה") || 
@@ -2372,7 +2449,7 @@ object VehicleUtils {
             m.contains("transporter") || m.contains("crafter") || m.contains("master") || m.contains("מאסטר") || m.contains("savana") ||
             m.contains("סוואנה") || m.contains("סבאנה") || m.contains("express") || m.contains("אקספרס") || m.contains("expert") ||
             m.contains("proace") || m.contains("nv200") || m.contains("nv400") || m.contains("vivaro") || m.contains("sprinter") ||
-            m.contains("ספרינטר") || t.contains("משא אחוד") || t.contains("מסחרי") || t.contains("n1") || cat.contains("משא אחוד") -> "🚐 מסחרית / וואן"
+            m.contains("ספרינטר") || t.contains("משא אחוד") || t.contains("מסחרי") || t.contains("n1") || cat.contains("משא אחוד") -> "🚐 מסחרית"
 
             // 4. Pickups (טנדר) - Checked before generic heavy trucks because American pickups (Cybertruck, Silverado, Ram, F-350) have MOT category "משא"
             m.contains("cybertruck") || m.contains("סייברטראק") ||

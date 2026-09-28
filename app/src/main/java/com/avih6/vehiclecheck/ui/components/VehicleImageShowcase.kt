@@ -418,11 +418,21 @@ fun VehicleImageShowcase(
 
             // Dot Indicators
             if (images.size > 1) {
+                val totalCount = images.size
+                val maxVisibleDots = 16
+                val startIndex = when {
+                    totalCount <= maxVisibleDots -> 0
+                    cardPagerState.currentPage < maxVisibleDots / 2 -> 0
+                    cardPagerState.currentPage >= totalCount - maxVisibleDots / 2 -> totalCount - maxVisibleDots
+                    else -> cardPagerState.currentPage - maxVisibleDots / 2
+                }
+                val visibleIndices = startIndex until minOf(totalCount, startIndex + maxVisibleDots)
+
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    images.indices.take(8).forEach { index ->
+                    visibleIndices.forEach { index ->
                         Box(
                             modifier = Modifier
                                 .size(if (cardPagerState.currentPage == index) 8.dp else 5.dp)
@@ -431,7 +441,7 @@ fun VehicleImageShowcase(
                                     if (cardPagerState.currentPage == index)
                                         MaterialTheme.colorScheme.primary
                                     else
-                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
                                 )
                                 .clickable {
                                     scope.launch { cardPagerState.animateScrollToPage(index) }

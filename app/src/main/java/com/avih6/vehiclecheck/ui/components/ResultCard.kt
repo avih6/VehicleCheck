@@ -28,8 +28,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.avih6.vehiclecheck.R
 import com.avih6.vehiclecheck.data.*
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -699,15 +701,45 @@ fun ResultCard(
                             modifier = Modifier.semantics(mergeDescendants = true) {}
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = quickClassification,
-                                    color = chipColor,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
-                                )
+                                if (isTow) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_tow_truck),
+                                        contentDescription = null,
+                                        tint = chipColor,
+                                        modifier = Modifier.size(17.dp)
+                                    )
+                                    Spacer(Modifier.width(5.dp))
+                                    Text(
+                                        text = "רכב גרר",
+                                        color = chipColor,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp
+                                    )
+                                } else if (isGolf) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_golf_cart),
+                                        contentDescription = null,
+                                        tint = chipColor,
+                                        modifier = Modifier.size(17.dp)
+                                    )
+                                    Spacer(Modifier.width(5.dp))
+                                    Text(
+                                        text = "רכב גולף",
+                                        color = chipColor,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp
+                                    )
+                                } else {
+                                    Text(
+                                        text = quickClassification,
+                                        color = chipColor,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp
+                                    )
+                                }
                             }
                         }
                     }
@@ -1409,7 +1441,7 @@ private fun GeneralTabContent(
         SafetyDiscountCard(safetyDiscount = safetyDiscount)
 
         // 1. Comprehensive Vehicle Classification & Body Type Card (סיווג ומרכב הרכב)
-        val bodyInfo = remember(vehicle, techSpec) { VehicleUtils.resolveBodyType(vehicle, techSpec) }
+        val bodyInfo = remember(vehicle, techSpec, quickClassification) { VehicleUtils.resolveBodyType(vehicle, techSpec, quickClassification) }
         val (legalClass, legalLicenseNote) = remember(vehicle, techSpec) { VehicleUtils.resolveLegalLicenseClass(vehicle, techSpec) }
 
         Card(
@@ -4096,6 +4128,13 @@ fun AutoBrandLogo(
 
             val isTaxi = classStr.contains("מונית") || (hebrewMake?.contains("מונית") == true) || (modelName?.contains("מונית") == true)
 
+            val isGolfCart = classStr.contains("גולף") || slug == "club-car" || slug == "ez-go" ||
+                    (hebrewMake?.contains("קלאב") == true) || (hebrewMake?.contains("איזיגו") == true) ||
+                    (modelName?.contains("גולף") == true) || (modelName?.contains("carryall") == true) ||
+                    (modelName?.equals("rf", ignoreCase = true) == true)
+
+            val isTow = classStr.contains("גרר") || (hebrewMake?.contains("גרר") == true) || (modelName?.contains("גרר") == true)
+
             val fallbackIcon = when {
                 isEngineeringEquipment -> Icons.Default.Construction
                 isAgriTractor -> Icons.Default.Agriculture
@@ -4108,13 +4147,29 @@ fun AutoBrandLogo(
             }
 
             // Immediately display the fallback icon so there is never a blank white circle
-            if (!isLoaded || urls.isEmpty() || logoUrlIndex >= urls.count() || slug == "car") {
-                Icon(
-                    imageVector = fallbackIcon,
-                    contentDescription = null,
-                    tint = if (useWhiteBackground) Color(0xFF1E88E5).copy(alpha = if (urls.isNotEmpty() && logoUrlIndex < urls.count()) 0.45f else 1f) else MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.fillMaxSize(0.7f)
-                )
+            if (!isLoaded || urls.isEmpty() || logoUrlIndex >= urls.count() || slug == "car" || isGolfCart || isTow) {
+                if (isGolfCart) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_golf_cart),
+                        contentDescription = "רכב גולף",
+                        tint = if (useWhiteBackground) Color(0xFF1E88E5).copy(alpha = if (urls.isNotEmpty() && logoUrlIndex < urls.count()) 0.45f else 1f) else MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.fillMaxSize(0.7f)
+                    )
+                } else if (isTow) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_tow_truck),
+                        contentDescription = "רכב גרר",
+                        tint = if (useWhiteBackground) Color(0xFFF57C00).copy(alpha = if (urls.isNotEmpty() && logoUrlIndex < urls.count()) 0.45f else 1f) else MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.fillMaxSize(0.7f)
+                    )
+                } else {
+                    Icon(
+                        imageVector = fallbackIcon,
+                        contentDescription = null,
+                        tint = if (useWhiteBackground) Color(0xFF1E88E5).copy(alpha = if (urls.isNotEmpty() && logoUrlIndex < urls.count()) 0.45f else 1f) else MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.fillMaxSize(0.7f)
+                    )
+                }
             }
 
             if (urls.isNotEmpty() && logoUrlIndex < urls.count() && slug != "car") {
