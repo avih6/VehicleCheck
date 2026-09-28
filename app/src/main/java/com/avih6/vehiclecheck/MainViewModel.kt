@@ -1282,60 +1282,66 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         // Ordered candidate model-specific filters (only specific model/trim/code)
+        // Note: kinuy_mishari and model name terms must come BEFORE degem_cd!
+        // degem_cd is an arbitrary 3-4 digit batch/trim code that often only matches tiny batches of 5-15 cars.
         val candidateModelFilters = mutableListOf<String>()
         if (!baseInfo.exactKinuyFilter.isNullOrBlank()) {
             candidateModelFilters.add("{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"${baseInfo.exactKinuyFilter}\"}")
         }
-        if (modelCd != null && modelCd > 0) {
-            candidateModelFilters.add("{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}")
-        }
         for (t in baseInfo.searchTerms.take(4)) {
-            if (t.isNotBlank() && t != vehicle.make) {
+            if (t.isNotBlank() && t != vehicle.make && t != baseInfo.exactKinuyFilter) {
+                candidateModelFilters.add("{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"$t\"}")
                 candidateModelFilters.add("{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$t\"}")
             }
         }
         if (!vehicle.modelCode.isNullOrBlank()) {
             candidateModelFilters.add("{\"tozeret_cd\":$makeCd,\"degem_nm\":\"${vehicle.modelCode}\"}")
         }
+        // degem_cd is only added as a last-resort fallback
+        if (modelCd != null && modelCd > 0) {
+            candidateModelFilters.add("{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}")
+        }
 
         var matchedFilter: String? = null
         var totalActive = 0
         var singleCandidateFilter: String? = null
+        var matchedQueryTerm: String? = null
 
-        val alternateActiveResourceId = when {
-            isTwoWheeler -> null
-            activeResourceId == "cd3acc5c-03c3-4c89-9c54-d40f93c0d790" -> "053cea08-09bc-40ec-8f7a-156f0677aff3"
-            else -> "cd3acc5c-03c3-4c89-9c54-d40f93c0d790"
+        // Models that frequently span both light commercial (<= 3.5t, in 053cea08) and heavy commercial (in cd3acc5c)
+        val isSplitCommercialModel = baseInfo.baseModel in setOf("היילקס", "טרנזיט", "ספרינטר", "ברלינגו", "די-מקס", "D-MAX", "סוואנה", "ויטו", "קנגו", "דוקאטו") ||
+                isHeavyOrCommercial
+
+        // Priority resources to search:
+        // 053cea08 (private & light commercial) contains 90%+ of all vehicles in Israel, including Hilux and Transit
+        // cd3acc5c contains heavy vehicles, trucks, and special vehicles
+        val resourcesToSearch = if (isTwoWheeler) {
+            listOf("bf9df4e2-d90d-4c0a-a400-19e15af8e95f")
+        } else {
+            listOf("053cea08-09bc-40ec-8f7a-156f0677aff3", "cd3acc5c-03c3-4c89-9c54-d40f93c0d790")
         }
 
-        val resourcesToSearch = listOfNotNull(activeResourceId, alternateActiveResourceId)
-
         for (resId in resourcesToSearch) {
+            var resCount = 0
+            var resMatchedFilter: String? = null
+
             for (f in candidateModelFilters) {
+                // If this is a degem_cd fallback filter, skip it if we already found a valid model count > 10
+                if (f.contains("degem_cd") && resCount > 10) continue
                 try {
                     val c = NetworkClient.apiService.getSameModelActiveCount(resourceId = resId, filters = f, limit = 0).result?.total ?: 0
-                    if (c > 1) {
-                        totalActive = c
-                        matchedFilter = f
-                        break
+                    if (c > resCount) {
+                        resCount = c
+                        resMatchedFilter = f
+                        if (c > 25) break
                     } else if (c == 1 && singleCandidateFilter == null) {
                         singleCandidateFilter = f
                     }
                 } catch (_: Exception) {}
             }
-            if (totalActive > 1) break
-        }
 
-        if (totalActive == 0 && singleCandidateFilter != null) {
-            totalActive = 1
-            matchedFilter = singleCandidateFilter
-        }
-
-        // If totalActive is <= 1 and search terms exist, try query (q) parameter within tozeret_cd
-        // to match models where freeform clerk names differ (e.g. Willys CJ, Ford E-350 / E 34, Iveco Eurocargo)
-        var matchedQueryTerm: String? = null
-        if (totalActive <= 1 && baseInfo.searchTerms.isNotEmpty()) {
-            for (resId in resourcesToSearch) {
+            // If resCount is small (< 25) or 0 and search terms exist, try query (q) parameter within tozeret_cd
+            // This is essential for two-wheelers (TMAX/XP500) and commercial vehicles with freeform importer clerk names
+            if (resCount < 25 && baseInfo.searchTerms.isNotEmpty()) {
                 for (term in baseInfo.searchTerms) {
                     if (term.isNotBlank() && term != vehicle.make) {
                         try {
@@ -1345,17 +1351,31 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                 query = term,
                                 limit = 0
                             ).result?.total ?: 0
-                            if (qc > totalActive) {
-                                totalActive = qc
+                            if (qc > resCount) {
+                                resCount = qc
+                                resMatchedFilter = null
                                 matchedQueryTerm = term
-                                matchedFilter = null
-                                break
+                                if (qc > 25) break
                             }
                         } catch (_: Exception) {}
                     }
                 }
-                if (totalActive > 1) break
             }
+
+            if (isSplitCommercialModel) {
+                totalActive += resCount
+                if (matchedFilter == null) matchedFilter = resMatchedFilter
+            } else {
+                if (resCount > totalActive) {
+                    totalActive = resCount
+                    matchedFilter = resMatchedFilter
+                }
+            }
+        }
+
+        if (totalActive == 0 && singleCandidateFilter != null) {
+            totalActive = 1
+            matchedFilter = singleCandidateFilter
         }
 
         var totalInactive = 0

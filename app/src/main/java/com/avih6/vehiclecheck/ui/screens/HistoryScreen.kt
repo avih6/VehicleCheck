@@ -268,8 +268,8 @@ private fun HistoryItemCard(
                                     Icon(
                                         painter = painterResource(R.drawable.ic_tow_truck),
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(13.dp)
+                                        tint = Color.Unspecified,
+                                        modifier = Modifier.size(14.dp)
                                     )
                                     Spacer(Modifier.width(3.dp))
                                     Text(
@@ -284,8 +284,8 @@ private fun HistoryItemCard(
                                     Icon(
                                         painter = painterResource(R.drawable.ic_golf_cart),
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(13.dp)
+                                        tint = Color.Unspecified,
+                                        modifier = Modifier.size(14.dp)
                                     )
                                     Spacer(Modifier.width(3.dp))
                                     Text(

@@ -879,6 +879,33 @@ object VehicleUtils {
                 mn.contains("E 3") || mn.contains("E-3") || mn.contains("ECONOLINE") || mn.contains("אקונוליין")) return "אקונוליין (E-Series)"
         }
 
+        // Toyota / טויוטה
+        if (mk.contains("טויוטה") || mk.contains("TOYOTA", ignoreCase = true)) {
+            if (mc.contains("HILUX") || mn.contains("HILUX") || mn.contains("היילקס") || mn.contains("הילוקס") ||
+                mc.startsWith("GUN") || mc.startsWith("KUN") || mc.startsWith("LAN") || mn.startsWith("HILUX")) return "היילקס"
+            if (mc.contains("LAND CRUISER") || mn.contains("LAND CRUISER") || mn.contains("לנד קרוזר") || mn.contains("פראדו") ||
+                mc.startsWith("GDJ") || mc.startsWith("KDJ") || mc.startsWith("VDJ")) return "לנד קרוזר"
+            if (mc.contains("COROLLA") || mn.contains("COROLLA") || mn.contains("קורולה")) return "קורולה"
+            if (mc.contains("CAMRY") || mn.contains("CAMRY") || mn.contains("קאמרי")) return "קאמרי"
+            if (mc.contains("PRIUS") || mn.contains("PRIUS") || mn.contains("פריוס")) return "פריוס"
+            if (mc.contains("RAV4") || mc.contains("RAV 4") || mn.contains("RAV4") || mn.contains("RAV 4") || mn.contains("ראב 4") || mn.contains("ראב4")) return "ראב 4"
+        }
+
+        // Mercedes-Benz / מרצדס
+        if (mk.contains("מרצדס") || mk.contains("MERCEDES", ignoreCase = true)) {
+            if (mc.contains("SPRINTER") || mn.contains("SPRINTER") || mn.contains("ספרינטר") || mc.startsWith("906") || mc.startsWith("907") || mn.contains("907") || mn.contains("906")) return "ספרינטר"
+            if (mc.contains("VITO") || mn.contains("VITO") || mn.contains("ויטו") || mc.startsWith("447") || mc.startsWith("639")) return "ויטו"
+            if (mc.contains("ATEGO") || mn.contains("ATEGO") || mn.contains("אטגו") || mc.startsWith("970") || mc.startsWith("967")) return "אטגו"
+            if (mc.contains("ACTROS") || mn.contains("ACTROS") || mn.contains("אקטרוס")) return "אקטרוס"
+        }
+
+        // Isuzu / איסוזו
+        if (mk.contains("איסוזו") || mk.contains("ISUZU", ignoreCase = true)) {
+            if (mc.contains("D-MAX") || mc.contains("DMAX") || mn.contains("D-MAX") || mn.contains("DMAX") || mn.contains("דימקס") || mn.contains("די מקס") ||
+                mc.startsWith("TFR") || mc.startsWith("TFS")) return "די-מקס"
+            if (mc.contains("NPR") || mn.contains("NPR") || mc.startsWith("NPR") || mn.startsWith("NPR")) return "NPR"
+        }
+
         // Honda / הונדה
         if (mk.contains("הונדה") || mk.contains("HONDA", ignoreCase = true)) {
             if (mc.contains("CB 500") || mn.contains("CB 500") || mc.contains("CB500") || mn.contains("CB500") || mc.contains("CB-500") || mn.contains("CB-500")) return "CB 500"
@@ -905,7 +932,8 @@ object VehicleUtils {
 
         // Yamaha / ימאהה
         if (mk.contains("ימאהה") || mk.contains("ימהה") || mk.contains("YAMAHA", ignoreCase = true)) {
-            if (mc.contains("XP 500") || mc.contains("TMAX") || mn.contains("TMAX") || mn.contains("טימקס")) return "TMAX"
+            if (mc.contains("XP 500") || mc.contains("XP500") || mc.contains("XP530") || mc.contains("XP560") ||
+                mc.contains("TMAX") || mn.contains("TMAX") || mn.contains("טימקס") || mn.contains("XP500") || mn.contains("XP530")) return "TMAX"
         }
 
         // Iveco / איווקו / איבקו
@@ -938,7 +966,7 @@ object VehicleUtils {
                 "מונדאו" -> terms.addAll(listOf("MONDEO", "מונדאו", "מונדיאו"))
                 "קורבט" -> terms.addAll(listOf("CORVETTE", "קורבט"))
                 "קמארו" -> terms.addAll(listOf("CAMARO", "קמארו"))
-                "TMAX" -> terms.addAll(listOf("TMAX", "XP 500", "טימקס"))
+                "TMAX" -> terms.addAll(listOf("TMAX", "XP 500", "XP500", "XP530", "XP560", "טימקס"))
                 "CB 500" -> terms.addAll(listOf("CB 500", "CB-500", "CB500", "CB"))
                 "503" -> terms.addAll(listOf("503"))
                 "פלימות" -> terms.addAll(listOf("פלימות", "פלימוט", "PLYMOUTH"))
@@ -947,15 +975,34 @@ object VehicleUtils {
                 "דיילי (Daily)" -> terms.addAll(listOf("DAILY", "דיילי", "35S", "50C", "65C"))
                 "סטראליס (Stralis)" -> terms.addAll(listOf("STRALIS", "סטראליס", "440S", "450S", "500S"))
                 "טראקר (Trakker)" -> terms.addAll(listOf("TRAKKER", "טראקר", "380T", "410T"))
+                "היילקס" -> terms.addAll(listOf("HILUX", "היילקס", "הילוקס"))
+                "לנד קרוזר" -> terms.addAll(listOf("LAND CRUISER", "לנד קרוזר", "פראדו"))
+                "די-מקס" -> terms.addAll(listOf("D-MAX", "DMAX", "די-מקס", "דימקס"))
+                "NPR" -> terms.addAll(listOf("NPR", "איסוזו"))
+                "ספרינטר" -> terms.addAll(listOf("SPRINTER", "ספרינטר", "907", "906"))
+                "ויטו" -> terms.addAll(listOf("VITO", "ויטו", "447"))
+                "אטגו" -> terms.addAll(listOf("ATEGO", "אטגו"))
+                "טרנזיט" -> terms.addAll(listOf("TRANSIT", "טרנזיט", "קאסטום", "CUSTOM"))
+                "קאמרי" -> terms.addAll(listOf("CAMRY", "קאמרי"))
+                "קורולה" -> terms.addAll(listOf("COROLLA", "קורולה"))
                 else -> {
                     terms.add(known)
                     if (rawModel.isNotBlank()) terms.add(rawModel.split(" ").first())
                 }
             }
+
+            var cleanKinuy = rawModel
+            val makeWords = (make ?: "").split(" ", "-")
+            for (mw in makeWords) {
+                if (mw.length >= 3) {
+                    cleanKinuy = cleanKinuy.replace(mw, "", ignoreCase = true).trim()
+                }
+            }
+
             return BaseModelInfo(
                 baseModel = known,
                 searchTerms = terms.distinct(),
-                exactKinuyFilter = rawModel.ifBlank { null }
+                exactKinuyFilter = cleanKinuy.ifBlank { rawModel }.ifBlank { null }
             )
         }
 
@@ -999,10 +1046,18 @@ object VehicleUtils {
             terms.add(rawModel)
         }
 
+        var cleanKinuy = rawModel
+        val makeWords = (make ?: "").split(" ", "-")
+        for (mw in makeWords) {
+            if (mw.length >= 3) {
+                cleanKinuy = cleanKinuy.replace(mw, "", ignoreCase = true).trim()
+            }
+        }
+
         return BaseModelInfo(
             baseModel = firstToken,
             searchTerms = terms.distinct(),
-            exactKinuyFilter = rawModel.ifBlank { null }
+            exactKinuyFilter = cleanKinuy.ifBlank { rawModel }.ifBlank { null }
         )
     }
     fun parseTestStatus(testExpiryDateStr: String?, isOffRoad: Boolean = false, offRoadDate: String? = null): TestStatus {

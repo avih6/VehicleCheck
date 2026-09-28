@@ -708,8 +708,8 @@ fun ResultCard(
                                     Icon(
                                         painter = painterResource(R.drawable.ic_tow_truck),
                                         contentDescription = null,
-                                        tint = chipColor,
-                                        modifier = Modifier.size(17.dp)
+                                        tint = Color.Unspecified,
+                                        modifier = Modifier.size(18.dp)
                                     )
                                     Spacer(Modifier.width(5.dp))
                                     Text(
@@ -722,8 +722,8 @@ fun ResultCard(
                                     Icon(
                                         painter = painterResource(R.drawable.ic_golf_cart),
                                         contentDescription = null,
-                                        tint = chipColor,
-                                        modifier = Modifier.size(17.dp)
+                                        tint = Color.Unspecified,
+                                        modifier = Modifier.size(18.dp)
                                     )
                                     Spacer(Modifier.width(5.dp))
                                     Text(
@@ -4152,15 +4152,15 @@ fun AutoBrandLogo(
                     Icon(
                         painter = painterResource(R.drawable.ic_golf_cart),
                         contentDescription = "רכב גולף",
-                        tint = if (useWhiteBackground) Color(0xFF1E88E5).copy(alpha = if (urls.isNotEmpty() && logoUrlIndex < urls.count()) 0.45f else 1f) else MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.fillMaxSize(0.7f)
+                        tint = Color.Unspecified,
+                        modifier = Modifier.fillMaxSize(0.75f)
                     )
                 } else if (isTow) {
                     Icon(
                         painter = painterResource(R.drawable.ic_tow_truck),
                         contentDescription = "רכב גרר",
-                        tint = if (useWhiteBackground) Color(0xFFF57C00).copy(alpha = if (urls.isNotEmpty() && logoUrlIndex < urls.count()) 0.45f else 1f) else MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.fillMaxSize(0.7f)
+                        tint = Color.Unspecified,
+                        modifier = Modifier.fillMaxSize(0.75f)
                     )
                 } else {
                     Icon(
