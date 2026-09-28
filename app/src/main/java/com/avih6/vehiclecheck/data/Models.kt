@@ -879,6 +879,18 @@ object VehicleUtils {
                 mn.contains("E 3") || mn.contains("E-3") || mn.contains("ECONOLINE") || mn.contains("אקונוליין")) return "אקונוליין (E-Series)"
         }
 
+        // Hyundai / יונדאי
+        if (mk.contains("יונדאי") || mk.contains("HYUNDAI", ignoreCase = true)) {
+            if (mc.contains("IONIQ 5") || mn.contains("IONIQ 5") || mn.contains("IONIQ5") || mc.contains("IONIQ5") || mn.contains("איוניק 5")) return "איוניק 5"
+            if (mc.contains("IONIQ 6") || mn.contains("IONIQ 6") || mn.contains("IONIQ6") || mc.contains("IONIQ6") || mn.contains("איוניק 6")) return "איוניק 6"
+            if (mc.contains("IONIQ") || mn.contains("IONIQ") || mn.contains("איוניק")) return "איוניק"
+            if (mc.contains("TUCSON") || mn.contains("TUCSON") || mn.contains("טוסון") || mn.contains("טוסאן")) return "טוסון"
+            if (mc.contains("KONA") || mn.contains("KONA") || mn.contains("קונה")) return "קונה"
+            if (mc.contains("I10") || mn.contains("I10") || mn.contains("I-10") || mn.contains("I 10")) return "I10"
+            if (mc.contains("I20") || mn.contains("I20") || mn.contains("I-20") || mn.contains("I 20")) return "I20"
+            if (mc.contains("I30") || mn.contains("I30") || mn.contains("I-30") || mn.contains("I 30")) return "I30"
+        }
+
         // Toyota / טויוטה
         if (mk.contains("טויוטה") || mk.contains("TOYOTA", ignoreCase = true)) {
             if (mc.contains("HILUX") || mn.contains("HILUX") || mn.contains("היילקס") || mn.contains("הילוקס") ||
@@ -985,6 +997,11 @@ object VehicleUtils {
                 "טרנזיט" -> terms.addAll(listOf("TRANSIT", "טרנזיט", "קאסטום", "CUSTOM"))
                 "קאמרי" -> terms.addAll(listOf("CAMRY", "קאמרי"))
                 "קורולה" -> terms.addAll(listOf("COROLLA", "קורולה"))
+                "איוניק 5" -> terms.addAll(listOf("IONIQ5", "IONIQ 5", "איוניק 5"))
+                "איוניק 6" -> terms.addAll(listOf("IONIQ6", "IONIQ 6", "איוניק 6"))
+                "איוניק" -> terms.addAll(listOf("IONIQ HYBRID", "IONIQ", "איוניק"))
+                "טוסון" -> terms.addAll(listOf("TUCSON", "טוסון"))
+                "קונה" -> terms.addAll(listOf("KONA", "קונה"))
                 else -> {
                     terms.add(known)
                     if (rawModel.isNotBlank()) terms.add(rawModel.split(" ").first())
@@ -1041,9 +1058,16 @@ object VehicleUtils {
         if (tokens.size >= 2) {
             terms.add("${tokens[0]} ${tokens[1]}")
             terms.add("${tokens[0]}-${tokens[1]}")
+            terms.add("${tokens[0]}${tokens[1]}")
+        }
+        val noSpace = clean.replace(" ", "").replace("-", "")
+        if (noSpace.isNotBlank() && noSpace != firstToken) {
+            terms.add(noSpace)
         }
         if (rawModel.isNotBlank() && rawModel != firstToken) {
             terms.add(rawModel)
+            val rawNoSpace = rawModel.replace(" ", "").replace("-", "")
+            if (rawNoSpace.isNotBlank()) terms.add(rawNoSpace)
         }
 
         var cleanKinuy = rawModel
