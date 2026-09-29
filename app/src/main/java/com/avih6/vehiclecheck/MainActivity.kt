@@ -687,8 +687,13 @@ private fun sendEmail(context: Context) {
     val emailSubject = context.getString(R.string.app_name)
     val emailBody = "\n\n\n---\nApp Version: $currentVersion\nOS: Android ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})\nDevice: ${Build.MANUFACTURER} ${Build.MODEL}\n"
 
-    val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
-        data = Uri.parse("mailto:av6development@gmail.com")
+    val mailtoUri = Uri.parse(
+        "mailto:av6development@gmail.com" +
+                "?subject=" + Uri.encode(emailSubject) +
+                "&body=" + Uri.encode(emailBody)
+    )
+    val emailIntent = Intent(Intent.ACTION_SENDTO, mailtoUri).apply {
+        putExtra(Intent.EXTRA_EMAIL, arrayOf("av6development@gmail.com"))
         putExtra(Intent.EXTRA_SUBJECT, emailSubject)
         putExtra(Intent.EXTRA_TEXT, emailBody)
     }

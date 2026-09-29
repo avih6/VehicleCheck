@@ -1171,8 +1171,14 @@ private fun ReportIncorrectDataButton(
                     putString("make", make)
                 })
 
-                val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
-                    data = Uri.parse("mailto:av6development@gmail.com")
+                val mailtoUri = Uri.parse(
+                    "mailto:av6development@gmail.com" +
+                            "?subject=" + Uri.encode(subject) +
+                            "&body=" + Uri.encode(body)
+                )
+
+                val emailIntent = Intent(Intent.ACTION_SENDTO, mailtoUri).apply {
+                    putExtra(Intent.EXTRA_EMAIL, arrayOf("av6development@gmail.com"))
                     putExtra(Intent.EXTRA_SUBJECT, subject)
                     putExtra(Intent.EXTRA_TEXT, body)
                 }
