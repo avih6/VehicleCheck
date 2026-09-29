@@ -380,7 +380,7 @@ object WikimediaGalleryService {
         "comparison", "epa", "evolution", "lineup", "infographics", "timeline", "ranking", "presentation", "slide", "slides",
         "mirror", "mirrors", "taillight", "taillights", "headlight", "headlights", "headlamp", "headlamps",
         "fender", "bumper", "grille", "v12", "v8", "v10", "v6", "badge", "emblem", "handle", "rim", "rims", "wheel", "wheels", "tire", "tires",
-        "gp", "f1"
+        "gp", "f1", "moto", "motorrad"
     )
 
     private val blockedPhrases = listOf(
@@ -403,26 +403,45 @@ object WikimediaGalleryService {
         "car rental", "rental car", "rental service", "auto rental", "rent a car", "autovermietung",
         "punkindependent", "mini estrella", "mini-estrella", "pro wrestling",
         "formula 1", "formula one", "grand prix", "british gp",
-        "bar chart", "pie chart", "line graph", "comparison chart", "comparison table"
+        "bar chart", "pie chart", "line graph", "comparison chart", "comparison table",
+        "motorcycle", "sidecar", "motorbike"
     )
 
     private fun isJunkOrNonVehicle(title: String, description: String = "", artist: String = "", categories: String = ""): Boolean {
-        val comb = "$title $description $artist $categories".lowercase()
+        val titleLower = title.lowercase()
 
-        // 1. Check blocked multi-word phrases
-        if (blockedPhrases.any { comb.contains(it) }) return true
+        // 1. Check title against blocked multi-word phrases
+        if (blockedPhrases.any { titleLower.contains(it) }) return true
 
-        // 2. Tokenize and check whole-word tokens (avoids 'toy' blocking 'toyota', 'port' blocking 'sport', etc.)
-        val words = comb.split(Regex("[^\\p{L}\\p{Nd}_-]+")).filter { it.isNotBlank() }
-        for (w in words) {
+        // 2. Tokenize and check title whole-word tokens
+        val titleWords = titleLower.split(Regex("[^\\p{L}\\p{Nd}_-]+")).filter { it.isNotBlank() }
+        for (w in titleWords) {
             if (blockedExactTokens.contains(w)) {
                 // Special safety exceptions
-                if (w == "seat" && (comb.contains("ibiza") || comb.contains("leon") || comb.contains("arona") || comb.contains("ateca") || comb.contains("cupra"))) {
+                if (w == "seat" && (titleLower.contains("ibiza") || titleLower.contains("leon") || titleLower.contains("arona") || titleLower.contains("ateca") || titleLower.contains("cupra"))) {
                     continue
                 }
                 return true
             }
         }
+
+        // 3. For metadata (description, categories, artist): check strict junk categories
+        val metaLower = "$description $categories $artist".lowercase()
+        val strictMetaJunk = listOf(
+            "scale model", "model car", "slot car", "rc car", "radio control",
+            "diecast", "die-cast", "miniature", "hotwheels", "matchbox", "lego",
+            "car interior", "automobile dashboards", "interiors of automobiles", "interior of automobile",
+            "steering wheel", "cockpit", "dashboard",
+            "wrestling", "lucha libre", "punkindependent", "wrestlemania",
+            "blueprint", "diagram", "infographic", "flowchart", "wireframe",
+            "cemetery", "graveyard", "monument", "memorial",
+            "dealership", "showroom", "car dealer",
+            "railway", "locomotive", "tram", "subway",
+            "warship", "submarine", "fighter jet", "aircraft", "airplane",
+            "museum exhibit", "museum display"
+        )
+        if (strictMetaJunk.any { metaLower.contains(it) }) return true
+
         return false
     }
 
