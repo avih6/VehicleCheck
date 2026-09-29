@@ -1649,6 +1649,118 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _modelSearchError = MutableStateFlow<String?>(null)
     val modelSearchError: StateFlow<String?> = _modelSearchError.asStateFlow()
 
+    private val _brandLiveModels = MutableStateFlow<Map<String, List<BrandModelStat>>>(emptyMap())
+    val brandLiveModels: StateFlow<Map<String, List<BrandModelStat>>> = _brandLiveModels.asStateFlow()
+
+    private val loadingBrands = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
+    fun loadLiveModelsForBrand(brandHebrew: String, brandEnglish: String) {
+        val key = brandHebrew.trim()
+        if (_brandLiveModels.value.containsKey(key) || !loadingBrands.add(key)) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // 1. Get known models from catalog for this brand
+                val catalogModels = VehicleModelCatalog.allModels.filter {
+                    it.brandHebrew.equals(brandHebrew, ignoreCase = true) ||
+                    it.brandEnglish.equals(brandEnglish, ignoreCase = true)
+                }.distinctBy { it.modelEnglish.lowercase() }
+
+                // 2. Fetch live active counts from 053cea08 in parallel
+                val results = coroutineScope {
+                    catalogModels.map { modelSug ->
+                        async {
+                            val eng = modelSug.modelEnglish.trim().uppercase()
+                            var count = 0
+                            try {
+                                val resp = NetworkClient.apiService.getSameModelActiveCount(
+                                    filters = "{\"kinuy_mishari\":\"$eng\"}"
+                                )
+                                count = resp.result?.total ?: 0
+                            } catch (_: Exception) {}
+
+                            // Also try variations (hybrid badges, with/without spaces, importer prefixes)
+                            val altQueries = mutableListOf<String>()
+                            if (eng.contains(" ")) altQueries.add(eng.replace(" ", ""))
+                            if (eng == "C-HR" || eng == "CHR") {
+                                altQueries.addAll(listOf("C-HR HYBRID", "TOYOTA C-HR", "C-HR HYBRIB", "CHR HYBRID"))
+                            }
+                            if (eng == "RAV4" || eng == "RAV 4") {
+                                altQueries.addAll(listOf("RAV 4", "RAV4", "RAV-4"))
+                            }
+                            if (eng == "IONIQ") {
+                                altQueries.addAll(listOf("IONIQ HYBRID", "IONIQ5", "IONIQ6"))
+                            }
+                            if (eng == "KONA") {
+                                altQueries.add("KONA HYBRID")
+                            }
+                            if (eng == "ELANTRA") {
+                                altQueries.add("ELANTRA HEV")
+                            }
+                            if (eng == "TUCSON") {
+                                altQueries.add("TUCSON HYBRID")
+                            }
+                            if (eng == "SONATA") {
+                                altQueries.add("SONATA HYBRID")
+                            }
+                            if (eng == "NIRO") {
+                                altQueries.addAll(listOf("NIRO PLUS", "NIRO EV"))
+                            }
+                            if (eng == "DOLPHIN") {
+                                altQueries.addAll(listOf("BYD DOLPHIN", "DOLPHIN SURF"))
+                            }
+                            if (eng == "ATTO 3") {
+                                altQueries.addAll(listOf("BYD ATTO 3", "ATTO 3 EVO"))
+                            }
+                            if (eng == "SEAL") {
+                                altQueries.addAll(listOf("BYD SEAL", "BYD SEAL 5"))
+                            }
+                            if (eng == "SEAL U") {
+                                altQueries.add("BYD SEAL U")
+                            }
+                            if (eng == "SPORTAGE") {
+                                altQueries.add("SPORTAGE HYBRID")
+                            }
+                            if (eng == "SANTA FE") {
+                                altQueries.add("SANTA FE HYBRID")
+                            }
+                            if (brandEnglish.equals("BYD", ignoreCase = true) && !eng.startsWith("BYD ")) {
+                                altQueries.add("BYD $eng")
+                            }
+
+                            val checked = mutableSetOf(eng)
+                            for (alt in altQueries) {
+                                if (checked.add(alt)) {
+                                    try {
+                                        val altResp = NetworkClient.apiService.getSameModelActiveCount(
+                                            filters = "{\"kinuy_mishari\":\"$alt\"}"
+                                        )
+                                        val altCount = altResp.result?.total ?: 0
+                                        count += altCount
+                                    } catch (_: Exception) {}
+                                }
+                            }
+
+                            BrandModelStat(
+                                modelHebrew = modelSug.modelHebrew,
+                                modelEnglish = modelSug.modelEnglish,
+                                activeCount = count
+                            )
+                        }
+                    }.awaitAll()
+                }
+
+                // 3. Sort strictly from highest activeCount (most popular, rightmost) to lowest
+                val sorted = results.sortedByDescending { it.activeCount }
+                _brandLiveModels.update { current ->
+                    current + (key to sorted)
+                }
+            } catch (e: Exception) {
+                loadingBrands.remove(key)
+            }
+        }
+    }
+
     fun onModelSearchQueryChange(newQuery: String) {
         _modelSearchQuery.value = newQuery
         _modelSearchError.value = null
@@ -2568,28 +2680,59 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             if (c > activeCount) activeCount = c
                         } catch (_: Exception) {}
 
-                        // Also check variations with/without spaces (e.g. "IONIQ5" vs "IONIQ 5", "RAV4" vs "RAV 4")
-                        val altComs = listOfNotNull(
-                            if (cleanCom.contains(" ")) cleanCom.replace(" ", "") else null,
-                            if (cleanCom == "RAV4") "RAV 4" else null,
-                            if (cleanCom == "RAV 4") "RAV4" else null,
-                            if (cleanCom == "IONIQ 5") "IONIQ5" else null,
-                            if (cleanCom == "IONIQ5") "IONIQ 5" else null,
-                            if (cleanCom == "IONIQ6") "IONIQ 6" else null,
-                            if (cleanCom == "IONIQ") "IONIQ HYBRID" else null,
-                            if (cleanCom == "KONA") "KONA HYBRID" else null
-                        )
+                        // Also check variations with/without spaces, hybrid badges, etc.
+                        val altComs = mutableListOf<String>()
+                        if (cleanCom.contains(" ")) altComs.add(cleanCom.replace(" ", ""))
+                        if (cleanCom == "C-HR" || cleanCom == "CHR") {
+                            altComs.addAll(listOf("C-HR HYBRID", "TOYOTA C-HR", "C-HR HYBRIB", "CHR HYBRID"))
+                        }
+                        if (cleanCom == "RAV4" || cleanCom == "RAV 4") {
+                            altComs.addAll(listOf("RAV 4", "RAV4", "RAV-4"))
+                        }
+                        if (cleanCom == "IONIQ") {
+                            altComs.addAll(listOf("IONIQ HYBRID", "IONIQ5", "IONIQ6"))
+                        }
+                        if (cleanCom == "IONIQ 5" || cleanCom == "IONIQ5") {
+                            altComs.addAll(listOf("IONIQ5", "IONIQ 5"))
+                        }
+                        if (cleanCom == "KONA") {
+                            altComs.add("KONA HYBRID")
+                        }
+                        if (cleanCom == "ELANTRA") {
+                            altComs.add("ELANTRA HEV")
+                        }
+                        if (cleanCom == "TUCSON") {
+                            altComs.add("TUCSON HYBRID")
+                        }
+                        if (cleanCom == "SONATA") {
+                            altComs.add("SONATA HYBRID")
+                        }
+                        if (cleanCom == "NIRO") {
+                            altComs.addAll(listOf("NIRO PLUS", "NIRO EV"))
+                        }
+                        if (cleanCom == "DOLPHIN") {
+                            altComs.addAll(listOf("BYD DOLPHIN", "DOLPHIN SURF"))
+                        }
+                        if (cleanCom == "ATTO 3") {
+                            altComs.addAll(listOf("BYD ATTO 3", "ATTO 3 EVO"))
+                        }
+                        if (cleanCom == "SEAL") {
+                            altComs.addAll(listOf("BYD SEAL", "BYD SEAL 5"))
+                        }
+                        if (cleanCom == "SEAL U") {
+                            altComs.add("BYD SEAL U")
+                        }
+
+                        val checkedAlts = mutableSetOf(cleanCom)
                         for (alt in altComs) {
-                            try {
-                                val c = NetworkClient.apiService.getSameModelActiveCount(
-                                    filters = "{\"kinuy_mishari\":\"$alt\"}"
-                                ).result?.total ?: 0
-                                if (cleanCom.startsWith("RAV") || cleanCom.startsWith("KONA") || cleanCom.startsWith("IONIQ")) {
+                            if (checkedAlts.add(alt)) {
+                                try {
+                                    val c = NetworkClient.apiService.getSameModelActiveCount(
+                                        filters = "{\"kinuy_mishari\":\"$alt\"}"
+                                    ).result?.total ?: 0
                                     activeCount += c
-                                } else if (c > activeCount) {
-                                    activeCount = c
-                                }
-                            } catch (_: Exception) {}
+                                } catch (_: Exception) {}
+                            }
                         }
                     }
 

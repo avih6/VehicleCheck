@@ -100,6 +100,7 @@ fun StatisticsScreen(
     val isSearchingModel by viewModel.isSearchingModel.collectAsState()
     val selectedModelDetail by viewModel.selectedModelDetail.collectAsState()
     val modelSearchError by viewModel.modelSearchError.collectAsState()
+    val brandLiveModels by viewModel.brandLiveModels.collectAsState()
 
     var selectedBrandIndex by remember { mutableIntStateOf(0) }
 
@@ -1041,20 +1042,38 @@ fun StatisticsScreen(
                                 )
 
                                 if (isSelected) {
+                                    LaunchedEffect(brand.nameHe) {
+                                        viewModel.loadLiveModelsForBrand(brand.nameHe, brand.nameEn)
+                                    }
+                                    val liveModelList = brandLiveModels[brand.nameHe]
+                                    val displayModels = liveModelList?.map { it.displayLabel } ?: brand.topModels
+
                                     Spacer(Modifier.height(8.dp))
-                                    Text(
-                                        text = "דגמים נפוצים בישראל (לחץ לניתוח):",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = "דגמים נפוצים בישראל (לחץ לניתוח):",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        if (liveModelList != null) {
+                                            Text(
+                                                text = "• מעודכן בלייב ממאגר הרישוי",
+                                                fontSize = 10.sp,
+                                                color = MaterialTheme.colorScheme.secondary
+                                            )
+                                        }
+                                    }
                                     Spacer(Modifier.height(4.dp))
                                     androidx.compose.foundation.lazy.LazyRow(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        items(brand.topModels.size) { mIdx ->
-                                            val model = brand.topModels[mIdx]
+                                        items(displayModels.size) { mIdx ->
+                                            val model = displayModels[mIdx]
                                             val cleanModelName = model.substringBefore(" (").trim()
                                             val fullModelQuery = "${brand.nameHe} $cleanModelName"
                                             AssistChip(

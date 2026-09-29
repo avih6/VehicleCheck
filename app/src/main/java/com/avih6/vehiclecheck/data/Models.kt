@@ -736,6 +736,16 @@ data class ModelStatisticsDetail(
     val yearDistribution: List<ModelYearCount> = emptyList()
 )
 
+@kotlinx.serialization.Serializable
+data class BrandModelStat(
+    val modelHebrew: String,
+    val modelEnglish: String,
+    val activeCount: Int = 0
+) {
+    val displayLabel: String
+        get() = if (activeCount > 0) "$modelHebrew ($modelEnglish) • %,d".format(activeCount) else "$modelHebrew ($modelEnglish)"
+}
+
 sealed interface TestStatus {
     data class Valid(val daysLeft: Long) : TestStatus
     data class ExpiringSoon(val daysLeft: Long) : TestStatus
@@ -2651,6 +2661,8 @@ object VehicleModelCatalog {
         ModelSuggestion("יונדאי", "Hyundai", "i25", "I25", "יונדאי i25"),
         ModelSuggestion("יונדאי", "Hyundai", "גטס", "Getz", "יונדאי גטס"),
         ModelSuggestion("יונדאי", "Hyundai", "אקסנט", "Accent", "יונדאי אקסנט"),
+        ModelSuggestion("יונדאי", "Hyundai", "סונטה", "Sonata", "יונדאי סונטה"),
+        ModelSuggestion("יונדאי", "Hyundai", "ix35", "IX35", "יונדאי ix35"),
 
         // Toyota
         ModelSuggestion("טויוטה", "Toyota", "קורולה", "Corolla", "טויוטה קורולה"),
