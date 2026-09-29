@@ -909,6 +909,7 @@ object VehicleUtils {
         if (mk.contains("יונדאי") || mk.contains("HYUNDAI", ignoreCase = true)) {
             if (mc.contains("IONIQ 5") || mn.contains("IONIQ 5") || mn.contains("IONIQ5") || mc.contains("IONIQ5") || mn.contains("איוניק 5")) return "איוניק 5"
             if (mc.contains("IONIQ 6") || mn.contains("IONIQ 6") || mn.contains("IONIQ6") || mc.contains("IONIQ6") || mn.contains("איוניק 6")) return "איוניק 6"
+            if (mc.contains("IONIQ 9") || mn.contains("IONIQ 9") || mn.contains("IONIQ9") || mc.contains("IONIQ9") || mn.contains("איוניק 9")) return "איוניק 9"
             if (mc.contains("IONIQ") || mn.contains("IONIQ") || mn.contains("איוניק")) return "איוניק"
             if (mc.contains("TUCSON") || mn.contains("TUCSON") || mn.contains("טוסון") || mn.contains("טוסאן")) return "טוסון"
             if (mc.contains("KONA") || mn.contains("KONA") || mn.contains("קונה")) return "קונה"
@@ -1025,6 +1026,7 @@ object VehicleUtils {
                 "קורולה" -> terms.addAll(listOf("COROLLA", "קורולה"))
                 "איוניק 5" -> terms.addAll(listOf("IONIQ5", "IONIQ 5", "איוניק 5"))
                 "איוניק 6" -> terms.addAll(listOf("IONIQ6", "IONIQ 6", "איוניק 6"))
+                "איוניק 9" -> terms.addAll(listOf("IONIQ9", "IONIQ 9", "איוניק 9"))
                 "איוניק" -> terms.addAll(listOf("IONIQ HYBRID", "IONIQ", "איוניק"))
                 "טוסון" -> terms.addAll(listOf("TUCSON", "טוסון"))
                 "קונה" -> terms.addAll(listOf("KONA", "קונה"))

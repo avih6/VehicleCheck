@@ -1703,6 +1703,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             if (eng == "IONIQ") altQueries.addAll(listOf("IONIQ HYBRID", "IONIQ5", "IONIQ6"))
                             if (eng == "IONIQ 5" || eng == "IONIQ5") altQueries.addAll(listOf("IONIQ5", "IONIQ 5"))
                             if (eng == "IONIQ 6" || eng == "IONIQ6") altQueries.addAll(listOf("IONIQ6", "IONIQ 6"))
+                            if (eng == "IONIQ 9" || eng == "IONIQ9") altQueries.addAll(listOf("IONIQ9", "IONIQ 9"))
                             if (eng == "KONA") altQueries.addAll(listOf("KONA HYBRID", "KONA EV"))
                             if (eng == "ELANTRA") altQueries.addAll(listOf("ELANTRA HEV", "ELANTRA HYBRID"))
                             if (eng == "TUCSON") altQueries.add("TUCSON HYBRID")
