@@ -103,6 +103,7 @@ fun StatisticsScreen(
     val selectedModelDetail by viewModel.selectedModelDetail.collectAsState()
     val modelSearchError by viewModel.modelSearchError.collectAsState()
     val brandLiveModels by viewModel.brandLiveModels.collectAsState()
+    val loadingBrandNames by viewModel.loadingBrandNames.collectAsState()
 
     var selectedBrandIndex by remember { mutableIntStateOf(0) }
 
@@ -1048,9 +1049,10 @@ fun StatisticsScreen(
                                         viewModel.loadLiveModelsForBrand(brand.nameHe, brand.nameEn)
                                     }
                                     val liveModelList = brandLiveModels[brand.nameHe]
+                                    val isLoadingBrand = loadingBrandNames.contains(brand.nameHe)
                                     val displayModelStats: List<BrandModelStat> = remember(brand.nameHe, liveModelList) {
                                         if (!liveModelList.isNullOrEmpty()) {
-                                            liveModelList
+                                            liveModelList.filter { it.activeCount > 0 }
                                         } else {
                                             val catalogItems = VehicleModelCatalog.allModels.filter {
                                                 it.brandHebrew.equals(brand.nameHe, ignoreCase = true) ||
@@ -1074,59 +1076,100 @@ fun StatisticsScreen(
                                         }
                                     }
 
-                                    Spacer(Modifier.height(8.dp))
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Text(
-                                            text = "דגמים נפוצים בישראל (לחץ לניתוח):",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        if (liveModelList != null) {
+                                    if (isLoadingBrand && liveModelList.isNullOrEmpty()) {
+                                        Spacer(Modifier.height(8.dp))
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            modifier = Modifier.padding(vertical = 4.dp)
+                                        ) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(13.dp),
+                                                strokeWidth = 2.dp,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
                                             Text(
-                                                text = "• מעודכן בלייב ממאגר הרישוי",
-                                                fontSize = 10.sp,
-                                                color = MaterialTheme.colorScheme.secondary
+                                                text = "טוען כמויות דגמים עדכניות ממאגר משרד התחבורה...",
+                                                fontSize = 11.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
-                                    }
-                                    Spacer(Modifier.height(4.dp))
-                                    androidx.compose.foundation.lazy.LazyRow(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        items(displayModelStats.size) { mIdx ->
-                                            val modelStat = displayModelStats[mIdx]
-                                            val fullModelQuery = "${brand.nameHe} ${modelStat.modelHebrew}"
-                                            AssistChip(
-                                                onClick = {
-                                                    focusManager.clearFocus()
-                                                    viewModel.searchModelStatistics(fullModelQuery)
-                                                },
-                                                label = {
-                                                    Text(
-                                                        text = modelStat.displayLabel,
-                                                        fontSize = 11.sp,
-                                                        fontWeight = FontWeight.Medium,
-                                                        maxLines = 1
-                                                    )
-                                                },
-                                                leadingIcon = {
-                                                    Icon(
-                                                        imageVector = Icons.Default.DirectionsCar,
-                                                        contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(13.dp)
-                                                    )
-                                                },
-                                                shape = RoundedCornerShape(8.dp),
-                                                colors = AssistChipDefaults.assistChipColors(
-                                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                                )
+                                    } else if (displayModelStats.isNotEmpty()) {
+                                        Spacer(Modifier.height(8.dp))
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Text(
+                                                text = "דגמים נפוצים בישראל (לחץ לניתוח):",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
                                             )
+                                            if (!liveModelList.isNullOrEmpty()) {
+                                                Text(
+                                                    text = "• מעודכן בלייב ממאגר הרישוי",
+                                                    fontSize = 10.sp,
+                                                    color = MaterialTheme.colorScheme.secondary
+                                                )
+                                            }
+                                        }
+                                        Spacer(Modifier.height(4.dp))
+                                        androidx.compose.foundation.lazy.LazyRow(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            items(displayModelStats.size) { mIdx ->
+                                                val modelStat = displayModelStats[mIdx]
+                                                val fullModelQuery = "${brand.nameHe} ${modelStat.modelHebrew}"
+                                                AssistChip(
+                                                    onClick = {
+                                                        focusManager.clearFocus()
+                                                        viewModel.searchModelStatistics(fullModelQuery)
+                                                    },
+                                                    label = {
+                                                        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                                                            Row(
+                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                            ) {
+                                                                Text(
+                                                                    text = modelStat.displayName,
+                                                                    fontSize = 11.sp,
+                                                                    fontWeight = FontWeight.Medium,
+                                                                    maxLines = 1
+                                                                )
+                                                                if (modelStat.activeCount > 0) {
+                                                                    Text(
+                                                                        text = "•",
+                                                                        fontSize = 11.sp,
+                                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                                    )
+                                                                    Text(
+                                                                        text = "%,d".format(modelStat.activeCount),
+                                                                        fontSize = 11.sp,
+                                                                        fontWeight = FontWeight.SemiBold,
+                                                                        color = MaterialTheme.colorScheme.primary,
+                                                                        maxLines = 1
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    leadingIcon = {
+                                                        Icon(
+                                                            imageVector = Icons.Default.DirectionsCar,
+                                                            contentDescription = null,
+                                                            tint = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.size(13.dp)
+                                                        )
+                                                    },
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    colors = AssistChipDefaults.assistChipColors(
+                                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                                    )
+                                                )
+                                            }
                                         }
                                     }
                                 }

@@ -153,11 +153,11 @@ data class VehicleRecord(
             return "קלאב קאר"
         }
         if (!raw.isNullOrBlank() && !raw.all { it == '?' || it == '"' || it == ' ' || it.code == 65533 }) {
-            return raw
+            return VehicleUtils.formatMake(raw).ifBlank { raw }
         }
         return when (makeCode) {
             864L -> "קלאב קאר"
-            else -> raw?.ifBlank { null }
+            else -> raw?.let { VehicleUtils.formatMake(it) }?.ifBlank { null }
         }
     }
     val effectiveModel: String? get() {
@@ -742,9 +742,9 @@ data class BrandModelStat(
     val modelEnglish: String,
     val activeCount: Int = 0
 ) {
-    val displayLabel: String
+    val displayName: String
         get() {
-            val baseName = if (
+            return if (
                 modelEnglish.isNotBlank() &&
                 !modelHebrew.equals(modelEnglish, ignoreCase = true) &&
                 !modelHebrew.contains(modelEnglish, ignoreCase = true) &&
@@ -754,7 +754,11 @@ data class BrandModelStat(
             } else {
                 modelHebrew.ifBlank { modelEnglish }
             }
-            return if (activeCount > 0) "$baseName • %,d".format(activeCount) else baseName
+        }
+
+    val displayLabel: String
+        get() {
+            return if (activeCount > 0) "\u200F$displayName • %,d".format(activeCount) else displayName
         }
 }
 
@@ -1391,21 +1395,18 @@ object VehicleUtils {
             return "איזיגו"
         }
 
-        var str = raw.trim()
-        val countrySuffixes = listOf(
-            " גרמנ", " גרמניה", " יפן", " צרפת", " איטליה", " איטלי",
-            " ארה\"ב", " ארה''ב", " ארה'ב", " ארהב\"", " ארהב", " שוודיה", " שוודי",
-            " בריטניה", " אנגליה", " סין", " הודו", " טורקיה", " תורכיה",
-            " דרום קוריאה", " קוריאה", " צ'כיה", " ספרד", " רומניה",
-            " הונגריה", " פולין", " מקסיקו", " קנדה", " תאילנד", " אוסטריה", " בלגיה"
-        )
-        for (suffix in countrySuffixes) {
-            if (str.endsWith(suffix, ignoreCase = true)) {
-                str = str.removeSuffix(suffix).trim()
-            }
-        }
+        var str = raw.trim().trim('"', '\'', '`', '״', '׳')
+
+        // Clean out country suffixes (e.g. "שברולט ארהב""", "טויוטה יפן", "טויוטה ארה''ב", "פולקסווגן גרמניה")
+        str = str.replace(
+            Regex("""\s+(גרמניה|גרמנ|יפן|צרפת|איטליה|איטלי|ארה"?ב|ארה''ב|ארה'ב|ארהב"?|שוודיה|שוודי|בריטניה|אנגליה|סין|הודו|טורקיה|תורכיה|דרום קוריאה|קוריאה|צ'כיה|צכיה|ספרד|רומניה|הונגריה|פולין|מקסיקו|קנדה|תאילנד|אוסטריה|בלגיה|סלובקיה|טייוואן|טאיוואן|ישראל)["'״׳`]*$"""),
+            ""
+        ).trim()
+
         str = str.replace("ארהב\"", "ארה\"ב")
-        str = str.replace("ארהב", "ארה\"ב")
+            .replace("ארהב", "ארה\"ב")
+            .trim('"', '\'', '`', '״', '׳')
+
         return str
     }
 

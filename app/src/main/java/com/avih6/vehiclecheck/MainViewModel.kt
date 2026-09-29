@@ -1652,12 +1652,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _brandLiveModels = MutableStateFlow<Map<String, List<BrandModelStat>>>(emptyMap())
     val brandLiveModels: StateFlow<Map<String, List<BrandModelStat>>> = _brandLiveModels.asStateFlow()
 
-    private val loadingBrands = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+    private val _loadingBrandNames = MutableStateFlow<Set<String>>(emptySet())
+    val loadingBrandNames: StateFlow<Set<String>> = _loadingBrandNames.asStateFlow()
 
     fun loadLiveModelsForBrand(brandHebrew: String, brandEnglish: String) {
         val key = brandHebrew.trim()
-        if (_brandLiveModels.value.containsKey(key) || !loadingBrands.add(key)) return
+        if (_brandLiveModels.value.containsKey(key) || _loadingBrandNames.value.contains(key)) return
 
+        _loadingBrandNames.update { it + key }
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 // 1. Get known models from catalog for this brand
@@ -1682,51 +1684,107 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             // Also try variations (hybrid badges, with/without spaces, importer prefixes)
                             val altQueries = mutableListOf<String>()
                             if (eng.contains(" ")) altQueries.add(eng.replace(" ", ""))
-                            if (eng == "C-HR" || eng == "CHR") {
-                                altQueries.addAll(listOf("C-HR HYBRID", "TOYOTA C-HR", "C-HR HYBRIB", "CHR HYBRID"))
-                            }
-                            if (eng == "RAV4" || eng == "RAV 4") {
-                                altQueries.addAll(listOf("RAV 4", "RAV4", "RAV-4"))
-                            }
-                            if (eng == "IONIQ") {
-                                altQueries.addAll(listOf("IONIQ HYBRID", "IONIQ5", "IONIQ6"))
-                            }
-                            if (eng == "KONA") {
-                                altQueries.add("KONA HYBRID")
-                            }
-                            if (eng == "ELANTRA") {
-                                altQueries.add("ELANTRA HEV")
-                            }
-                            if (eng == "TUCSON") {
-                                altQueries.add("TUCSON HYBRID")
-                            }
-                            if (eng == "SONATA") {
-                                altQueries.add("SONATA HYBRID")
-                            }
-                            if (eng == "NIRO") {
-                                altQueries.addAll(listOf("NIRO PLUS", "NIRO EV"))
-                            }
-                            if (eng == "DOLPHIN") {
-                                altQueries.addAll(listOf("BYD DOLPHIN", "DOLPHIN SURF"))
-                            }
-                            if (eng == "ATTO 3") {
-                                altQueries.addAll(listOf("BYD ATTO 3", "ATTO 3 EVO"))
-                            }
-                            if (eng == "SEAL") {
-                                altQueries.addAll(listOf("BYD SEAL", "BYD SEAL 5"))
-                            }
-                            if (eng == "SEAL U") {
-                                altQueries.add("BYD SEAL U")
-                            }
-                            if (eng == "SPORTAGE") {
-                                altQueries.add("SPORTAGE HYBRID")
-                            }
-                            if (eng == "SANTA FE") {
-                                altQueries.add("SANTA FE HYBRID")
-                            }
+
+                            // Toyota
+                            if (eng == "BZ4X" || eng == "BZ 4X") altQueries.addAll(listOf("TOYOTA BZ4X", "BZ 4X", "BZ4X"))
+                            if (eng == "C-HR" || eng == "CHR") altQueries.addAll(listOf("C-HR HYBRID", "TOYOTA C-HR", "C-HR HYBRIB", "CHR HYBRID"))
+                            if (eng == "RAV4" || eng == "RAV 4") altQueries.addAll(listOf("RAV 4", "RAV4", "RAV-4", "RAV4 HYBRID", "RAV 4 HYBRID"))
+                            if (eng == "YARIS") altQueries.add("YARIS HYBRID")
+                            if (eng == "COROLLA") altQueries.add("COROLLA HYBRID")
+                            if (eng == "AURIS") altQueries.add("AURIS HYBRID")
+                            if (eng == "CAMRY") altQueries.add("CAMRY HYBRID")
+                            if (eng == "PRIUS") altQueries.addAll(listOf("PRIUS PLUS", "PRIUS PLUG-IN", "PRIUS+"))
+                            if (eng == "LAND CRUISER") altQueries.addAll(listOf("PRADO", "LANDCRUISER"))
+                            if (eng == "AYGO") altQueries.add("AYGO X")
+                            if (eng == "VERSO") altQueries.add("COROLLA VERSO")
+                            if (eng == "PROACE") altQueries.add("PROACE CITY")
+
+                            // Hyundai
+                            if (eng == "IONIQ") altQueries.addAll(listOf("IONIQ HYBRID", "IONIQ5", "IONIQ6"))
+                            if (eng == "IONIQ 5" || eng == "IONIQ5") altQueries.addAll(listOf("IONIQ5", "IONIQ 5"))
+                            if (eng == "IONIQ 6" || eng == "IONIQ6") altQueries.addAll(listOf("IONIQ6", "IONIQ 6"))
+                            if (eng == "KONA") altQueries.addAll(listOf("KONA HYBRID", "KONA EV"))
+                            if (eng == "ELANTRA") altQueries.addAll(listOf("ELANTRA HEV", "ELANTRA HYBRID"))
+                            if (eng == "TUCSON") altQueries.add("TUCSON HYBRID")
+                            if (eng == "SONATA") altQueries.add("SONATA HYBRID")
+                            if (eng == "SANTA FE") altQueries.add("SANTA FE HYBRID")
+                            if (eng == "I10") altQueries.add("I 10")
+                            if (eng == "I20") altQueries.addAll(listOf("I20N", "I20 CROSS", "I 20"))
+                            if (eng == "I30") altQueries.addAll(listOf("I30N", "I30CW", "I30 CW", "I 30"))
+                            if (eng == "I25") altQueries.addAll(listOf("ACCENT I25", "I 25"))
+                            if (eng == "I35") altQueries.add("I 35")
+                            if (eng == "ACCENT") altQueries.add("NEW ACCENT")
+                            if (eng == "IX35") altQueries.add("IX 35")
+
+                            // Kia
+                            if (eng == "NIRO") altQueries.addAll(listOf("NIRO PLUS", "NIRO EV", "NIRO PHEV", "NIRO HYBRID"))
+                            if (eng == "CEED") altQueries.addAll(listOf("XCEED", "C'EED", "PRO CEED", "PRO_CEED"))
+                            if (eng == "SPORTAGE") altQueries.add("SPORTAGE HYBRID")
+                            if (eng == "SORENTO") altQueries.add("SORENTO HYBRID")
+                            if (eng == "OPTIMA") altQueries.add("OPTIMA HYBRID")
+                            if (eng == "SOUL") altQueries.add("SOUL EV")
+
+                            // Skoda
+                            if (eng == "FABIA") altQueries.add("FABIA SPACE")
+                            if (eng == "RAPID") altQueries.add("RAPID SPACEBACK")
+                            if (eng == "SUPERB") altQueries.add("SUPERB COMBI")
+                            if (eng == "OCTAVIA") altQueries.add("OCTAVIA COMBI")
+                            if (eng == "ENYAQ") altQueries.add("ENYAQ COUPE")
+
+                            // Mazda
+                            if (eng == "MAZDA 3" || eng == "3") altQueries.addAll(listOf("MAZDA 3", "MAZDA3", "3"))
+                            if (eng == "MAZDA 2" || eng == "2") altQueries.addAll(listOf("MAZDA 2", "MAZDA2", "DEMIO", "2"))
+                            if (eng == "MAZDA 6" || eng == "6") altQueries.addAll(listOf("MAZDA 6", "MAZDA6", "6"))
+                            if (eng == "CX-5" || eng == "CX5") altQueries.addAll(listOf("CX-5", "CX5"))
+                            if (eng == "CX-30" || eng == "CX30") altQueries.addAll(listOf("CX-30", "CX30"))
+                            if (eng == "CX-3" || eng == "CX3") altQueries.addAll(listOf("CX-3", "CX3"))
+                            if (eng == "CX-60" || eng == "CX60") altQueries.addAll(listOf("CX-60", "CX60"))
+                            if (eng.contains("MX-5") || eng.contains("MIATA")) altQueries.addAll(listOf("MX-5", "MX5", "MIATA"))
+
+                            // Volkswagen
+                            if (eng == "ID.4" || eng == "ID4") altQueries.addAll(listOf("ID4", "ID.4"))
+                            if (eng == "ID.3" || eng == "ID3") altQueries.addAll(listOf("ID3", "ID.3"))
+                            if (eng == "ID.5" || eng == "ID5") altQueries.addAll(listOf("ID5", "ID.5"))
+                            if (eng == "ID.BUZZ" || eng == "ID BUZZ") altQueries.addAll(listOf("ID BUZZ", "ID.BUZZ"))
+                            if (eng == "GOLF") altQueries.addAll(listOf("GOLF PLUS", "GOLF SPORTSVAN"))
+                            if (eng == "TIGUAN") altQueries.add("TIGUAN ALLSPACE")
+                            if (eng == "TRANSPORTER") altQueries.addAll(listOf("CARAVELLE", "MULTIVAN"))
+                            if (eng == "PASSAT") altQueries.add("PASSAT CC")
+                            if (eng == "CADDY") altQueries.add("CADDY MAXI")
+                            if (eng == "T-ROC") altQueries.add("T-ROC CABRIOLET")
+
+                            // Chevrolet
+                            if (eng == "SONIC") altQueries.add("AVEO")
+                            if (eng == "BOLT") altQueries.add("BOLT EV")
+
+                            // Peugeot
+                            if (eng == "2008") altQueries.add("E-2008")
+                            if (eng == "208") altQueries.add("E-208")
+                            if (eng == "308") altQueries.add("308 SW")
+                            if (eng == "206") altQueries.add("206+")
+
+                            // Subaru
+                            if (eng.contains("XV") || eng.contains("CROSSTREK")) altQueries.addAll(listOf("XV", "CROSSTREK", "SUBARU XV"))
+                            if (eng == "IMPREZA") altQueries.add("B3")
+                            if (eng.contains("B4") || eng.contains("LEGACY")) altQueries.addAll(listOf("B4", "LEGACY"))
+
+                            // Seat
+                            if (eng == "ALTEA") altQueries.add("ALTEA XL")
+
+                            // BYD
+                            if (eng == "DOLPHIN") altQueries.addAll(listOf("BYD DOLPHIN", "DOLPHIN SURF"))
+                            if (eng == "ATTO 3") altQueries.addAll(listOf("BYD ATTO 3", "ATTO 3 EVO", "ATTO3"))
+                            if (eng == "SEAL") altQueries.addAll(listOf("BYD SEAL", "BYD SEAL 5"))
+                            if (eng == "SEAL U") altQueries.add("BYD SEAL U")
                             if (brandEnglish.equals("BYD", ignoreCase = true) && !eng.startsWith("BYD ")) {
                                 altQueries.add("BYD $eng")
                             }
+
+                            // Tesla
+                            if (eng == "MODEL 3") altQueries.add("MODEL3")
+                            if (eng == "MODEL Y") altQueries.add("MODELY")
+                            if (eng == "MODEL S") altQueries.add("MODELS")
+                            if (eng == "MODEL X") altQueries.add("MODELX")
 
                             val checked = mutableSetOf(eng)
                             for (alt in altQueries) {
@@ -1756,7 +1814,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     current + (key to sorted)
                 }
             } catch (e: Exception) {
-                loadingBrands.remove(key)
+                // Ignore error
+            } finally {
+                _loadingBrandNames.update { it - key }
             }
         }
     }
@@ -2788,35 +2848,59 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val totalVehicles = activeCount + inactiveCount
                     val survivalRate = if (totalVehicles > 0) (activeCount.toFloat() / totalVehicles) * 100f else 96.5f
 
-                    // Build Year Distribution breakdown (past 5 years: from oldest to newest)
+                    // Build Year Distribution breakdown (strictly real counts from government database)
                     val currentYear = java.time.LocalDate.now().year
                     val distribution = mutableListOf<ModelYearCount>()
-                    val years = listOf(currentYear - 4, currentYear - 3, currentYear - 2, currentYear - 1, currentYear)
+                    val cleanCom = commercialName?.trim()?.uppercase()
 
-                    years.forEachIndexed { idx, yr ->
+                    // First check recent years (last 6 years)
+                    val recentYears = (currentYear - 5..currentYear).toList()
+                    for (yr in recentYears) {
                         var yrActive = 0
-                        if (makeCd != null && !commercialName.isNullOrBlank()) {
+                        if (makeCd != null && !cleanCom.isNullOrBlank()) {
                             try {
                                 val yrResp = NetworkClient.apiService.getSameModelActiveCount(
-                                    filters = "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"${commercialName.trim()}\",\"shnat_yitzur\":$yr}"
+                                    filters = "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"$cleanCom\",\"shnat_yitzur\":$yr}"
                                 )
                                 yrActive = yrResp.result?.total ?: 0
                             } catch (_: Exception) {}
                         }
-                        if (yrActive == 0 && bestQueryForYears.isNotBlank() && !bestQueryForYears.all { it.isDigit() }) {
+                        if (yrActive == 0 && !cleanCom.isNullOrBlank()) {
                             try {
-                                val yrResp = NetworkClient.apiService.searchVehicleByQuery(query = "$bestQueryForYears $yr", limit = 1)
+                                val yrResp = NetworkClient.apiService.getSameModelActiveCount(
+                                    filters = "{\"kinuy_mishari\":\"$cleanCom\",\"shnat_yitzur\":$yr}"
+                                )
+                                yrActive = yrResp.result?.total ?: 0
+                            } catch (_: Exception) {}
+                        }
+                        if (yrActive == 0 && !modelName.isBlank() && makeCd != null) {
+                            try {
+                                val yrResp = NetworkClient.apiService.getSameModelActiveCount(
+                                    filters = "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"${modelName.trim()}\",\"shnat_yitzur\":$yr}"
+                                )
                                 yrActive = yrResp.result?.total ?: 0
                             } catch (_: Exception) {}
                         }
 
-                        if (yrActive == 0 && activeCount > 0) {
-                            val weights = listOf(0.12, 0.18, 0.25, 0.28, 0.17)
-                            val weight = weights.getOrElse(idx) { 0.20 }
-                            yrActive = (activeCount * weight).toInt().coerceAtLeast(1)
-                        }
                         if (yrActive > 0) {
                             distribution.add(ModelYearCount(yr, yrActive, (yrActive * 0.03).toInt()))
+                        }
+                    }
+
+                    // If model was discontinued in earlier years (e.g. Toyota Verso produced until 2018)
+                    if (distribution.isEmpty() && !cleanCom.isNullOrBlank()) {
+                        for (yr in (currentYear - 6) downTo 2008) {
+                            var yrActive = 0
+                            try {
+                                val yrResp = NetworkClient.apiService.getSameModelActiveCount(
+                                    filters = "{\"kinuy_mishari\":\"$cleanCom\",\"shnat_yitzur\":$yr}"
+                                )
+                                yrActive = yrResp.result?.total ?: 0
+                            } catch (_: Exception) {}
+                            if (yrActive > 0) {
+                                distribution.add(0, ModelYearCount(yr, yrActive, (yrActive * 0.03).toInt()))
+                            }
+                            if (distribution.size >= 5) break
                         }
                     }
 

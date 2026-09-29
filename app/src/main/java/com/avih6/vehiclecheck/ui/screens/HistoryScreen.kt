@@ -311,7 +311,8 @@ private fun HistoryItemCard(
                     }
                 }
 
-                val desc = listOfNotNull(item.make, item.model, item.fuelType).filter { it.isNotBlank() }.joinToString(" • ")
+                val cleanMake = item.make?.let { VehicleUtils.formatMake(it) }?.ifBlank { item.make }
+                val desc = listOfNotNull(cleanMake, item.model, item.fuelType).filter { it.isNotBlank() }.joinToString(" • ")
                 if (!isNotFound && desc.isNotBlank()) {
                     Text(
                         text = desc,

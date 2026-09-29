@@ -141,10 +141,9 @@ class HistoryRepository(private val dao: VehicleDao) {
             isTaxi -> if (!record?.ownership.isNullOrBlank() && record?.ownership != "פרטי") "מונית (${record?.ownership})" else "מונית (פרטי)"
             else -> record?.ownership
         }
-
         val entry = VehicleHistoryEntity(
             licensePlate = cleanPlate,
-            make = record?.make,
+            make = VehicleUtils.formatMake(record?.effectiveMake ?: record?.make).ifBlank { record?.make },
             model = record?.effectiveModel ?: record?.model ?: record?.modelCode,
             year = record?.year,
             color = record?.color,
