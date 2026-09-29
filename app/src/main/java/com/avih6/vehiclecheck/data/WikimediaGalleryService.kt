@@ -49,6 +49,7 @@ object WikimediaGalleryService {
     }
 
     private val showcaseCache = SimpleLruCache<String, List<CarGalleryImage>>(60)
+    private val galleryPageCache = SimpleLruCache<String, GalleryPageResult>(60)
     private val serviceScope = kotlinx.coroutines.CoroutineScope(Dispatchers.IO + kotlinx.coroutines.SupervisorJob())
     private val inFlightShowcase = java.util.concurrent.ConcurrentHashMap<String, kotlinx.coroutines.Deferred<List<CarGalleryImage>>>()
 
@@ -454,45 +455,50 @@ object WikimediaGalleryService {
         val cleanMake = if (rawMake == "הכל" || rawMake.equals("all", ignoreCase = true) || rawMake.contains("כל הרכבים")) "" else rawMake.trim()
         val cleanModel = if (rawModel == "כל הדגמים" || rawModel.equals("all", ignoreCase = true)) "" else rawModel.trim()
 
-        if (cleanMake.isBlank() && cleanModel.isBlank()) {
+        val cacheKey = "${cleanMake.lowercase()}_${cleanModel.lowercase()}_${offset}_${limit}"
+        galleryPageCache.get(cacheKey)?.let { return@withContext it }
+
+        val pageResult = if (cleanMake.isBlank() && cleanModel.isBlank()) {
             // Rich multi-car gallery for "הכל" with full infinite scrolling support
             val query = "Toyota automobile OR Hyundai automobile OR Tesla automobile OR Kia automobile OR Mazda automobile OR BYD automobile"
-            val result = fetchCommonsSearch(query, offset, limit)
-            return@withContext result
-        }
-
-        val query = buildSearchQuery(cleanMake, cleanModel)
-        val commonsResult = fetchCommonsSearch(query, offset, limit)
-
-        // For initial load (offset == 0), augment with Wikipedia & Category images for maximum richness
-        if (offset == 0) {
-            val (makeEn, modelEn) = VehicleUtils.getEnglishMakeAndModel(cleanMake, cleanModel)
-            val brand = if (makeEn != "car") makeEn else cleanMake
-            val model = if (modelEn != "car") modelEn else cleanModel
-
-            val extraImages = coroutineScope {
-                val dWikiEn = async {
-                    if (brand.isNotBlank() && model.isNotBlank()) fetchWikipediaSearch("$brand $model", limit = 10, isHebrew = false)
-                    else if (brand.isNotBlank()) fetchWikipediaSearch(brand, limit = 10, isHebrew = false)
-                    else emptyList()
-                }
-                val dWikiHe = async {
-                    if (cleanMake.isNotBlank()) fetchWikipediaSearch("$cleanMake $cleanModel".trim(), limit = 6, isHebrew = true)
-                    else emptyList()
-                }
-                val dCat = async {
-                    if (brand.isNotBlank() && model.isNotBlank()) fetchCommonsCategoryMembers("Category:${brand.replace(" ", "_")}_${model.replace(" ", "_")}", limit = 15)
-                    else if (brand.isNotBlank()) fetchCommonsCategoryMembers("Category:${brand.replace(" ", "_")}", limit = 15)
-                    else emptyList()
-                }
-                dWikiEn.await() + dWikiHe.await() + dCat.await()
-            }
-
-            val merged = (commonsResult.images + extraImages).distinctBy { it.imageUrl }
-            GalleryPageResult(merged, commonsResult.nextOffset)
+            fetchCommonsSearch(query, offset, limit)
         } else {
-            commonsResult
+            val query = buildSearchQuery(cleanMake, cleanModel)
+            val commonsResult = fetchCommonsSearch(query, offset, limit)
+
+            // For initial load (offset == 0), augment with Wikipedia & Category images for maximum richness
+            if (offset == 0) {
+                val (makeEn, modelEn) = VehicleUtils.getEnglishMakeAndModel(cleanMake, cleanModel)
+                val brand = if (makeEn != "car") makeEn else cleanMake
+                val model = if (modelEn != "car") modelEn else cleanModel
+
+                val extraImages = coroutineScope {
+                    val dWikiEn = async {
+                        if (brand.isNotBlank() && model.isNotBlank()) fetchWikipediaSearch("$brand $model", limit = 10, isHebrew = false)
+                        else if (brand.isNotBlank()) fetchWikipediaSearch(brand, limit = 10, isHebrew = false)
+                        else emptyList()
+                    }
+                    val dWikiHe = async {
+                        if (cleanMake.isNotBlank()) fetchWikipediaSearch("$cleanMake $cleanModel".trim(), limit = 6, isHebrew = true)
+                        else emptyList()
+                    }
+                    val dCat = async {
+                        if (brand.isNotBlank() && model.isNotBlank()) fetchCommonsCategoryMembers("Category:${brand.replace(" ", "_")}_${model.replace(" ", "_")}", limit = 15)
+                        else if (brand.isNotBlank()) fetchCommonsCategoryMembers("Category:${brand.replace(" ", "_")}", limit = 15)
+                        else emptyList()
+                    }
+                    dWikiEn.await() + dWikiHe.await() + dCat.await()
+                }
+
+                val merged = (commonsResult.images + extraImages).distinctBy { it.imageUrl }
+                GalleryPageResult(merged, commonsResult.nextOffset)
+            } else {
+                commonsResult
+            }
         }
+
+        galleryPageCache.put(cacheKey, pageResult)
+        pageResult
     }
 
     private suspend fun fetchCommonsSearchSingle(
