@@ -1191,8 +1191,13 @@ fun StatisticsScreen(
                     Text(
                         text = "עובדות ותובנות על כבישי ישראל",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 10.dp)
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "מדדי מאקרו שנתיים מנתוני הלמ״ס ומשרד התחבורה",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 12.dp)
                     )
 
                     val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
