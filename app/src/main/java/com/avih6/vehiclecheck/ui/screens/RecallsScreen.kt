@@ -36,6 +36,7 @@ import com.avih6.vehiclecheck.MainViewModel
 import com.avih6.vehiclecheck.data.NetworkClient
 import com.avih6.vehiclecheck.data.RecallDetailRecord
 import com.avih6.vehiclecheck.data.VehicleUtils
+import com.avih6.vehiclecheck.data.VehicleModelCatalog
 import com.avih6.vehiclecheck.ui.components.AutoBrandLogo
 import com.avih6.vehiclecheck.ui.components.HoverTooltipIconButton
 import com.avih6.vehiclecheck.ui.components.handCursor
@@ -100,14 +101,107 @@ fun RecallsScreen(
         val q = rawQ.removePrefix("#").trim()
         val isNumericSearch = q.isNotEmpty() && q.all { it.isDigit() }
 
+        val searchTerms = if (q.isBlank()) emptyList() else {
+            val terms = mutableListOf(q, rawQ)
+            // Add Hebrew to English brand mappings
+            when {
+                rawQ.contains("טויוטה") -> terms.addAll(listOf("toyota", "טויוטה"))
+                rawQ.contains("יונדאי") -> terms.addAll(listOf("hyundai", "יונדאי"))
+                rawQ.contains("קיה") -> terms.addAll(listOf("kia", "קיה"))
+                rawQ.contains("מאזדה") -> terms.addAll(listOf("mazda", "מאזדה"))
+                rawQ.contains("סקודה") -> terms.addAll(listOf("skoda", "סקודה"))
+                rawQ.contains("פולקסווגן") || rawQ.contains("פולקסווגאן") -> terms.addAll(listOf("volkswagen", "vw"))
+                rawQ.contains("שברולט") -> terms.addAll(listOf("chevrolet", "chevy"))
+                rawQ.contains("טסלה") -> terms.addAll(listOf("tesla", "טסלה"))
+                rawQ.contains("פיג'ו") || rawQ.contains("פג'ו") -> terms.addAll(listOf("peugeot"))
+                rawQ.contains("סובארו") -> terms.addAll(listOf("subaru"))
+                rawQ.contains("סיאט") -> terms.addAll(listOf("seat"))
+                rawQ.contains("רנו") -> terms.addAll(listOf("renault"))
+                rawQ.contains("סוזוקי") -> terms.addAll(listOf("suzuki"))
+                rawQ.contains("ניסאן") -> terms.addAll(listOf("nissan"))
+                rawQ.contains("מיצובישי") -> terms.addAll(listOf("mitsubishi"))
+                rawQ.contains("הונדה") -> terms.addAll(listOf("honda"))
+                rawQ.contains("מרצדס") -> terms.addAll(listOf("mercedes", "mercedes-benz", "mercedes benz"))
+                rawQ.contains("במוו") || rawQ.contains("ב.מ.וו") -> terms.addAll(listOf("bmw"))
+                rawQ.contains("אאודי") || rawQ.contains("אודי") -> terms.addAll(listOf("audi"))
+                rawQ.contains("וולוו") || rawQ.contains("וולבו") -> terms.addAll(listOf("volvo"))
+                rawQ.contains("סיטרואן") -> terms.addAll(listOf("citroen"))
+                rawQ.contains("פורד") -> terms.addAll(listOf("ford"))
+                rawQ.contains("קופרה") -> terms.addAll(listOf("cupra"))
+                rawQ.contains("אופל") -> terms.addAll(listOf("opel"))
+                rawQ.contains("ג'ילי") -> terms.addAll(listOf("geely"))
+                rawQ.contains("בי ואי די") || rawQ.contains("ביוביק") || rawQ.contains("byd") -> terms.addAll(listOf("byd"))
+                rawQ.contains("אמ ג'י") || rawQ.contains("אמ.ג'י") -> terms.addAll(listOf("mg"))
+                rawQ.contains("צ'רי") -> terms.addAll(listOf("chery"))
+                rawQ.contains("פיאט") -> terms.addAll(listOf("fiat"))
+                rawQ.contains("אלפא") -> terms.addAll(listOf("alfa"))
+                rawQ.contains("לקסוס") -> terms.addAll(listOf("lexus"))
+                rawQ.contains("לנד רובר") -> terms.addAll(listOf("land rover"))
+                rawQ.contains("ג'יפ") -> terms.addAll(listOf("jeep"))
+                rawQ.contains("ימאהה") -> terms.addAll(listOf("yamaha"))
+                rawQ.contains("קוואסאקי") -> terms.addAll(listOf("kawasaki"))
+                rawQ.contains("הוסקוורנה") -> terms.addAll(listOf("husqvarna"))
+                rawQ.contains("דוקאטי") -> terms.addAll(listOf("ducati"))
+                rawQ.contains("פולריס") -> terms.addAll(listOf("polaris"))
+            }
+            // Add Hebrew to English model mappings
+            when {
+                rawQ.contains("קורולה") -> terms.addAll(listOf("corolla"))
+                rawQ.contains("יאריס") -> terms.addAll(listOf("yaris"))
+                rawQ.contains("ראב 4") || rawQ.contains("ראב4") -> terms.addAll(listOf("rav4", "rav 4"))
+                rawQ.contains("לנד קרוזר") || rawQ.contains("פראדו") -> terms.addAll(listOf("land cruiser", "prado"))
+                rawQ.contains("קאמרי") -> terms.addAll(listOf("camry"))
+                rawQ.contains("אוריס") -> terms.addAll(listOf("auris"))
+                rawQ.contains("טוסון") -> terms.addAll(listOf("tucson"))
+                rawQ.contains("איוניק") -> terms.addAll(listOf("ioniq"))
+                rawQ.contains("קונה") -> terms.addAll(listOf("kona"))
+                rawQ.contains("אלנטרה") -> terms.addAll(listOf("elantra"))
+                rawQ.contains("סנטה פה") -> terms.addAll(listOf("santa fe"))
+                rawQ.contains("סונטה") -> terms.addAll(listOf("sonata"))
+                rawQ.contains("פיקנטו") -> terms.addAll(listOf("picanto"))
+                rawQ.contains("ספורטאז'") || rawQ.contains("ספורטז'") -> terms.addAll(listOf("sportage"))
+                rawQ.contains("נירו") -> terms.addAll(listOf("niro"))
+                rawQ.contains("סורנטו") -> terms.addAll(listOf("sorento"))
+                rawQ.contains("קרניבל") -> terms.addAll(listOf("carnival"))
+                rawQ.contains("סיד") -> terms.addAll(listOf("ceed"))
+                rawQ.contains("סטוניק") -> terms.addAll(listOf("stonic"))
+                rawQ.contains("אוקטביה") -> terms.addAll(listOf("octavia"))
+                rawQ.contains("קודיאק") -> terms.addAll(listOf("kodiaq"))
+                rawQ.contains("סופרב") -> terms.addAll(listOf("superb"))
+                rawQ.contains("פאביה") -> terms.addAll(listOf("fabia"))
+                rawQ.contains("קאמיק") -> terms.addAll(listOf("kamiq"))
+                rawQ.contains("גולף") -> terms.addAll(listOf("golf"))
+                rawQ.contains("פולו") -> terms.addAll(listOf("polo"))
+                rawQ.contains("פאסאט") -> terms.addAll(listOf("passat"))
+                rawQ.contains("טיגואן") -> terms.addAll(listOf("tiguan"))
+                rawQ.contains("איביזה") -> terms.addAll(listOf("ibiza"))
+                rawQ.contains("לאון") -> terms.addAll(listOf("leon"))
+                rawQ.contains("ארונה") -> terms.addAll(listOf("arona"))
+                rawQ.contains("אימפרזה") -> terms.addAll(listOf("impreza"))
+                rawQ.contains("פורסטר") -> terms.addAll(listOf("forester"))
+                rawQ.contains("קרוסטרק") || rawQ.contains("xv") -> terms.addAll(listOf("crosstrek", "xv"))
+                rawQ.contains("ספארק") -> terms.addAll(listOf("spark"))
+                rawQ.contains("קרוז") -> terms.addAll(listOf("cruze"))
+                rawQ.contains("מאליבו") -> terms.addAll(listOf("malibu"))
+                rawQ.contains("טראוורס") -> terms.addAll(listOf("traverse"))
+                rawQ.contains("מודל 3") -> terms.addAll(listOf("model 3", "m3"))
+                rawQ.contains("מודל y") -> terms.addAll(listOf("model y", "my"))
+                rawQ.contains("מודל s") -> terms.addAll(listOf("model s", "ms"))
+                rawQ.contains("מודל x") -> terms.addAll(listOf("model x", "mx"))
+            }
+            terms.distinct()
+        }
+
         allRecalls.filter { item ->
-            val matchesQuery = if (q.isBlank()) true else {
-                (item.recallId?.toString()?.contains(q) == true) ||
-                (item.makeName?.lowercase()?.contains(rawQ) == true) ||
-                (item.model?.lowercase()?.contains(rawQ) == true) ||
-                (item.faultDescription?.lowercase()?.contains(rawQ) == true) ||
-                (item.faultType?.lowercase()?.contains(rawQ) == true) ||
-                (item.importerName?.lowercase()?.contains(rawQ) == true)
+            val matchesQuery = if (searchTerms.isEmpty()) true else {
+                searchTerms.any { t ->
+                    (item.recallId?.toString()?.contains(t) == true) ||
+                    (item.makeName?.lowercase()?.contains(t) == true) ||
+                    (item.model?.lowercase()?.contains(t) == true) ||
+                    (item.faultDescription?.lowercase()?.contains(t) == true) ||
+                    (item.faultType?.lowercase()?.contains(t) == true) ||
+                    (item.importerName?.lowercase()?.contains(t) == true)
+                }
             }
 
             val yr = item.recallYear ?: 0
