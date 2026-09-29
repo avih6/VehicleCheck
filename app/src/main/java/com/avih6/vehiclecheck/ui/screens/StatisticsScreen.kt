@@ -1200,31 +1200,25 @@ fun StatisticsScreen(
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
 
-                    val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
-                    val averageMileage = 15400 - (currentYear - 2023) * 100
-                    val averageAge = 7.4 + (currentYear - 2023) * 0.15
-                    val deregisteredCount = (displayTotal * 0.058).toInt()
-                    val averageSafety = (5.8 + (displayTotal - 3892000) / 1000000.0 * 0.15).coerceIn(5.0, 8.0)
-
                     InsightRow(
                         icon = Icons.Default.Speed,
-                        label = "נסועה שנתית ממוצעת:",
-                        value = "כ-%,d ק\"מ לרכב פרטי בשנה".format(averageMileage)
+                        label = "נסועה שנתית ממוצעת לרכב פרטי:",
+                        value = "כ-15,400 ק\"מ בשנה (סקר נסועה שנתי, הלמ״ס)"
                     )
                     InsightRow(
                         icon = Icons.Default.CalendarToday,
-                        label = "גיל רכב ממוצע:",
-                        value = "כ-%.1f שנים בישראל".format(averageAge)
+                        label = "גיל רכב ממוצע בישראל:",
+                        value = "כ-7.4 שנים לרכב פרטי (מצבת כלי רכב, הלמ״ס)"
                     )
                     InsightRow(
                         icon = Icons.Default.DeleteOutline,
-                        label = "רכבים שנגרעים מדי שנה:",
-                        value = "כ-%,d כלי רכב יורדים מהכביש / מושבתים".format(deregisteredCount)
+                        label = "גריעה שנתית ממצבת הרכב:",
+                        value = "כ-5.8% מצי הרכב (~220,000 רכבים שיורדים מהכביש)"
                     )
                     InsightRow(
                         icon = Icons.Default.Shield,
-                        label = "ציון בטיחות ממוצע:",
-                        value = "ציון %.1f מתוך 8 במבחני משרד התחבורה".format(averageSafety)
+                        label = "רמת אבזור בטיחות ממוצעת:",
+                        value = "ציון 5.8 מתוך 8 (דוח אבזור בטיחות, הלמ״ס ומשרד התחבורה)"
                     )
                 }
             }
