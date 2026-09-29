@@ -2058,7 +2058,7 @@ fun ModelDetailStatisticsCard(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .align(Alignment.TopCenter),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = if (sorted.size > 1) Arrangement.SpaceBetween else Arrangement.Center
                             ) {
                                 sorted.forEach { yr ->
                                     val countText = if (yr.activeCount >= 1000) "%.1fK".format((yr.activeCount * animProgress.value) / 1000f)
@@ -2079,7 +2079,7 @@ fun ModelDetailStatisticsCard(
                         // Year labels underneath
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = if (sorted.size > 1) Arrangement.SpaceBetween else Arrangement.Center
                         ) {
                             sorted.forEach { yr ->
                                 Text(
