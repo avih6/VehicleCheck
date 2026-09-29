@@ -58,6 +58,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import com.avih6.vehiclecheck.data.ModelStatisticsDetail
 import com.avih6.vehiclecheck.data.ModelYearCount
+import com.avih6.vehiclecheck.data.BrandModelStat
+import com.avih6.vehiclecheck.data.VehicleModelCatalog
 
 data class FleetPoint(
     val year: Int,
@@ -132,9 +134,9 @@ fun StatisticsScreen(
             BrandStat("פולקסווגן", "Volkswagen", (3.7f / 100f * displayTotal).toInt(), 3.7f, listOf("גולף (Golf)", "פולו (Polo)", "טיגואן (Tiguan)", "פאסאט (Passat)", "טי-רוק (T-Roc)", "ID.4")),
             BrandStat("שברולט", "Chevrolet", (3.4f / 100f * displayTotal).toInt(), 3.4f, listOf("ספארק (Spark)", "קרוז (Cruze)", "טראוורס (Traverse)", "אקווינוקס (Equinox)", "מאליבו (Malibu)", "סילברדו (Silverado)")),
             BrandStat("פיג'ו", "Peugeot", (3.2f / 100f * displayTotal).toInt(), 3.2f, listOf("208", "2008", "3008", "פרטנר (Partner)", "308", "5008")),
-            BrandStat("סובארו", "Subaru", (2.9f / 100f * displayTotal).toInt(), 2.9f, listOf("פורסטר (Forester)", "אימפרזה (Impreza)", "קרוסטרק / XV", "אאוטבק (Outback)", "B4")),
-            BrandStat("BYD", "BYD", (2.5f / 100f * displayTotal).toInt(), 2.5f, listOf("אטו 3 (Atto 3)", "דולפין (Dolphin)", "סיל (Seal)", "סיל U", "טאנג (Tang)")),
-            BrandStat("טסלה", "Tesla", (1.7f / 100f * displayTotal).toInt(), 1.7f, listOf("מודל 3 (Model 3)", "מודל Y (Model Y)", "מודל S", "מודל X", "סייברטראק (Cybertruck)"))
+            BrandStat("סובארו", "Subaru", (2.9f / 100f * displayTotal).toInt(), 2.9f, listOf("פורסטר (Forester)", "אימפרזה (Impreza)", "קרוסטרק (Crosstrek XV)", "אאוטבק (Outback)", "B4 (B4 Legacy)")),
+            BrandStat("BYD", "BYD", (2.5f / 100f * displayTotal).toInt(), 2.5f, listOf("אטו 3 (Atto 3)", "דולפין (Dolphin)", "סיל (Seal)", "סיל U (Seal U)", "טאנג (Tang)")),
+            BrandStat("טסלה", "Tesla", (1.7f / 100f * displayTotal).toInt(), 1.7f, listOf("מודל 3 (Model 3)", "מודל Y (Model Y)", "מודל S (Model S)", "מודל X (Model X)", "סייברטראק (Cybertruck)"))
         )
     }
 
@@ -1046,7 +1048,31 @@ fun StatisticsScreen(
                                         viewModel.loadLiveModelsForBrand(brand.nameHe, brand.nameEn)
                                     }
                                     val liveModelList = brandLiveModels[brand.nameHe]
-                                    val displayModels = liveModelList?.map { it.displayLabel } ?: brand.topModels
+                                    val displayModelStats: List<BrandModelStat> = remember(brand.nameHe, liveModelList) {
+                                        if (!liveModelList.isNullOrEmpty()) {
+                                            liveModelList
+                                        } else {
+                                            val catalogItems = VehicleModelCatalog.allModels.filter {
+                                                it.brandHebrew.equals(brand.nameHe, ignoreCase = true) ||
+                                                it.brandEnglish.equals(brand.nameEn, ignoreCase = true)
+                                            }.distinctBy { it.modelEnglish.lowercase() }
+                                            if (catalogItems.isNotEmpty()) {
+                                                catalogItems.map {
+                                                    BrandModelStat(
+                                                        modelHebrew = it.modelHebrew,
+                                                        modelEnglish = it.modelEnglish,
+                                                        activeCount = 0
+                                                    )
+                                                }
+                                            } else {
+                                                brand.topModels.map {
+                                                    val raw = it.substringBefore(" (").trim()
+                                                    val en = if (it.contains("(") && it.contains(")")) it.substringAfter("(").substringBefore(")") else ""
+                                                    BrandModelStat(raw, en, 0)
+                                                }
+                                            }
+                                        }
+                                    }
 
                                     Spacer(Modifier.height(8.dp))
                                     Row(
@@ -1072,10 +1098,9 @@ fun StatisticsScreen(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        items(displayModels.size) { mIdx ->
-                                            val model = displayModels[mIdx]
-                                            val cleanModelName = model.substringBefore(" (").trim()
-                                            val fullModelQuery = "${brand.nameHe} $cleanModelName"
+                                        items(displayModelStats.size) { mIdx ->
+                                            val modelStat = displayModelStats[mIdx]
+                                            val fullModelQuery = "${brand.nameHe} ${modelStat.modelHebrew}"
                                             AssistChip(
                                                 onClick = {
                                                     focusManager.clearFocus()
@@ -1083,7 +1108,7 @@ fun StatisticsScreen(
                                                 },
                                                 label = {
                                                     Text(
-                                                        text = model,
+                                                        text = modelStat.displayLabel,
                                                         fontSize = 11.sp,
                                                         fontWeight = FontWeight.Medium,
                                                         maxLines = 1

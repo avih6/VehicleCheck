@@ -743,7 +743,19 @@ data class BrandModelStat(
     val activeCount: Int = 0
 ) {
     val displayLabel: String
-        get() = if (activeCount > 0) "$modelHebrew ($modelEnglish) • %,d".format(activeCount) else "$modelHebrew ($modelEnglish)"
+        get() {
+            val baseName = if (
+                modelEnglish.isNotBlank() &&
+                !modelHebrew.equals(modelEnglish, ignoreCase = true) &&
+                !modelHebrew.contains(modelEnglish, ignoreCase = true) &&
+                !modelEnglish.contains(modelHebrew, ignoreCase = true)
+            ) {
+                "$modelHebrew ($modelEnglish)"
+            } else {
+                modelHebrew.ifBlank { modelEnglish }
+            }
+            return if (activeCount > 0) "$baseName • %,d".format(activeCount) else baseName
+        }
 }
 
 sealed interface TestStatus {
