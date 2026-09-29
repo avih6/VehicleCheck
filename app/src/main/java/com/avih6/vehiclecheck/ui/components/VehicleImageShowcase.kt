@@ -227,13 +227,18 @@ fun VehicleImageShowcase(
                                 shape = RoundedCornerShape(12.dp),
                                 border = BorderStroke(1.dp, Color.White.copy(alpha = 0.25f))
                             ) {
-                                Text(
-                                    text = "${fullscreenPagerState.currentPage + 1} / ${images.size}",
-                                    color = Color.White,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-                                )
+                                androidx.compose.runtime.CompositionLocalProvider(
+                                    androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr
+                                ) {
+                                    Text(
+                                        text = "\u200E${fullscreenPagerState.currentPage + 1} / ${images.size}\u200E",
+                                        color = Color.White,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        style = LocalTextStyle.current.copy(textDirection = androidx.compose.ui.text.style.TextDirection.Ltr),
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                                    )
+                                }
                             }
                         }
 
@@ -463,13 +468,17 @@ fun VehicleImageShowcase(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 11.sp
                 )
-                Text(
-                    text = "${cardPagerState.currentPage + 1}/${images.size}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp
-                )
+                androidx.compose.runtime.CompositionLocalProvider(
+                    androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr
+                ) {
+                    Text(
+                        text = "\u200E${cardPagerState.currentPage + 1}/${images.size}\u200E",
+                        style = MaterialTheme.typography.labelSmall.copy(textDirection = androidx.compose.ui.text.style.TextDirection.Ltr),
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp
+                    )
+                }
             }
         }
     }

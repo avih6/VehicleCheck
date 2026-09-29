@@ -150,4 +150,9 @@ https://play.google.com/store/apps/details?id=com.avih6.vehiclecheck"</string>
     <string name="info_disabled_app_btn">פתיחה / הורדה של האפליקציה</string>
     <string name="menu_disabled_permit">בדיקת תו נכה (זכאות ותווי חניה)</string>
     <string name="btn_more_options">אפשרויות נוספות</string>
+    <string name="report_incorrect_data_btn">דיווח על מידע שגוי ברכב</string>
+    <string name="report_email_subject">דיווח על מידע שגוי ברכב %1$s</string>
+    <string name="report_email_body">שלום,\nברצוני לדווח על מידע שגוי בבדיקת הרכב:\n\nמספר רכב: %1$s\nיצרן ודגם: %2$s\nשנת ייצור: %3$s\nכינוי מסחרי / רמת גימור: %4$s\n\nפירוט המידע השגוי או הערות:\n\n\n---\nגרסת אפליקציה: %5$s\nמכשיר: %6$s\n</string>
+    <string name="report_email_chooser">שליחת דיווח בדוא\"ל</string>
+    <string name="report_email_no_app">לא נמצאה אפליקציית דוא\"ל לשליחת הדיווח</string>
 </resources>

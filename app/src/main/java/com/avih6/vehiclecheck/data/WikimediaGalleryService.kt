@@ -372,7 +372,15 @@ object WikimediaGalleryService {
         "concert", "album", "cover", "band", "music", "song", "person", "headshot", "selfie",
         "peas", "pea", "vegetable", "vegetables", "fruit", "fruits", "food", "dish", "recipe",
         "cooking", "cuisine", "animal", "animals", "bird", "birds", "fish", "dog", "dogs", "cat", "cats", "cow", "horse", "sheep",
-        "charger", "charging", "inauguration", "launch", "coco", "shop", "store", "mall", "stand", "booth", "baldy", "alexandre"
+        "charger", "charging", "inauguration", "launch", "coco", "shop", "store", "mall", "stand", "booth", "baldy", "alexandre",
+        "wrestling", "wrestler", "wrestlers", "lucha", "luchador", "luchadores", "punkindependent", "referee", "boxer", "boxing", "fighter", "martial", "wrestlemania",
+        "grandstand", "bleachers", "spectator", "spectators", "crowd", "stands", "fans", "suzuka", "racetrack", "circuit", "paddock", "medicalcar",
+        "parking", "parkplatz", "carpark", "valet",
+        "rental", "vermietung", "autovermietung", "mietwagen", "streetview", "fence", "gate",
+        "comparison", "epa", "evolution", "lineup", "infographics", "timeline", "ranking", "presentation", "slide", "slides",
+        "mirror", "mirrors", "taillight", "taillights", "headlight", "headlights", "headlamp", "headlamps",
+        "fender", "bumper", "grille", "v12", "v8", "v10", "v6", "badge", "emblem", "handle", "rim", "rims", "wheel", "wheels", "tire", "tires",
+        "gp", "f1"
     )
 
     private val blockedPhrases = listOf(
@@ -386,7 +394,16 @@ object WikimediaGalleryService {
         "automobile dashboards", "interiors of automobiles", "car interior", "vehicle interior",
         "byd shop", "byd coco",
         "wikiportraits", "randy g", "alexandre baldy",
-        "חופשי ומאושר", "אתניקס", "אתניx", "כינוס פוליטי", "בית קברות"
+        "חופשי ומאושר", "אתניקס", "אתניx", "כינוס פוליטי", "בית קברות",
+        "parking lot", "car park", "keys view", "lot parking", "parking area",
+        "range comparison", "epa range", "bev epa", "panel evolution", "front panel", "front grille evolution", "grille evolution",
+        "safety car run", "suzuka 1000km", "race crowd", "pit lane", "starting grid", "race track",
+        "safety car", "pace car", "medical car", "f1 team", "pit lane park", "the car spy", "german cars",
+        "side mirror", "wing mirror", "rear light", "tail light", "head light", "door handle",
+        "car rental", "rental car", "rental service", "auto rental", "rent a car", "autovermietung",
+        "punkindependent", "mini estrella", "mini-estrella", "pro wrestling",
+        "formula 1", "formula one", "grand prix", "british gp",
+        "bar chart", "pie chart", "line graph", "comparison chart", "comparison table"
     )
 
     private fun isJunkOrNonVehicle(title: String, description: String = "", artist: String = "", categories: String = ""): Boolean {
@@ -420,7 +437,7 @@ object WikimediaGalleryService {
 
         if (cleanMake.isBlank() && cleanModel.isBlank()) {
             // Rich multi-car gallery for "הכל" with full infinite scrolling support
-            val query = "Toyota car OR Hyundai car OR Tesla car OR Kia car OR Mazda car OR BYD car OR Mercedes car OR BMW car"
+            val query = "Toyota automobile OR Hyundai automobile OR Tesla automobile OR Kia automobile OR Mazda automobile OR BYD automobile"
             val result = fetchCommonsSearch(query, offset, limit)
             return@withContext result
         }
@@ -464,8 +481,9 @@ object WikimediaGalleryService {
         offset: Int,
         limit: Int = 50
     ): GalleryPageResult = withContext(Dispatchers.IO) {
-        val lightExclusions = " -pdf -doc -text -logo -icon -diagram -flag -train -locomotive -aircraft -ship"
-        val fullQuery = "$rawQuery$lightExclusions"
+        val lightExclusions = " -pdf -doc -text -logo -icon -diagram -flag -train -aircraft -ship"
+        // Ensure total query length is strictly <= 280 characters to comply with CirrusSearch 300 char limit
+        val fullQuery = (rawQuery.trim() + lightExclusions).take(280)
         val encodedQuery = URLEncoder.encode(fullQuery, "UTF-8")
         val offsetParam = if (offset > 0) "&gsroffset=$offset" else ""
         val urlStr = "https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrsearch=$encodedQuery&gsrlimit=$limit$offsetParam&prop=imageinfo&iiprop=url|size|extmetadata&iiurlwidth=800&format=json&origin=*"
@@ -886,6 +904,11 @@ object WikimediaGalleryService {
             isGarbage -> "$brand $model garbage truck"
             isAtvOrSbs -> "$brand $model ATV"
             isMachinery -> "$brand $model"
+            brand.equals("mini", ignoreCase = true) -> {
+                val miniModel = if (model.isBlank() || model.equals("car", ignoreCase = true) || model.equals("mini", ignoreCase = true)) "Cooper" else model
+                "MINI $miniModel car automobile"
+            }
+            brand.equals("man", ignoreCase = true) -> "MAN truck commercial vehicle"
             model.isNotBlank() && !model.equals("car", ignoreCase = true) -> "$brand $model car"
             brand.isNotBlank() && !brand.equals("car", ignoreCase = true) -> "$brand car vehicle"
             else -> "automobiles passenger cars vehicle"

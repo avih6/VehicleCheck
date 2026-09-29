@@ -150,4 +150,9 @@ https://play.google.com/store/apps/details?id=com.avih6.vehiclecheck"</string>
     <string name="info_disabled_app_btn">Open / Download the App</string>
     <string name="menu_disabled_permit">Disabled Permit Check (Parking Badges)</string>
     <string name="btn_more_options">More options</string>
+    <string name="report_incorrect_data_btn">Report Incorrect Vehicle Data</string>
+    <string name="report_email_subject">Incorrect vehicle data report: %1$s</string>
+    <string name="report_email_body">Hello,\nI would like to report incorrect data for this vehicle:\n\nLicense Plate: %1$s\nMake &amp; Model: %2$s\nYear: %3$s\nTrim / Commercial Name: %4$s\n\nDescription of incorrect data or comments:\n\n\n---\nApp Version: %5$s\nDevice: %6$s\n</string>
+    <string name="report_email_chooser">Send report via email</string>
+    <string name="report_email_no_app">No email app found to send the report</string>
 </resources>

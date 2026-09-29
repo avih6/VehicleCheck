@@ -1796,6 +1796,17 @@ object VehicleUtils {
             mod.contains("f-150") || mod.contains("f150") -> modelClean = "F-150"
             mod.contains("tmax") || mod.contains("טימקס") -> modelClean = "TMAX"
             mod.contains("d-max") || mod.contains("דימקס") || mod.contains("די מקס") -> modelClean = "D-MAX"
+            makeEn == "mini" -> {
+                modelClean = when {
+                    mod.contains("countryman") || trim.contains("countryman") || mod.contains("קאנטרימן") || trim.contains("קאנטרימן") -> "Countryman"
+                    mod.contains("clubman") || trim.contains("clubman") || mod.contains("קלאבמן") || trim.contains("קלאבמן") -> "Clubman"
+                    mod.contains("paceman") || trim.contains("paceman") || mod.contains("פייסמן") || trim.contains("פייסמן") -> "Paceman"
+                    mod.contains("cooper") || trim.contains("cooper") || mod.contains("קופר") || trim.contains("קופר") -> "Cooper"
+                    mod.contains("one") || trim.contains("one") || mod.contains("וואן") || trim.contains("וואן") -> "Cooper"
+                    mod.contains("cabrio") || trim.contains("cabrio") || mod.contains("קבריו") || trim.contains("קבריולט") -> "Cooper Cabrio"
+                    else -> "Cooper"
+                }
+            }
         }
 
         if (modelClean.isBlank() || modelClean == "car") {

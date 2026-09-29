@@ -28,9 +28,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.net.Uri
+import android.os.Build
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.avih6.vehiclecheck.BuildConfig
 import com.avih6.vehiclecheck.R
 import com.avih6.vehiclecheck.data.*
 
@@ -1082,6 +1086,126 @@ fun ResultCard(
                 2 -> SafetyTabContent(vehicle, techSpec, safetyDiscount, recalls)
                 3 -> EnvironmentTabContent(vehicle, techSpec, dieselFilterStatus)
                 4 -> StatisticsTabContent(vehicle, stats, monthlyDeliveries, quickClassification)
+            }
+        }
+
+        Spacer(Modifier.height(18.dp))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+
+        // Report incorrect data button
+        ReportIncorrectDataButton(
+            vehicle = vehicle,
+            equipmentDetails = equipmentDetails,
+            isEngineeringEquipment = isEngineeringEquipment,
+            onLogEvent = onLogEvent
+        )
+    }
+}
+
+@Composable
+private fun ReportIncorrectDataButton(
+    vehicle: VehicleRecord,
+    equipmentDetails: EngineeringEquipmentRecord?,
+    isEngineeringEquipment: Boolean,
+    onLogEvent: ((String, android.os.Bundle?) -> Unit)? = null
+) {
+    val context = LocalContext.current
+
+    val plate = if (isEngineeringEquipment) {
+        equipmentDetails?.licensePlate?.toString() ?: vehicle.licensePlate?.toString().orEmpty()
+    } else {
+        vehicle.licensePlate?.toString().orEmpty()
+    }
+    val formattedPlate = VehicleUtils.formatPlate(plate)
+
+    val make = if (isEngineeringEquipment) {
+        equipmentDetails?.makeName ?: vehicle.make.orEmpty()
+    } else {
+        vehicle.make.orEmpty()
+    }
+
+    val model = if (isEngineeringEquipment) {
+        equipmentDetails?.modelName ?: vehicle.model.orEmpty()
+    } else {
+        vehicle.model.orEmpty()
+    }
+
+    val year = if (isEngineeringEquipment) {
+        equipmentDetails?.year?.toString() ?: vehicle.year?.toString().orEmpty()
+    } else {
+        vehicle.year?.toString().orEmpty()
+    }
+
+    val trimOrCommercial = if (isEngineeringEquipment) {
+        equipmentDetails?.vehicleType.orEmpty()
+    } else {
+        vehicle.trimLevel ?: vehicle.modelCode.orEmpty()
+    }
+
+    val packageInfo = try {
+        context.packageManager.getPackageInfo(context.packageName, 0)
+    } catch (_: Exception) { null }
+    val currentVersion = packageInfo?.versionName ?: BuildConfig.VERSION_NAME
+
+    val subject = context.getString(R.string.report_email_subject, formattedPlate)
+    val body = context.getString(
+        R.string.report_email_body,
+        formattedPlate,
+        listOf(make, model).filter { it.isNotBlank() }.joinToString(" "),
+        year.ifBlank { "-" },
+        trimOrCommercial.ifBlank { "-" },
+        currentVersion,
+        "${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 14.dp, bottom = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Surface(
+            onClick = {
+                onLogEvent?.invoke("report_incorrect_data_clicked", android.os.Bundle().apply {
+                    putString("plate", plate)
+                    putString("make", make)
+                })
+
+                val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                    data = Uri.parse("mailto:av6development@gmail.com")
+                    putExtra(Intent.EXTRA_SUBJECT, subject)
+                    putExtra(Intent.EXTRA_TEXT, body)
+                }
+
+                try {
+                    val chooser = Intent.createChooser(emailIntent, context.getString(R.string.report_email_chooser))
+                    context.startActivity(chooser)
+                } catch (_: Exception) {
+                    Toast.makeText(context, context.getString(R.string.report_email_no_app), Toast.LENGTH_SHORT).show()
+                }
+            },
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.22f)),
+            modifier = Modifier.handCursor()
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.ReportProblem,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                    modifier = Modifier.size(15.dp)
+                )
+                Text(
+                    text = stringResource(R.string.report_incorrect_data_btn),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f),
+                    fontWeight = FontWeight.Medium
+                )
             }
         }
     }
