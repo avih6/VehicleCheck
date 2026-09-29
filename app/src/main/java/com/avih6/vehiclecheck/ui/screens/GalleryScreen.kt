@@ -1044,17 +1044,23 @@ fun detectRecognizedVehicleModel(
         "volvo fe" to ("וולוו" to "FE")
     )
 
+    fun containsWord(src: String, target: String): Boolean {
+        if (target.length >= 5) return src.contains(target)
+        val regex = Regex("(?i)(?<=^|[^\\p{L}\\p{Nd}])${Regex.escape(target)}(?=[^\\p{L}\\p{Nd}]|$)")
+        return regex.containsMatchIn(src)
+    }
+
     for ((key, pair) in specificModels) {
-        if (text.contains(key)) {
+        if (containsWord(text, key)) {
             return pair
         }
     }
 
     for ((make, models) in makeToModelsMap) {
         val makeLower = make.lowercase()
-        if (text.contains(makeLower)) {
+        if (containsWord(text, makeLower)) {
             for (model in models.sortedByDescending { it.length }) {
-                if (model != "כל הדגמים" && model.length >= 3 && text.contains(model.lowercase())) {
+                if (model != "כל הדגמים" && model.length >= 3 && containsWord(text, model.lowercase())) {
                     return Pair(make, model)
                 }
             }

@@ -381,6 +381,7 @@ object WikimediaGalleryService {
         "comparison", "epa", "evolution", "lineup", "infographics", "timeline", "ranking", "presentation", "slide", "slides",
         "mirror", "mirrors", "taillight", "taillights", "headlight", "headlights", "headlamp", "headlamps",
         "fender", "bumper", "grille", "v12", "v8", "v10", "v6", "badge", "emblem", "handle", "rim", "rims", "wheel", "wheels", "tire", "tires",
+        "plant", "plants", "factory", "factories", "headquarters", "hq", "manufacturing", "facility", "facilities", "building", "buildings", "campus", "warehouse", "depot",
         "gp", "f1", "moto", "motorrad"
     )
 
@@ -393,7 +394,7 @@ object WikimediaGalleryService {
         "showroom exterior", "shop front", "store front", "car show booth", "auto show stand",
         "salão do automóvel", "salon de l'auto", "auto salon", "messe frankfurt",
         "automobile dashboards", "interiors of automobiles", "car interior", "vehicle interior",
-        "byd shop", "byd coco",
+        "byd shop", "byd coco", "byd hq",
         "wikiportraits", "randy g", "alexandre baldy",
         "חופשי ומאושר", "אתניקס", "אתניx", "כינוס פוליטי", "בית קברות",
         "parking lot", "car park", "keys view", "lot parking", "parking area",
@@ -405,6 +406,7 @@ object WikimediaGalleryService {
         "punkindependent", "mini estrella", "mini-estrella", "pro wrestling",
         "formula 1", "formula one", "grand prix", "british gp",
         "bar chart", "pie chart", "line graph", "comparison chart", "comparison table",
+        "manufacturing plant", "assembly plant", "production plant", "corporate headquarters", "company headquarters", "auto plant",
         "motorcycle", "sidecar", "motorbike"
     )
 
@@ -437,6 +439,7 @@ object WikimediaGalleryService {
             "blueprint", "diagram", "infographic", "flowchart", "wireframe",
             "cemetery", "graveyard", "monument", "memorial",
             "dealership", "showroom", "car dealer",
+            "manufacturing plant", "automobile plant", "assembly plant", "factory building",
             "railway", "locomotive", "tram", "subway",
             "warship", "submarine", "fighter jet", "aircraft", "airplane",
             "museum exhibit", "museum display"

@@ -2509,9 +2509,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 var foundRecords = emptyList<VehicleTechnicalSpecRecord>()
 
                 // 1. Search Technical Spec dataset with candidate variations
-                for (candQuery in candidateQueries) {
+                // First: try kinuy_mishari filter for English terms (CKAN fulltext 'q' fails on English in tech specs)
+                val englishCands = candidateQueries.filter { it.matches(Regex("^[a-zA-Z0-9\\s.-]+$")) && it.length >= 2 }
+                for (cand in englishCands) {
                     try {
-                        val specResp = NetworkClient.apiService.searchModelsTechnicalSpec(query = candQuery, limit = 15)
+                        val specResp = NetworkClient.apiService.searchModelsTechnicalSpec(filters = "{\"kinuy_mishari\":\"${cand.uppercase().trim()}\"}", limit = 15)
                         val recs = specResp.result?.records.orEmpty()
                         val relevant = recs.filter { isSpecRecordRelevant(q, candidateQueries, it) }
                         if (relevant.isNotEmpty()) {
@@ -2519,6 +2521,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             break
                         }
                     } catch (_: Exception) {}
+                }
+
+                if (foundRecords.isEmpty()) {
+                    for (candQuery in candidateQueries) {
+                        try {
+                            val specResp = NetworkClient.apiService.searchModelsTechnicalSpec(query = candQuery, limit = 15)
+                            val recs = specResp.result?.records.orEmpty()
+                            val relevant = recs.filter { isSpecRecordRelevant(q, candidateQueries, it) }
+                            if (relevant.isNotEmpty()) {
+                                foundRecords = relevant
+                                break
+                            }
+                        } catch (_: Exception) {}
+                    }
                 }
 
                 if (foundRecords.isNotEmpty()) {
@@ -2538,12 +2554,47 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         trimLevel = first.trimLevel
                     )
 
-                    // Find TRUE total active vehicle count using exact makeCode and model / kinuy_mishari
+                    // Find TRUE total active vehicle count
                     var activeCount = 0
                     var bestQueryForYears = "$makeHe $modelName"
 
-                    // 1. Try exact makeCd + kinuy_mishari or degem_nm
-                    if (makeCd != null) {
+                    // 1. Try national-level kinuy_mishari (e.g. YARIS spans Toyota France 672 and Toyota Japan 413)
+                    if (!commercialName.isNullOrBlank()) {
+                        val cleanCom = commercialName.trim().uppercase()
+                        try {
+                            val c = NetworkClient.apiService.getSameModelActiveCount(
+                                filters = "{\"kinuy_mishari\":\"$cleanCom\"}"
+                            ).result?.total ?: 0
+                            if (c > activeCount) activeCount = c
+                        } catch (_: Exception) {}
+
+                        // Also check variations with/without spaces (e.g. "IONIQ5" vs "IONIQ 5", "RAV4" vs "RAV 4")
+                        val altComs = listOfNotNull(
+                            if (cleanCom.contains(" ")) cleanCom.replace(" ", "") else null,
+                            if (cleanCom == "RAV4") "RAV 4" else null,
+                            if (cleanCom == "RAV 4") "RAV4" else null,
+                            if (cleanCom == "IONIQ 5") "IONIQ5" else null,
+                            if (cleanCom == "IONIQ5") "IONIQ 5" else null,
+                            if (cleanCom == "IONIQ6") "IONIQ 6" else null,
+                            if (cleanCom == "IONIQ") "IONIQ HYBRID" else null,
+                            if (cleanCom == "KONA") "KONA HYBRID" else null
+                        )
+                        for (alt in altComs) {
+                            try {
+                                val c = NetworkClient.apiService.getSameModelActiveCount(
+                                    filters = "{\"kinuy_mishari\":\"$alt\"}"
+                                ).result?.total ?: 0
+                                if (cleanCom.startsWith("RAV") || cleanCom.startsWith("KONA") || cleanCom.startsWith("IONIQ")) {
+                                    activeCount += c
+                                } else if (c > activeCount) {
+                                    activeCount = c
+                                }
+                            } catch (_: Exception) {}
+                        }
+                    }
+
+                    // 2. Try exact makeCd + kinuy_mishari or degem_nm
+                    if (activeCount == 0 && makeCd != null) {
                         if (!commercialName.isNullOrBlank()) {
                             try {
                                 activeCount = NetworkClient.apiService.getSameModelActiveCount(
@@ -2567,7 +2618,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         }
                     }
 
-                    // 2. Fallback: Search queries that contain BOTH make and model (never just a number like "7" or "3")
+                    // 3. Fallback: Search queries that contain BOTH make and model
                     if (activeCount == 0) {
                         val validCompoundQueries = candidateQueries.filter { c ->
                             c.length >= 3 && !c.all { ch -> ch.isDigit() } &&
@@ -2659,9 +2710,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     var activeTotal = 0
 
                     // A. Search Private / Light Commercial Active Vehicles
-                    for (cand in candidateQueries) {
+                    val engCands = candidateQueries.filter { it.matches(Regex("^[a-zA-Z0-9\\s.-]+$")) && it.length >= 2 }
+                    for (cand in engCands) {
                         try {
-                            val activeVehicles = NetworkClient.apiService.searchVehicleByQuery(query = cand, limit = 10)
+                            val activeVehicles = NetworkClient.apiService.searchVehicleByQuery(filters = "{\"kinuy_mishari\":\"${cand.uppercase().trim()}\"}", limit = 10)
                             val recs = activeVehicles.result?.records.orEmpty()
                             val relevant = recs.filter { isVehicleRecordRelevant(q, candidateQueries, it) }
                             if (relevant.isNotEmpty()) {
@@ -2670,6 +2722,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                 break
                             }
                         } catch (_: Exception) {}
+                    }
+
+                    if (foundActiveRecords.isEmpty()) {
+                        for (cand in candidateQueries) {
+                            try {
+                                val activeVehicles = NetworkClient.apiService.searchVehicleByQuery(query = cand, limit = 10)
+                                val recs = activeVehicles.result?.records.orEmpty()
+                                val relevant = recs.filter { isVehicleRecordRelevant(q, candidateQueries, it) }
+                                if (relevant.isNotEmpty()) {
+                                    foundActiveRecords = relevant
+                                    activeTotal = activeVehicles.result?.total ?: relevant.size
+                                    break
+                                }
+                            } catch (_: Exception) {}
+                        }
                     }
 
                     // B. Fallback: Search Heavy Vehicles (Trucks, Pickups like Cybertruck/Silverado/Ram/F-350, Buses)

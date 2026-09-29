@@ -122,16 +122,16 @@ fun StatisticsScreen(
 
     val topBrands = remember(displayTotal) {
         listOf(
-            BrandStat("יונדאי", "Hyundai", (12.1f / 100f * displayTotal).toInt(), 12.1f, listOf("טוסון (Tucson)", "איוניק 5 (Ioniq 5)", "אלנטרה (Elantra)", "קונה (Kona)", "i10", "i20", "סנטה פה (Santa Fe)")),
-            BrandStat("טויוטה", "Toyota", (11.5f / 100f * displayTotal).toInt(), 11.5f, listOf("קורולה (Corolla)", "יאריס (Yaris)", "ראב 4 (RAV4)", "C-HR", "קאמרי (Camry)", "פריוס (Prius)", "לנד קרוזר (Land Cruiser)")),
-            BrandStat("קיה", "Kia", (10.1f / 100f * displayTotal).toInt(), 10.1f, listOf("פיקנטו (Picanto)", "ספורטאז' (Sportage)", "נירו (Niro)", "סטוניק (Stonic)", "EV6", "סורנטו (Sorento)", "סיד (Ceed)")),
+            BrandStat("יונדאי", "Hyundai", (12.1f / 100f * displayTotal).toInt(), 12.1f, listOf("טוסון (Tucson)", "i10", "i20", "איוניק (Ioniq)", "קונה (Kona)", "i30", "אלנטרה (Elantra)", "סנטה פה (Santa Fe)")),
+            BrandStat("טויוטה", "Toyota", (11.5f / 100f * displayTotal).toInt(), 11.5f, listOf("קורולה (Corolla)", "יאריס (Yaris)", "לנד קרוזר (Land Cruiser)", "היילקס (Hilux)", "ראב 4 (RAV4)", "אוריס (Auris)", "פריוס (Prius)", "קאמרי (Camry)", "C-HR")),
+            BrandStat("קיה", "Kia", (10.1f / 100f * displayTotal).toInt(), 10.1f, listOf("פיקנטו (Picanto)", "ספורטאז' (Sportage)", "נירו (Niro)", "סטוניק (Stonic)", "סיד (Ceed)", "סורנטו (Sorento)", "EV6")),
             BrandStat("סקודה", "Skoda", (6.8f / 100f * displayTotal).toInt(), 6.8f, listOf("אוקטביה (Octavia)", "קודיאק (Kodiaq)", "סופרב (Superb)", "קאמיק (Kamiq)", "פאביה (Fabia)", "אניאק (Enyaq)")),
-            BrandStat("מאזדה", "Mazda", (6.5f / 100f * displayTotal).toInt(), 6.5f, listOf("מאזדה 3 (Mazda 3)", "CX-5", "מאזדה 2 (Mazda 2)", "CX-30", "מאזדה 6", "CX-60")),
-            BrandStat("סיאט", "Seat", (4.1f / 100f * displayTotal).toInt(), 4.1f, listOf("איביזה (Ibiza)", "ארונה (Arona)", "אטקה (Ateca)", "לאון (Leon)")),
-            BrandStat("פולקסווגן", "Volkswagen", (3.7f / 100f * displayTotal).toInt(), 3.7f, listOf("גולף (Golf)", "פולו (Polo)", "טיגואן (Tiguan)", "ID.4", "פאסאט (Passat)", "טי-רוק (T-Roc)")),
-            BrandStat("שברולט", "Chevrolet", (3.4f / 100f * displayTotal).toInt(), 3.4f, listOf("ספארק (Spark)", "טראוורס (Traverse)", "אקווינוקס (Equinox)", "בלייזר (Blazer)", "קרוז (Cruze)")),
-            BrandStat("פיג'ו", "Peugeot", (3.2f / 100f * displayTotal).toInt(), 3.2f, listOf("208", "2008", "3008", "5008", "308", "פרטנר (Partner)")),
-            BrandStat("סובארו", "Subaru", (2.9f / 100f * displayTotal).toInt(), 2.9f, listOf("פורסטר (Forester)", "קרוסטרק / XV", "אאוטבק (Outback)", "אימפרזה (Impreza)", "B4")),
+            BrandStat("מאזדה", "Mazda", (6.5f / 100f * displayTotal).toInt(), 6.5f, listOf("מאזדה 3 (Mazda 3)", "מאזדה 2 (Mazda 2)", "CX-5", "CX-30", "מאזדה 6 (Mazda 6)", "CX-60")),
+            BrandStat("סיאט", "Seat", (4.1f / 100f * displayTotal).toInt(), 4.1f, listOf("איביזה (Ibiza)", "ארונה (Arona)", "לאון (Leon)", "אטקה (Ateca)")),
+            BrandStat("פולקסווגן", "Volkswagen", (3.7f / 100f * displayTotal).toInt(), 3.7f, listOf("גולף (Golf)", "פולו (Polo)", "טיגואן (Tiguan)", "פאסאט (Passat)", "טי-רוק (T-Roc)", "ID.4")),
+            BrandStat("שברולט", "Chevrolet", (3.4f / 100f * displayTotal).toInt(), 3.4f, listOf("ספארק (Spark)", "קרוז (Cruze)", "טראוורס (Traverse)", "אקווינוקס (Equinox)", "מאליבו (Malibu)", "סילברדו (Silverado)")),
+            BrandStat("פיג'ו", "Peugeot", (3.2f / 100f * displayTotal).toInt(), 3.2f, listOf("208", "2008", "3008", "פרטנר (Partner)", "308", "5008")),
+            BrandStat("סובארו", "Subaru", (2.9f / 100f * displayTotal).toInt(), 2.9f, listOf("פורסטר (Forester)", "אימפרזה (Impreza)", "קרוסטרק / XV", "אאוטבק (Outback)", "B4")),
             BrandStat("BYD", "BYD", (2.5f / 100f * displayTotal).toInt(), 2.5f, listOf("אטו 3 (Atto 3)", "דולפין (Dolphin)", "סיל (Seal)", "סיל U", "טאנג (Tang)")),
             BrandStat("טסלה", "Tesla", (1.7f / 100f * displayTotal).toInt(), 1.7f, listOf("מודל 3 (Model 3)", "מודל Y (Model Y)", "מודל S", "מודל X", "סייברטראק (Cybertruck)"))
         )

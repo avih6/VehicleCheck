@@ -23,7 +23,8 @@ interface GovApiService {
     @GET("api/3/action/datastore_search")
     suspend fun searchVehicleByQuery(
         @Query("resource_id") resourceId: String = "053cea08-09bc-40ec-8f7a-156f0677aff3",
-        @Query("q") query: String,
+        @Query("q") query: String? = null,
+        @Query("filters") filters: String? = null,
         @Query("limit") limit: Int = 5
     ): GovApiResponse<VehicleRecord>
 
@@ -39,7 +40,8 @@ interface GovApiService {
     @GET("api/3/action/datastore_search")
     suspend fun searchModelsTechnicalSpec(
         @Query("resource_id") resourceId: String = "142afde2-6228-49f9-8a29-9b6c3a0cbe40",
-        @Query("q") query: String,
+        @Query("q") query: String? = null,
+        @Query("filters") filters: String? = null,
         @Query("limit") limit: Int = 10
     ): GovApiResponse<VehicleTechnicalSpecRecord>
 
