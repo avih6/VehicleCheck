@@ -1194,7 +1194,7 @@ fun StatisticsScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "מדדי מאקרו שנתיים מנתוני הלמ״ס ומשרד התחבורה",
+                        text = "לפי נתונים מהלמ״ס, מעודכן לשנת 2026",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 12.dp)
@@ -1202,23 +1202,23 @@ fun StatisticsScreen(
 
                     InsightRow(
                         icon = Icons.Default.Speed,
-                        label = "נסועה שנתית ממוצעת לרכב פרטי:",
-                        value = "כ-15,400 ק\"מ בשנה (סקר נסועה שנתי, הלמ״ס)"
+                        label = "נסועה שנתית ממוצעת:",
+                        value = "כ-15,400 ק\"מ לרכב פרטי בשנה"
                     )
                     InsightRow(
                         icon = Icons.Default.CalendarToday,
-                        label = "גיל רכב ממוצע בישראל:",
-                        value = "כ-7.4 שנים לרכב פרטי (מצבת כלי רכב, הלמ״ס)"
+                        label = "גיל רכב ממוצע:",
+                        value = "כ-7.4 שנים לרכב פרטי"
                     )
                     InsightRow(
                         icon = Icons.Default.DeleteOutline,
-                        label = "גריעה שנתית ממצבת הרכב:",
-                        value = "כ-5.8% מצי הרכב (~220,000 רכבים שיורדים מהכביש)"
+                        label = "רכבים שנגרעים מדי שנה:",
+                        value = "כ-5.8% (~220,000 רכבים יורדים מהכביש)"
                     )
                     InsightRow(
                         icon = Icons.Default.Shield,
-                        label = "רמת אבזור בטיחות ממוצעת:",
-                        value = "ציון 5.8 מתוך 8 (דוח אבזור בטיחות, הלמ״ס ומשרד התחבורה)"
+                        label = "ציון בטיחות ממוצע:",
+                        value = "ציון 5.8 מתוך 8 במבחני משרד התחבורה"
                     )
                 }
             }
