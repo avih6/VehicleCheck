@@ -716,5 +716,17 @@ private fun sendEmail(context: Context) {
     }
     try {
         context.startActivity(emailIntent)
-    } catch (_: Exception) {}
+    } catch (_: Exception) {
+        try {
+            val chooserIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "message/rfc822"
+                putExtra(Intent.EXTRA_EMAIL, arrayOf("av6development@gmail.com"))
+                putExtra(Intent.EXTRA_SUBJECT, emailSubject)
+                putExtra(Intent.EXTRA_TEXT, emailBody)
+            }
+            context.startActivity(Intent.createChooser(chooserIntent, emailSubject))
+        } catch (_: Exception) {
+            Toast.makeText(context, context.getString(R.string.report_email_no_app), Toast.LENGTH_SHORT).show()
+        }
+    }
 }

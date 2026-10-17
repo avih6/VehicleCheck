@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
+import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -874,7 +876,7 @@ fun ResultCard(
                 title = "תג נכה",
                 value = if (hasDisabledPermit) "פעיל" else "ללא",
                 isPositive = hasDisabledPermit,
-                icon = Icons.Default.Accessible,
+                icon = Icons.AutoMirrored.Filled.Accessible,
                 modifier = Modifier.weight(1f).fillMaxHeight()
             )
 
@@ -921,7 +923,7 @@ fun ResultCard(
                 title = "בעלות",
                 value = ownerStr,
                 statusType = ownershipStatusType,
-                icon = if (isEngineeringEquipment) Icons.Default.Construction else if (!hasOwnership) Icons.Default.HelpOutline else if (isTransit || isBus) Icons.Default.DirectionsBus else if (isTaxi) Icons.Default.DirectionsCar else if (isCompany) Icons.Default.Business else Icons.Default.Person,
+                icon = if (isEngineeringEquipment) Icons.Default.Construction else if (!hasOwnership) Icons.AutoMirrored.Filled.HelpOutline else if (isTransit || isBus) Icons.Default.DirectionsBus else if (isTaxi) Icons.Default.DirectionsCar else if (isCompany) Icons.Default.Business else Icons.Default.Person,
                 modifier = Modifier.weight(1f).fillMaxHeight()
             )
 
@@ -936,7 +938,7 @@ fun ResultCard(
                 } else if (isTopDealerDeposit) {
                     Triple(StatusPillType.WARNING, "הקפאת סוחר", Icons.Default.HourglassTop)
                 } else {
-                    Triple(StatusPillType.WARNING, "אין מידע", Icons.Default.HelpOutline)
+                    Triple(StatusPillType.WARNING, "אין מידע", Icons.AutoMirrored.Filled.HelpOutline)
                 }
             }
             StatusPill(
@@ -1940,7 +1942,7 @@ private fun GeneralTabContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Accessible,
+                        imageVector = Icons.AutoMirrored.Filled.Accessible,
                         contentDescription = if (hasDisabledPermit) "תו נכה פעיל" else "אין תו נכה",
                         tint = if (hasDisabledPermit) Color(0xFF00629E) else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(30.dp)
@@ -1982,7 +1984,7 @@ private fun GeneralTabContent(
                         color = if (hasDisabledPermit) Color(0xFF00629E) else MaterialTheme.colorScheme.primary
                     )
                     Icon(
-                        imageVector = Icons.Outlined.OpenInNew,
+                        imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
                         contentDescription = "פתח אפליקציית תו נכה",
                         tint = if (hasDisabledPermit) Color(0xFF00629E) else MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(16.dp)
@@ -3683,7 +3685,7 @@ private fun StatisticsTabContent(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            Icons.Default.TrendingUp,
+                            Icons.AutoMirrored.Filled.TrendingUp,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
                         )

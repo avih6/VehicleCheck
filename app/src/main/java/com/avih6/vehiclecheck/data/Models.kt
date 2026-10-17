@@ -17,6 +17,7 @@ import java.time.temporal.ChronoUnit
 
 object FlexibleLongSerializer : KSerializer<Long?> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("FlexibleLong", PrimitiveKind.STRING)
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     override fun serialize(encoder: Encoder, value: Long?) {
         if (value != null) encoder.encodeLong(value) else encoder.encodeNull()
     }
@@ -31,6 +32,7 @@ object FlexibleLongSerializer : KSerializer<Long?> {
 
 object FlexibleIntSerializer : KSerializer<Int?> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("FlexibleInt", PrimitiveKind.STRING)
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     override fun serialize(encoder: Encoder, value: Int?) {
         if (value != null) encoder.encodeInt(value) else encoder.encodeNull()
     }
@@ -45,6 +47,7 @@ object FlexibleIntSerializer : KSerializer<Int?> {
 
 object FlexibleStringSerializer : KSerializer<String?> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("FlexibleString", PrimitiveKind.STRING)
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     override fun serialize(encoder: Encoder, value: String?) {
         if (value != null) encoder.encodeString(value) else encoder.encodeNull()
     }

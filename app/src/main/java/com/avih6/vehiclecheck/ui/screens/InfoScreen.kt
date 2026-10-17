@@ -5,7 +5,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Accessible
+import androidx.compose.material.icons.automirrored.filled.*
+import androidx.compose.material.icons.automirrored.outlined.*
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -101,7 +103,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Filled.Accessible,
+                        imageVector = Icons.AutoMirrored.Filled.Accessible,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
@@ -127,7 +129,7 @@ fun InfoScreen(modifier: Modifier = Modifier) {
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.OpenInNew,
+                        imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )

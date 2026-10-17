@@ -91,7 +91,7 @@ fun ThemeSettingsDialog(
                             },
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
-                                .menuAnchor()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                                 .fillMaxWidth()
                         )
 
@@ -161,7 +161,7 @@ fun ThemeSettingsDialog(
                             },
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
-                                .menuAnchor()
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                                 .fillMaxWidth()
                         )
 
