@@ -110,7 +110,10 @@ fun VehicleImageShowcase(
                 }
                 selectedFullscreenIndex = null
             },
-            properties = DialogProperties(usePlatformDefaultWidth = false)
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false
+            )
         ) {
             Box(
                 modifier = Modifier
@@ -209,7 +212,8 @@ fun VehicleImageShowcase(
                                     listOf(Color.Black.copy(alpha = 0.7f), Color.Transparent)
                                 )
                             )
-                            .padding(horizontal = 16.dp, vertical = 20.dp),
+                            .statusBarsPadding()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -297,13 +301,14 @@ fun VehicleImageShowcase(
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
-                            color = Color.Black.copy(alpha = 0.75f),
+                                .navigationBarsPadding()
+                                .padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
+                            color = Color.Black.copy(alpha = 0.85f),
                             shape = RoundedCornerShape(16.dp),
-                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.18f))
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.22f))
                         ) {
                             Column(
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Text(
@@ -340,10 +345,11 @@ fun VehicleImageShowcase(
                                 }
 
                                 if (currentFullscreenImage.descriptionUrl.isNotBlank()) {
-                                    Spacer(Modifier.height(6.dp))
+                                    Spacer(Modifier.height(8.dp))
                                     Row(
+                                        modifier = Modifier.fillMaxWidth(),
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                                     ) {
                                         FilledTonalButton(
                                             onClick = {
@@ -352,15 +358,18 @@ fun VehicleImageShowcase(
                                                     context.startActivity(intent)
                                                 } catch (_: Exception) { }
                                             },
-                                            shape = RoundedCornerShape(8.dp),
-                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                                            shape = RoundedCornerShape(10.dp),
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                                            modifier = Modifier.weight(1f)
                                         ) {
-                                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(14.dp))
-                                            Spacer(Modifier.width(6.dp))
+                                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(15.dp))
+                                            Spacer(Modifier.width(4.dp))
                                             Text(
-                                                text = "צפייה במקור וזכויות יוצרים בוויקימדיה",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold
+                                                text = "צפייה במקור",
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                maxLines = 1,
+                                                softWrap = false
                                             )
                                         }
 
@@ -378,21 +387,24 @@ fun VehicleImageShowcase(
                                                     ).joinToString(" | ")
                                                 )
                                             },
-                                            shape = RoundedCornerShape(8.dp),
-                                            border = BorderStroke(1.dp, Color(0xFFFF8A80).copy(alpha = 0.6f)),
-                                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                            shape = RoundedCornerShape(10.dp),
+                                            border = BorderStroke(1.dp, Color(0xFFFF8A80).copy(alpha = 0.7f)),
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                                            modifier = Modifier.weight(1f)
                                         ) {
-                                            Icon(Icons.Outlined.Flag, contentDescription = null, tint = Color(0xFFFF8A80), modifier = Modifier.size(14.dp))
+                                            Icon(Icons.Outlined.Flag, contentDescription = null, tint = Color(0xFFFF8A80), modifier = Modifier.size(15.dp))
                                             Spacer(Modifier.width(4.dp))
                                             Text(
                                                 text = stringResource(R.string.report_incorrect_image_btn),
-                                                fontSize = 11.sp,
-                                                color = Color(0xFFFF8A80)
+                                                fontSize = 12.sp,
+                                                color = Color(0xFFFF8A80),
+                                                maxLines = 1,
+                                                softWrap = false
                                             )
                                         }
                                     }
                                 }
-                        }
+                            }
                     }
                 }
             }
@@ -565,7 +577,9 @@ fun VehicleImageShowcase(
                             text = stringResource(R.string.report_incorrect_image_btn),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary,
-                            fontSize = 10.5.sp
+                            fontSize = 10.5.sp,
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                 }

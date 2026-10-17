@@ -57,10 +57,12 @@ object ReportUtils {
     ) {
         val info = getAppAndDeviceInfo(context)
         val subject = context.getString(R.string.report_email_subject, info.appName, formattedPlate)
+        val makeModelStr = listOf(make, model).filter { it.isNotBlank() }.joinToString(" ")
+
         val body = context.getString(
             R.string.report_email_body,
             formattedPlate,
-            listOf(make, model).filter { it.isNotBlank() }.joinToString(" "),
+            makeModelStr,
             year.ifBlank { "-" },
             trimOrCommercial.ifBlank { "-" },
             info.appName,
@@ -71,7 +73,24 @@ object ReportUtils {
             info.deviceModel
         )
 
-        dispatchEmail(context, subject, body, context.getString(R.string.report_email_chooser))
+        val htmlBody = """
+            <p><br/><br/><br/></p>
+            <p>--- כתבו את הודעתכם מעל קו זה (נא לפרט מה המידע השגוי) ---</p>
+            <br/>
+            <h3>--- פרטי הרכב ---</h3>
+            <p><b>מספר רכב:</b> $formattedPlate</p>
+            <p><b>יצרן ודגם:</b> $makeModelStr</p>
+            <p><b>שנת ייצור:</b> ${year.ifBlank { "-" }}</p>
+            <p><b>כינוי מסחרי / רמת גימור:</b> ${trimOrCommercial.ifBlank { "-" }}</p>
+            <br/>
+            <h3>--- מידע טכני ---</h3>
+            <p><b>שם האפליקציה:</b> ${info.appName}</p>
+            <p><b>גרסת אפליקציה:</b> ${info.versionName} (${info.versionCode})</p>
+            <p><b>גרסת אנדרואיד:</b> ${info.osVersion} (API ${info.apiLevel})</p>
+            <p><b>דגם מכשיר:</b> ${info.deviceModel}</p>
+        """.trimIndent()
+
+        dispatchEmail(context, subject, body, htmlBody, context.getString(R.string.report_email_chooser))
     }
 
     fun sendImageReport(
@@ -100,10 +119,32 @@ object ReportUtils {
             info.deviceModel
         )
 
-        dispatchEmail(context, subject, body, context.getString(R.string.report_image_email_chooser))
+        val htmlBody = """
+            <p><br/><br/><br/></p>
+            <p>--- כתבו את הודעתכם מעל קו זה (נא לפרט מדוע התמונה שגויה) ---</p>
+            <br/>
+            <h3>--- פרטי התמונה המדווחת ---</h3>
+            <p><b>שם קובץ בוויקימדיה:</b><br/>${image.title.ifBlank { "-" }}</p>
+            <br/>
+            <p><b>קישור ישיר לתמונה:</b></p>
+            <p><a href="$directUrl" target="_blank" style="color: #1a73e8; text-decoration: underline;">$directUrl</a></p>
+            <br/>
+            <p><b>קישור לעמוד המקור בוויקימדיה:</b></p>
+            <p><a href="$sourceUrl" target="_blank" style="color: #1a73e8; text-decoration: underline;">$sourceUrl</a></p>
+            <br/>
+            <p><b>רכב / חיפוש משויך:</b><br/>${vehicleOrSearchContext.ifBlank { "-" }}</p>
+            <br/>
+            <h3>--- מידע טכני ---</h3>
+            <p><b>שם האפליקציה:</b> ${info.appName}</p>
+            <p><b>גרסת אפליקציה:</b> ${info.versionName} (${info.versionCode})</p>
+            <p><b>גרסת אנדרואיד:</b> ${info.osVersion} (API ${info.apiLevel})</p>
+            <p><b>דגם מכשיר:</b> ${info.deviceModel}</p>
+        """.trimIndent()
+
+        dispatchEmail(context, subject, body, htmlBody, context.getString(R.string.report_image_email_chooser))
     }
 
-    private fun dispatchEmail(context: Context, subject: String, body: String, chooserTitle: String) {
+    private fun dispatchEmail(context: Context, subject: String, body: String, htmlBody: String? = null, chooserTitle: String) {
         val mailtoUri = Uri.parse(
             "mailto:$SUPPORT_EMAIL" +
                     "?subject=" + Uri.encode(subject) +
@@ -113,6 +154,9 @@ object ReportUtils {
             putExtra(Intent.EXTRA_EMAIL, arrayOf(SUPPORT_EMAIL))
             putExtra(Intent.EXTRA_SUBJECT, subject)
             putExtra(Intent.EXTRA_TEXT, body)
+            if (!htmlBody.isNullOrBlank()) {
+                putExtra(Intent.EXTRA_HTML_TEXT, htmlBody)
+            }
         }
 
         try {
@@ -125,6 +169,9 @@ object ReportUtils {
                     putExtra(Intent.EXTRA_EMAIL, arrayOf(SUPPORT_EMAIL))
                     putExtra(Intent.EXTRA_SUBJECT, subject)
                     putExtra(Intent.EXTRA_TEXT, body)
+                    if (!htmlBody.isNullOrBlank()) {
+                        putExtra(Intent.EXTRA_HTML_TEXT, htmlBody)
+                    }
                 }
                 context.startActivity(Intent.createChooser(fallbackIntent, chooserTitle))
             } catch (_: Exception) {
