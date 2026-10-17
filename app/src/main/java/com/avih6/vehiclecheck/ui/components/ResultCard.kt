@@ -1907,7 +1907,7 @@ private fun GeneralTabContent(
                     modifier = Modifier.padding(bottom = 10.dp)
                 )
 
-                val effectiveVin = vehicle.cleanVin ?: vehicle.effectiveVin ?: vehicle.vin
+                val effectiveVin = vehicle.cleanVin
                 if (!effectiveVin.isNullOrBlank()) {
                     SpecRow("מספר שלדה (VIN):", effectiveVin, isCopyable = true, copyValue = effectiveVin)
                 } else {
@@ -4252,9 +4252,10 @@ fun AutoBrandLogo(
                     (hebrewMake?.contains("גרר") == true) || (modelName?.contains("גרר") == true) ||
                     (hebrewMake?.contains("דחס") == true) || (hebrewMake?.contains("אשפה") == true)
 
-            val isTwoWheeler = classStr.contains("אופנוע") || classStr.contains("קטנוע") ||
-                    (slug in setOf("yamaha", "kawasaki", "honda", "suzuki", "ktm", "husqvarna", "ducati", "harley-davidson", "triumph", "sym", "kymco", "piaggio", "vespa", "voge", "qjmotor", "benelli", "aprilia", "moto-guzzi", "royal-enfield")) ||
-                    (hebrewMake?.contains("אופנוע") == true) || (modelName?.contains("אופנוע") == true) || (hebrewMake?.contains("קטנוע") == true) || (modelName?.contains("קטנוע") == true)
+            val isTwoWheeler = !classStr.contains("פרטי") && !classStr.contains("מסחרי") && !classStr.contains("משא") && !classStr.contains("אוטובוס") &&
+                    (classStr.contains("אופנוע") || classStr.contains("קטנוע") || classStr.contains("דו-גלגלי") ||
+                    (slug in setOf("yamaha", "kawasaki", "ktm", "husqvarna", "ducati", "harley-davidson", "triumph", "sym", "kymco", "piaggio", "vespa", "voge", "qjmotor", "benelli", "aprilia", "moto-guzzi", "royal-enfield")) ||
+                    (hebrewMake?.contains("אופנוע") == true) || (modelName?.contains("אופנוע") == true) || (hebrewMake?.contains("קטנוע") == true) || (modelName?.contains("קטנוע") == true))
 
             val isTaxi = classStr.contains("מונית") || (hebrewMake?.contains("מונית") == true) || (modelName?.contains("מונית") == true)
 
