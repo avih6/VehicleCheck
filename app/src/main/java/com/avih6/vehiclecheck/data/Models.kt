@@ -813,10 +813,257 @@ data class BaseModelInfo(
 object VehicleUtils {
     fun cleanIdentificationCode(raw: String?): String? {
         if (raw.isNullOrBlank()) return null
-        return raw.replace("*", "")
+        val cleaned = raw
+            .replace("*", "")
             .replace("#", "")
-            .trim { it == ' ' || it == '"' || it == '\'' || it == '`' || it == '\t' }
-            .ifBlank { null }
+            .replace("+", "")
+            .replace("~", "")
+            .replace("<", "")
+            .replace(">", "")
+            .trim { it <= ' ' || it == '"' || it == '\'' || it == '`' || it == '-' || it == '_' || it == '.' || it == ':' || it == ';' }
+        if (cleaned.isBlank()) return null
+        val lower = cleaned.lowercase()
+        if (cleaned == "1" || cleaned == "0" || cleaned == "00" || cleaned == "000" ||
+            cleaned == "-" || cleaned == "--" || cleaned == "." || cleaned == ".." ||
+            cleaned == "?" || cleaned == "??" ||
+            lower == "לא ידוע" || lower == "לא נמסר" || lower == "לא רשום" || lower == "לא צוין" ||
+            lower == "אין" || lower == "אין מידע" || lower == "ללא" || lower == "null" ||
+            lower == "none" || lower == "na" || lower == "n/a" || lower == "undefined"
+        ) {
+            return null
+        }
+        return cleaned
+    }
+
+    // Bidirectional Latin letters <-> Hebrew phonetic pronunciation
+    val ENGLISH_TO_HEBREW_PHONETICS: Map<Char, List<String>> = mapOf(
+        'A' to listOf("איי", "אי"),
+        'B' to listOf("בי"),
+        'C' to listOf("סי"),
+        'D' to listOf("די"),
+        'E' to listOf("אי", "איי"),
+        'F' to listOf("אף", "אפ"),
+        'G' to listOf("ג'י", "גי"),
+        'H' to listOf("אייץ'", "איץ'"),
+        'I' to listOf("איי", "אי"),
+        'J' to listOf("ג'יי", "ג'י", "גיי", "גי"),
+        'K' to listOf("קיי", "קי"),
+        'L' to listOf("אל"),
+        'M' to listOf("אם"),
+        'N' to listOf("אן"),
+        'O' to listOf("או"),
+        'P' to listOf("פי"),
+        'Q' to listOf("קיו"),
+        'R' to listOf("אר"),
+        'S' to listOf("אס"),
+        'T' to listOf("טי"),
+        'U' to listOf("יו"),
+        'V' to listOf("וי"),
+        'W' to listOf("דאבל יו"),
+        'X' to listOf("איקס", "אקס"),
+        'Y' to listOf("וואי"),
+        'Z' to listOf("זד", "זי")
+    )
+
+    val HEBREW_PHONETICS_TO_ENGLISH: Map<String, Char> = mapOf(
+        "אף" to 'F', "אפ" to 'F',
+        "סי" to 'C', "סי." to 'C',
+        "די" to 'D', "די." to 'D',
+        "אי" to 'E', "אי." to 'E', "איי" to 'E',
+        "טי" to 'T', "טי." to 'T',
+        "קיי" to 'K', "קי" to 'K',
+        "אר" to 'R', "אר." to 'R',
+        "אס" to 'S', "אס." to 'S',
+        "איקס" to 'X', "אקס" to 'X',
+        "קיו" to 'Q',
+        "בי" to 'B',
+        "אם" to 'M', "אם." to 'M',
+        "אן" to 'N', "אן." to 'N',
+        "וי" to 'V',
+        "ג'יי" to 'J', "גיי" to 'J', "ג'י" to 'J', "גי" to 'J',
+        "יו" to 'U',
+        "זד" to 'Z', "זי" to 'Z',
+        "אל" to 'L',
+        "פי" to 'P'
+    )
+
+    val MULTI_LETTER_PHONETICS: Map<String, List<String>> = mapOf(
+        "CX" to listOf("סי איקס", "סי אקס", "סי-איקס"),
+        "CR-V" to listOf("סי אר וי", "סי.אר.וי", "CRV", "CR-V"),
+        "CRV" to listOf("סי אר וי", "סי.אר.וי", "CRV", "CR-V"),
+        "HR-V" to listOf("אייץ' אר וי", "HRV", "HR-V"),
+        "HRV" to listOf("אייץ' אר וי", "HRV", "HR-V"),
+        "RAV4" to listOf("ראב 4", "ראב4", "RAV 4", "RAV4"),
+        "RAV 4" to listOf("ראב 4", "ראב4", "RAV 4", "RAV4"),
+        "CJ" to listOf("סי גי", "סי ג'י", "סי גיי", "סי ג'יי", "גיי"),
+        "TMAX" to listOf("טימקס", "טי מקס", "XP500", "XP 500", "T-MAX", "TMAX"),
+        "DMAX" to listOf("דימקס", "די מקס", "די-מקס", "D-MAX", "DMAX"),
+        "D-MAX" to listOf("דימקס", "די מקס", "די-מקס", "D-MAX", "DMAX"),
+        "GTI" to listOf("ג'י טי איי", "גי טי אי", "GTI"),
+        "GT" to listOf("ג'י טי", "גי טי", "GT"),
+        "RS" to listOf("אר אס", "RS"),
+        "AMG" to listOf("אי אם ג'י", "AMG"),
+        "XC" to listOf("איקס סי", "אקס סי", "XC")
+    )
+
+    fun generateAutomaticModelVariants(rawText: String?, make: String? = null): List<String> {
+        if (rawText.isNullOrBlank()) return emptyList()
+        val results = LinkedHashSet<String>()
+
+        var cleaned = rawText.trim()
+        val originalRaw = cleaned
+
+        // 1. Strip make names if prepended to the model text
+        if (!make.isNullOrBlank()) {
+            val makeTokens = make.split(" ", "-", "_")
+            for (mt in makeTokens) {
+                if (mt.length >= 2) {
+                    if (cleaned.startsWith(mt, ignoreCase = true)) {
+                        cleaned = cleaned.substring(mt.length).trim()
+                    }
+                }
+            }
+        }
+
+        // 2. Strip noise category/status prefixes
+        val noisePrefixes = setOf(
+            "משאית", "משא", "אספנות", "רכב שדה", "רכב שטח", "שטח", "פרטי",
+            "אמבולנס", "כיבוי", "כבאית", "אוטובוס", "אוטובוס זעיר", "אוטובוס-זעיר",
+            "גרור", "נתמך", "רכב עבודה", "עבודה", "מונית", "טרקטור", "רכב רפואי",
+            "רפואי", "הצלה", "ביטחון", "בטחון", "מיוחד"
+        )
+        var words = cleaned.split(" ", "-", "_").filter { it.isNotBlank() }
+        while (words.size > 1 && (words.first() in noisePrefixes || (words.first().all { it.isDigit() } && words[1] in noisePrefixes))) {
+            words = words.drop(1)
+        }
+        cleaned = words.joinToString(" ")
+
+        // 3. Strip noise suffixes (drive, fuel, transmission, body, trim, displacement)
+        val noiseSuffixPatterns = listOf(
+            Regex("""\b(4[Xx*][42]|2[Xx*]4|4WD|2WD|AWD|FWD|RWD)\b""", RegexOption.IGNORE_CASE),
+            Regex("""\b(HYBRID|PLUG-?IN|PHEV|MHEV|EV|TURBO|DIESEL|GASOLINE|BENZIN|היברידי?|פלאג-?אין|חשמלי|טורבו|דיזל|בנזין)\b""", RegexOption.IGNORE_CASE),
+            Regex("""\b(אוטומטי?|אוטו'?|אוט'?|ידני(ת)?|רובוטי(ת)?|רציף|טיפטרוניק|DSG|DCT|CVT|AUTO|MANUAL)\b""", RegexOption.IGNORE_CASE),
+            Regex("""\b(סגור|פתוח|אחוד|ארגז|טנדר|ואן|וואן|קבינה כפולה|דאבל קבינה|תא כפול|תא יחיד|ארוך|קצר|גבוה|נמוך)\b""", RegexOption.IGNORE_CASE),
+            Regex("""\b(COMFORT|EXECUTIVE|STYLE|LUXURY|PREMIUM|SPORT|LIMITED|DYNAMIC|ELEGANCE|ACTIVE|ADVANCE|LIFE|INTENSE|CHIC|SHINE|FEEL|VISION|SELECT|PRESTIGE|TITANIUM|PLATINUM|HIGHLINE|TREND|AMBITION)\b""", RegexOption.IGNORE_CASE),
+            Regex("""\b(קומפורט|אקזקיוטיב|סטייל|לקצ'ורי|פרמיום|פרימיום|ספורט|לימיטד|דיינמיק|אלגנס|אקטיב|אדוונס|לייף|אינטנס|טיטניום|פלטינום|טרנד|אמבישן)\b"""),
+            Regex("""\b([1-6]\.[0-9]|1[0-9]00|[2-5][0-9]00)\b""")
+        )
+        for (pat in noiseSuffixPatterns) {
+            cleaned = pat.replace(cleaned, " ").trim()
+        }
+        cleaned = cleaned.replace(Regex("""\s+"""), " ").trim()
+        if (cleaned.isBlank()) cleaned = originalRaw
+
+        results.add(cleaned)
+
+        // 4. Multi-letter acronym matches
+        for ((engAcr, hebList) in MULTI_LETTER_PHONETICS) {
+            if (cleaned.contains(engAcr, ignoreCase = true) || hebList.any { cleaned.contains(it) }) {
+                results.add(engAcr)
+                results.add(engAcr.replace("-", ""))
+                results.add(engAcr.replace("-", " "))
+                results.addAll(hebList)
+            }
+        }
+
+        // 5. Pattern A: Hebrew Phonetic Letter + Number (e.g. "אף 350", "סי 10", "אי 220", "די 100", "איקס 5", "קיו 7", "סי 3803")
+        val hebLetterNumRegex = Regex("""^([א-ת'\.]+)[-\s]*(\d+)$""")
+        val hebMatch = hebLetterNumRegex.find(cleaned)
+        if (hebMatch != null) {
+            val hebPrefix = hebMatch.groupValues[1]
+            val num = hebMatch.groupValues[2]
+            results.add(num) // e.g. "3803", "350"
+            val engLetter = HEBREW_PHONETICS_TO_ENGLISH[hebPrefix]
+            if (engLetter != null) {
+                results.add("$engLetter-$num")
+                results.add("$engLetter$num")
+                results.add("$engLetter $num")
+                results.add("$hebPrefix $num")
+                results.add("$hebPrefix-$num")
+                results.add("$hebPrefix$num")
+            }
+        }
+
+        // 5b. Pattern D: Number + Letter/Phonetics + Sub-number (e.g. "403 בי 8", "403-8", "403 B8", "504 טי איי")
+        val numLetterRegex = Regex("""^(\d+)[-\s]+([א-ת'\.]+|[A-Za-z]+)(?:[-\s]*(\d+))?$""")
+        val nlMatch = numLetterRegex.find(cleaned)
+        if (nlMatch != null) {
+            val baseNum = nlMatch.groupValues[1]
+            val midLetter = nlMatch.groupValues[2]
+            val subNum = nlMatch.groupValues[3]
+            results.add(baseNum) // e.g. "403"
+
+            val engChar = HEBREW_PHONETICS_TO_ENGLISH[midLetter]
+            if (engChar != null) {
+                if (subNum.isNotBlank()) {
+                    results.add("$baseNum $engChar$subNum")
+                    results.add("$baseNum-$engChar$subNum")
+                    results.add("$baseNum$engChar$subNum")
+                    results.add("$baseNum-$subNum")
+                } else {
+                    results.add("$baseNum $engChar")
+                    results.add("$baseNum-$engChar")
+                    results.add("$baseNum$engChar")
+                }
+            }
+        }
+
+        // 6. Pattern B: English Letter(s) + Number (e.g. "F-350", "F350", "C-10", "C10", "E-220", "X5", "Q7", "I30", "CX-5", "XC60", "M3")
+        val engLetterNumRegex = Regex("""^([A-Za-z]+)[-\s]*(\d+)$""")
+        val engMatch = engLetterNumRegex.find(cleaned)
+        if (engMatch != null) {
+            val letters = engMatch.groupValues[1].uppercase()
+            val num = engMatch.groupValues[2]
+            results.add("$letters-$num")
+            results.add("$letters$num")
+            results.add("$letters $num")
+
+            if (letters.length == 1) {
+                val hebList = ENGLISH_TO_HEBREW_PHONETICS[letters[0]]
+                if (hebList != null) {
+                    for (heb in hebList) {
+                        results.add("$heb $num")
+                        results.add("$heb-$num")
+                        results.add("$heb$num")
+                    }
+                }
+            } else {
+                val multiHeb = MULTI_LETTER_PHONETICS[letters]
+                if (multiHeb != null) {
+                    for (h in multiHeb) {
+                        results.add("$h $num")
+                        results.add("$h-$num")
+                        results.add("$h$num")
+                    }
+                }
+            }
+        }
+
+        // 7. Pattern C: 3-Digit engine code with letter suffix (e.g. BMW 320i, 320d, 530e, Mercedes C200d)
+        val digitLetterRegex = Regex("""^(\d{3})[A-Za-z]$""")
+        val dlMatch = digitLetterRegex.find(cleaned)
+        if (dlMatch != null) {
+            results.add(dlMatch.groupValues[1])
+        }
+
+        // 8. Multi-token variations (spaced, hyphenated, concatenated)
+        val tokens = cleaned.split(" ", "-", "_").filter { it.isNotBlank() }
+        if (tokens.size >= 2) {
+            results.add(tokens.first())
+            results.add("${tokens[0]} ${tokens[1]}")
+            results.add("${tokens[0]}-${tokens[1]}")
+            results.add("${tokens[0]}${tokens[1]}")
+        }
+        val unspaced = cleaned.replace(" ", "").replace("-", "")
+        if (unspaced.isNotBlank()) results.add(unspaced)
+
+        if (originalRaw != cleaned) {
+            results.add(originalRaw)
+            val origUnspaced = originalRaw.replace(" ", "").replace("-", "")
+            if (origUnspaced.isNotBlank()) results.add(origUnspaced)
+        }
+
+        return results.filter { it.length >= 2 }.toList()
     }
 
     fun resolveKnownModelName(make: String?, modelCode: String?, modelName: String?, vin: String?): String? {
@@ -837,9 +1084,13 @@ object VehicleUtils {
             if (mc.contains("EXPLORER") || mn.contains("EXPLORER") || mn.contains("אקספלורר")) return "אקספלורר"
             if (mc.contains("BRONCO") || mn.contains("BRONCO") || mn.contains("ברונקו")) return "ברונקו"
             if (mc.contains("TRANSIT") || mn.contains("TRANSIT") || mn.contains("טרנזיט")) return "טרנזיט"
-            if (mc.contains("F-150") || mc.contains("F150") || mn.contains("F-150") || mn.contains("F150")) return "F-150"
-            if (mc.contains("F-250") || mc.contains("F250") || mn.contains("F-250") || mn.contains("F250")) return "F-250"
-            if (mc.contains("F-350") || mc.contains("F350") || mn.contains("F-350") || mn.contains("F350")) return "F-350"
+            if (mc.contains("F-100") || mc.contains("F100") || mn.contains("F-100") || mn.contains("F100") || mn.contains("F 100") || mn.contains("אף 100") || mn.contains("אף-100") || mn.contains("אף100")) return "F-100"
+            if (mc.contains("F-150") || mc.contains("F150") || mn.contains("F-150") || mn.contains("F150") || mn.contains("F 150") || mn.contains("אף 150") || mn.contains("אף-150") || mn.contains("אף150")) return "F-150"
+            if (mc.contains("F-250") || mc.contains("F250") || mn.contains("F-250") || mn.contains("F250") || mn.contains("F 250") || mn.contains("אף 250") || mn.contains("אף-250") || mn.contains("אף250")) return "F-250"
+            if (mc.contains("F-350") || mc.contains("F350") || mn.contains("F-350") || mn.contains("F350") || mn.contains("F 350") || mn.contains("אף 350") || mn.contains("אף-350") || mn.contains("אף350")) return "F-350"
+            if (mc.contains("F-450") || mc.contains("F450") || mn.contains("F-450") || mn.contains("F450") || mn.contains("F 450") || mn.contains("אף 450") || mn.contains("אף-450") || mn.contains("אף450")) return "F-450"
+            if (mc.contains("F-550") || mc.contains("F550") || mn.contains("F-550") || mn.contains("F550") || mn.contains("F 550") || mn.contains("אף 550") || mn.contains("אף-550") || mn.contains("אף550")) return "F-550"
+            if (mc.contains("F-650") || mc.contains("F650") || mn.contains("F-650") || mn.contains("F650") || mn.contains("F 650") || mn.contains("אף 650") || mn.contains("אף-650") || mn.contains("אף650")) return "F-650"
         }
 
         // Chevrolet / שברולט
@@ -987,6 +1238,62 @@ object VehicleUtils {
             if (mc.contains("TRAKKER") || mc.contains("טראקר") || mn.contains("TRAKKER") || mn.contains("טראקר")) return "טראקר (Trakker)"
         }
 
+        // Subaru / סובארו
+        if (mk.contains("סובארו") || mk.contains("SUBARU", ignoreCase = true)) {
+            if (mc.contains("FORESTER") || mn.contains("FORESTER") || mn.contains("פורסטר")) return "פורסטר"
+            if (mc.contains("CROSSTREK") || mn.contains("CROSSTREK") || mc.contains("XV") || mn.contains("XV") || mn.contains("קרוסטרק")) return "קרוסטרק (XV)"
+            if (mc.contains("OUTBACK") || mn.contains("OUTBACK") || mn.contains("אאוטבק")) return "אאוטבק"
+            if (mc.contains("IMPREZA") || mn.contains("IMPREZA") || mn.contains("אימפרזה")) return "אימפרזה"
+            if (mc.contains("LEGACY") || mn.contains("LEGACY") || mc.contains("B4") || mn.contains("B4") || mn.contains("לגאסי")) return "B4 (לגאסי)"
+            if (mc.contains("BRZ") || mn.contains("BRZ")) return "BRZ"
+            if (mc.contains("EVOLTIS") || mn.contains("EVOLTIS") || mn.contains("אבולטיס")) return "אבולטיס"
+            if (mc.contains("SOLTERRA") || mn.contains("SOLTERRA") || mn.contains("סולטרה")) return "סולטרה"
+        }
+
+        // Automatic Letter + Number & Phonetic Resolution (for ANY brand and ANY model!)
+        val inputCandidates = listOf(mn, mc).filter { it.isNotBlank() }
+        for (candidate in inputCandidates) {
+            val trimmed = candidate.trim()
+            // Check Hebrew Phonetic Letter + Number -> e.g. "אף 350" -> "F-350", "סי 10" -> "C-10", "סי 3803" -> "C-3803"
+            val hebMatch = Regex("""^([א-ת'\.]+)[-\s]*(\d+)$""").find(trimmed)
+            if (hebMatch != null) {
+                val hebPrefix = hebMatch.groupValues[1]
+                val num = hebMatch.groupValues[2]
+                val engLetter = HEBREW_PHONETICS_TO_ENGLISH[hebPrefix]
+                if (engLetter != null) {
+                    return "$engLetter-$num"
+                }
+            }
+
+            // Check Number + Letter + Sub-number -> e.g. "403 בי 8" -> "403 B8"
+            val numHebMatch = Regex("""^(\d+)[-\s]+([א-ת'\.]+)(?:[-\s]*(\d+))?$""").find(trimmed)
+            if (numHebMatch != null) {
+                val baseNum = numHebMatch.groupValues[1]
+                val midLetter = numHebMatch.groupValues[2]
+                val subNum = numHebMatch.groupValues[3]
+                val engChar = HEBREW_PHONETICS_TO_ENGLISH[midLetter]
+                if (engChar != null) {
+                    return if (subNum.isNotBlank()) "$baseNum $engChar$subNum" else "$baseNum $engChar"
+                }
+                return baseNum
+            }
+
+            // Check English Letter + Number -> e.g. "F350" -> "F-350", "C10" -> "C-10", "E220" -> "E-220"
+            val engMatch = Regex("""^([A-Za-z]+)[-\s]*(\d+)$""").find(trimmed)
+            if (engMatch != null) {
+                val letters = engMatch.groupValues[1].uppercase()
+                val num = engMatch.groupValues[2]
+                return if (letters.length == 1) "$letters-$num" else "$letters$num"
+            }
+
+            // Check Acronyms (e.g. "סי אר וי" -> "CR-V", "ראב 4" -> "RAV4", "די מקס" -> "די-מקס")
+            for ((engAcr, hebList) in MULTI_LETTER_PHONETICS) {
+                if (hebList.any { trimmed.contains(it) } || trimmed.contains(engAcr, ignoreCase = true)) {
+                    return engAcr
+                }
+            }
+        }
+
         return null
     }
 
@@ -995,108 +1302,37 @@ object VehicleUtils {
         val rawModel = model?.trim().orEmpty()
         val rawCode = modelCode?.trim().orEmpty()
 
+        val allVariants = LinkedHashSet<String>()
+        // 1. Generate automatic variants for all representations
+        if (known != null) allVariants.addAll(generateAutomaticModelVariants(known, make))
+        if (rawModel.isNotBlank()) allVariants.addAll(generateAutomaticModelVariants(rawModel, make))
+        if (rawModel.isBlank() && rawCode.isNotBlank()) allVariants.addAll(generateAutomaticModelVariants(rawCode, make))
+
+        // 2. Extra synonyms for special legacy names
         if (known != null) {
-            val terms = mutableListOf<String>()
             when (known) {
-                "CJ (סי גי)" -> terms.addAll(listOf("סי גי", "CJ", "גיי", "סי גיי", "CJ-6", "CJ-5"))
-                "מוסטנג" -> { terms.addAll(listOf("MUSTANG", "מוסטנג")); if (rawCode.isNotBlank()) terms.add(rawCode) }
-                "פוקוס" -> terms.addAll(listOf("FOCUS", "פוקוס"))
-                "פיאסטה" -> terms.addAll(listOf("FIESTA", "פיאסטה"))
-                "מונדאו" -> terms.addAll(listOf("MONDEO", "מונדאו", "מונדיאו"))
-                "קורבט" -> terms.addAll(listOf("CORVETTE", "קורבט"))
-                "קמארו" -> terms.addAll(listOf("CAMARO", "קמארו"))
-                "TMAX" -> terms.addAll(listOf("TMAX", "XP 500", "XP500", "XP530", "XP560", "טימקס"))
-                "CB 500" -> terms.addAll(listOf("CB 500", "CB-500", "CB500", "CB"))
-                "503" -> terms.addAll(listOf("503"))
-                "פלימות" -> terms.addAll(listOf("פלימות", "פלימוט", "PLYMOUTH"))
-                "אקונוליין (E-Series)" -> terms.addAll(listOf("E 34", "E-350", "ECONOLINE", "אקונוליין", "E 3", "E-3", "E350"))
-                "יורוקרגו (Eurocargo)" -> terms.addAll(listOf("120E18", "120E21", "120E22", "120E", "135E", "EUROCARGO", "יורוקרגו"))
-                "דיילי (Daily)" -> terms.addAll(listOf("DAILY", "דיילי", "35S", "50C", "65C"))
-                "סטראליס (Stralis)" -> terms.addAll(listOf("STRALIS", "סטראליס", "440S", "450S", "500S"))
-                "טראקר (Trakker)" -> terms.addAll(listOf("TRAKKER", "טראקר", "380T", "410T"))
-                "היילקס" -> terms.addAll(listOf("HILUX", "היילקס", "הילוקס"))
-                "לנד קרוזר" -> terms.addAll(listOf("LAND CRUISER", "לנד קרוזר", "פראדו"))
-                "די-מקס" -> terms.addAll(listOf("D-MAX", "DMAX", "די-מקס", "דימקס"))
-                "NPR" -> terms.addAll(listOf("NPR", "איסוזו"))
-                "ספרינטר" -> terms.addAll(listOf("SPRINTER", "ספרינטר", "907", "906"))
-                "ויטו" -> terms.addAll(listOf("VITO", "ויטו", "447"))
-                "אטגו" -> terms.addAll(listOf("ATEGO", "אטגו"))
-                "טרנזיט" -> terms.addAll(listOf("TRANSIT", "טרנזיט", "קאסטום", "CUSTOM"))
-                "קאמרי" -> terms.addAll(listOf("CAMRY", "קאמרי"))
-                "קורולה" -> terms.addAll(listOf("COROLLA", "קורולה"))
-                "איוניק 5" -> terms.addAll(listOf("IONIQ5", "IONIQ 5", "איוניק 5"))
-                "איוניק 6" -> terms.addAll(listOf("IONIQ6", "IONIQ 6", "איוניק 6"))
-                "איוניק 9" -> terms.addAll(listOf("IONIQ9", "IONIQ 9", "איוניק 9"))
-                "איוניק" -> terms.addAll(listOf("IONIQ HYBRID", "IONIQ", "איוניק"))
-                "טוסון" -> terms.addAll(listOf("TUCSON", "טוסון"))
-                "קונה" -> terms.addAll(listOf("KONA", "קונה"))
-                else -> {
-                    terms.add(known)
-                    if (rawModel.isNotBlank()) terms.add(rawModel.split(" ").first())
-                }
+                "פורסטר" -> allVariants.addAll(listOf("FORESTER", "פורסטר"))
+                "קרוסטרק (XV)" -> allVariants.addAll(listOf("CROSSTREK", "XV", "קרוסטרק"))
+                "אאוטבק" -> allVariants.addAll(listOf("OUTBACK", "אאוטבק"))
+                "אימפרזה" -> allVariants.addAll(listOf("IMPREZA", "אימפרזה"))
+                "B4 (לגאסי)" -> allVariants.addAll(listOf("B4", "LEGACY", "לגאסי"))
+                "CJ (סי גי)", "CJ" -> allVariants.addAll(listOf("סי גי", "CJ", "גיי", "סי גיי", "CJ-6", "CJ-5"))
+                "מוסטנג" -> { allVariants.addAll(listOf("MUSTANG", "מוסטנג")); if (rawCode.isNotBlank()) allVariants.add(rawCode) }
+                "TMAX" -> allVariants.addAll(listOf("TMAX", "XP 500", "XP500", "XP530", "XP560", "טימקס"))
+                "CB 500" -> allVariants.addAll(listOf("CB 500", "CB-500", "CB500", "CB"))
+                "פלימות" -> allVariants.addAll(listOf("פלימות", "פלימוט", "PLYMOUTH"))
+                "אקונוליין (E-Series)" -> allVariants.addAll(listOf("E 34", "E-350", "ECONOLINE", "אקונוליין", "E 3", "E-3", "E350"))
+                "יורוקרגו (Eurocargo)" -> allVariants.addAll(listOf("120E18", "120E21", "120E22", "120E", "135E", "EUROCARGO", "יורוקרגו"))
+                "דיילי (Daily)" -> allVariants.addAll(listOf("DAILY", "דיילי", "35S", "50C", "65C"))
+                "סטראליס (Stralis)" -> allVariants.addAll(listOf("STRALIS", "סטראליס", "440S", "450S", "500S"))
+                "טראקר (Trakker)" -> allVariants.addAll(listOf("TRAKKER", "טראקר", "380T", "410T"))
+                "לנד קרוזר" -> allVariants.addAll(listOf("LAND CRUISER", "לנד קרוזר", "פראדו"))
+                "ספרינטר" -> allVariants.addAll(listOf("SPRINTER", "ספרינטר", "907", "906"))
+                "טרנזיט" -> allVariants.addAll(listOf("TRANSIT", "טרנזיט", "קאסטום", "CUSTOM"))
             }
-
-            var cleanKinuy = rawModel
-            val makeWords = (make ?: "").split(" ", "-")
-            for (mw in makeWords) {
-                if (mw.length >= 3) {
-                    cleanKinuy = cleanKinuy.replace(mw, "", ignoreCase = true).trim()
-                }
-            }
-
-            return BaseModelInfo(
-                baseModel = known,
-                searchTerms = terms.distinct(),
-                exactKinuyFilter = cleanKinuy.ifBlank { rawModel }.ifBlank { null }
-            )
         }
 
-        val primary = if (rawModel.isNotBlank()) rawModel else rawCode
-        if (primary.isBlank()) {
-            return BaseModelInfo(baseModel = "", searchTerms = emptyList())
-        }
-
-        val clean = primary
-            .replace("4X4", "", ignoreCase = true)
-            .replace("2X4", "", ignoreCase = true)
-            .replace("AWD", "", ignoreCase = true)
-            .replace("4WD", "", ignoreCase = true)
-            .replace("HYBRID", "", ignoreCase = true)
-            .replace("היבריד", "")
-            .replace("אוטו'", "")
-            .replace("אוטומט", "")
-            .replace("אוטומטי", "")
-            .replace("ידני", "")
-            .trim()
-
-        val noisePrefixes = setOf(
-            "אספנות", "אמבולנס", "כיבוי", "כבאית", "משאית", "משא", "גרור", "נתמך",
-            "רכב", "מיוחד", "רפואי", "הצלה", "ביטחון", "בטחון"
-        )
-
-        var tokens = clean.split(" ", "-", "_").filter { it.isNotBlank() }
-        // Strip leading category/status noise words or pure leading numbers (e.g. "12 אספנות פלימוט" -> "פלימוט")
-        while (tokens.size > 1 && (tokens.first() in noisePrefixes || tokens.first().all { it.isDigit() })) {
-            tokens = tokens.drop(1)
-        }
-        val firstToken = tokens.firstOrNull() ?: primary
-
-        val terms = mutableListOf<String>()
-        terms.add(firstToken)
-        if (tokens.size >= 2) {
-            terms.add("${tokens[0]} ${tokens[1]}")
-            terms.add("${tokens[0]}-${tokens[1]}")
-            terms.add("${tokens[0]}${tokens[1]}")
-        }
-        val noSpace = clean.replace(" ", "").replace("-", "")
-        if (noSpace.isNotBlank() && noSpace != firstToken) {
-            terms.add(noSpace)
-        }
-        if (rawModel.isNotBlank() && rawModel != firstToken) {
-            terms.add(rawModel)
-            val rawNoSpace = rawModel.replace(" ", "").replace("-", "")
-            if (rawNoSpace.isNotBlank()) terms.add(rawNoSpace)
-        }
+        val base = known ?: allVariants.firstOrNull() ?: rawModel.ifBlank { rawCode }
 
         var cleanKinuy = rawModel
         val makeWords = (make ?: "").split(" ", "-")
@@ -1107,8 +1343,8 @@ object VehicleUtils {
         }
 
         return BaseModelInfo(
-            baseModel = firstToken,
-            searchTerms = terms.distinct(),
+            baseModel = base,
+            searchTerms = allVariants.toList(),
             exactKinuyFilter = cleanKinuy.ifBlank { rawModel }.ifBlank { null }
         )
     }

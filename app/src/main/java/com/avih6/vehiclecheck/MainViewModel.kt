@@ -1066,10 +1066,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 val baseInfo = VehicleUtils.extractBaseModel(vehicle.make, vehicle.model, vehicle.modelCode, vehicle.vin)
-                val statsKey = "${makeCd}_${modelCd}_${year}_${baseInfo.baseModel}_v2"
+                val statsKey = "${makeCd}_${modelCd}_${year}_${baseInfo.baseModel}_v5"
                 val statsDeferred = async {
                     modelStatsCache.get(statsKey)?.let { return@async it }
-                    val computedStats = withTimeoutOrNull(8000L) {
+                    val computedStats = withTimeoutOrNull(12000L) {
                         computeModelStatistics(vehicle, isEngineering, isOffRoad, baseInfo)
                     } ?: ModelStatistics(if (isOffRoad) 0 else 1, if (isOffRoad) 1 else 0)
                     modelStatsCache.put(statsKey, computedStats)
@@ -1273,231 +1273,340 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                  vehicle.effectiveVehicleCategory?.contains("כיבוי") == true ||
                  vehicle.effectiveStandardType?.startsWith("N") == true ||
                  vehicle.effectiveStandardType?.startsWith("M3") == true ||
-                 vehicle.effectiveStandardType?.startsWith("M2") == true)
+                 vehicle.effectiveStandardType?.startsWith("M2") == true) ||
+                (vehicle.totalWeight ?: 0) > 3500
 
-        val activeResourceId = when {
-            isTwoWheeler -> "bf9df4e2-d90d-4c0a-a400-19e15af8e95f"
-            isHeavyOrCommercial -> "cd3acc5c-03c3-4c89-9c54-d40f93c0d790"
-            else -> "053cea08-09bc-40ec-8f7a-156f0677aff3"
+        // Prioritize resources: heavy commercial table (cd3acc5c) FIRST for trucks and heavy vehicles
+        val activeResourcesToSearch = when {
+            isTwoWheeler -> listOf("bf9df4e2-d90d-4c0a-a400-19e15af8e95f")
+            isHeavyOrCommercial -> listOf("cd3acc5c-03c3-4c89-9c54-d40f93c0d790", "053cea08-09bc-40ec-8f7a-156f0677aff3")
+            else -> listOf("053cea08-09bc-40ec-8f7a-156f0677aff3", "cd3acc5c-03c3-4c89-9c54-d40f93c0d790")
         }
 
-        // Ordered candidate model-specific filters (only specific model/trim/code)
-        // Note: kinuy_mishari and model name terms must come BEFORE degem_cd!
-        // degem_cd is an arbitrary 3-4 digit batch/trim code that often only matches tiny batches of 5-15 cars.
-        val candidateModelFilters = mutableListOf<String>()
-        if (!baseInfo.exactKinuyFilter.isNullOrBlank()) {
-            candidateModelFilters.add("{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"${baseInfo.exactKinuyFilter}\"}")
-        }
-        for (t in baseInfo.searchTerms.take(4)) {
-            if (t.isNotBlank() && t != vehicle.make && t != baseInfo.exactKinuyFilter) {
-                candidateModelFilters.add("{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"$t\"}")
-                candidateModelFilters.add("{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$t\"}")
-            }
-        }
-        if (!vehicle.modelCode.isNullOrBlank()) {
-            candidateModelFilters.add("{\"tozeret_cd\":$makeCd,\"degem_nm\":\"${vehicle.modelCode}\"}")
-        }
-        // degem_cd is only added as a last-resort fallback
-        if (modelCd != null && modelCd > 0) {
-            candidateModelFilters.add("{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}")
-        }
+        // Candidate commercial model terms (kinuy_mishari in data.gov.il)
+        val kinuyTerms = listOfNotNull(
+            baseInfo.exactKinuyFilter?.trim(),
+            vehicle.model?.trim(),
+            baseInfo.baseModel.trim()
+        ).filter { it.isNotBlank() && it != vehicle.make && it.length >= 2 }.distinct()
 
-        var matchedFilter: String? = null
-        var totalActive = 0
-        var singleCandidateFilter: String? = null
-        var matchedQueryTerm: String? = null
+        val allSearchTerms = (kinuyTerms + baseInfo.searchTerms + listOfNotNull(vehicle.modelCode?.trim()))
+            .filter { it.isNotBlank() && it != vehicle.make && it.length >= 2 }
+            .distinct()
 
-        // Models that frequently span both light commercial (<= 3.5t, in 053cea08) and heavy commercial (in cd3acc5c)
-        val isSplitCommercialModel = baseInfo.baseModel in setOf("היילקס", "טרנזיט", "ספרינטר", "ברלינגו", "די-מקס", "D-MAX", "סוואנה", "ויטו", "קנגו", "דוקאטו") ||
-                isHeavyOrCommercial
+        return coroutineScope {
+            // 1. ASYNC QUERY FOR ACTIVE VEHICLES
+            val activeJob = async {
+                var activeTotal = 0
+                var matchedTerm: String? = null
+                var matchedFilterStr: String? = null
 
-        // Priority resources to search:
-        // 053cea08 (private & light commercial) contains 90%+ of all vehicles in Israel, including Hilux and Transit
-        // cd3acc5c contains heavy vehicles, trucks, and special vehicles
-        val resourcesToSearch = if (isTwoWheeler) {
-            listOf("bf9df4e2-d90d-4c0a-a400-19e15af8e95f")
-        } else {
-            listOf("053cea08-09bc-40ec-8f7a-156f0677aff3", "cd3acc5c-03c3-4c89-9c54-d40f93c0d790")
-        }
+                for (resId in activeResourcesToSearch) {
+                    var resCount = 0
 
-        for (resId in resourcesToSearch) {
-            var resCount = 0
-            var resMatchedFilter: String? = null
-
-            for (f in candidateModelFilters) {
-                // If this is a degem_cd fallback filter, skip it if we already found a valid model count > 10
-                if (f.contains("degem_cd") && resCount > 10) continue
-                try {
-                    val c = NetworkClient.apiService.getSameModelActiveCount(resourceId = resId, filters = f, limit = 0).result?.total ?: 0
-                    if (c > resCount) {
-                        resCount = c
-                        resMatchedFilter = f
-                        if (c > 25) break
-                    } else if (c == 1 && singleCandidateFilter == null) {
-                        singleCandidateFilter = f
-                    }
-                } catch (_: Exception) {}
-            }
-
-            // If resCount is small (< 25) or 0 and search terms exist, try query (q) parameter within tozeret_cd
-            // This is essential for two-wheelers (TMAX/XP500) and commercial vehicles with freeform importer clerk names
-            if (resCount < 25 && baseInfo.searchTerms.isNotEmpty()) {
-                for (term in baseInfo.searchTerms) {
-                    if (term.isNotBlank() && term != vehicle.make) {
+                    // A. Prioritize exact kinuy_mishari filter (commercial model name) - 100% exact & avoids CKAN fulltext stemming bugs
+                    for (term in (kinuyTerms + baseInfo.searchTerms).distinct()) {
                         try {
-                            val qc = NetworkClient.apiService.getSameModelActiveCount(
+                            val filterJson = "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"$term\"}"
+                            val fc = NetworkClient.apiService.getSameModelActiveCount(
                                 resourceId = resId,
-                                filters = "{\"tozeret_cd\":$makeCd}",
-                                query = term,
+                                filters = filterJson,
                                 limit = 0
                             ).result?.total ?: 0
-                            if (qc > resCount) {
-                                resCount = qc
-                                resMatchedFilter = null
-                                matchedQueryTerm = term
-                                if (qc > 25) break
+                            if (fc > resCount) {
+                                resCount = fc
+                                matchedFilterStr = filterJson
+                                matchedTerm = term
+                                if (fc > 25) break
                             }
                         } catch (_: Exception) {}
                     }
-                }
-            }
 
-            if (isSplitCommercialModel) {
-                totalActive += resCount
-                if (matchedFilter == null) matchedFilter = resMatchedFilter
-            } else {
-                if (resCount > totalActive) {
-                    totalActive = resCount
-                    matchedFilter = resMatchedFilter
-                }
-            }
-        }
+                    // B. If no or small match, try degem_nm exact filter (for older vehicles or models stored in degem_nm)
+                    if (resCount < 25) {
+                        for (term in allSearchTerms.take(5)) {
+                            try {
+                                val filterJson = "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$term\"}"
+                                val fc = NetworkClient.apiService.getSameModelActiveCount(
+                                    resourceId = resId,
+                                    filters = filterJson,
+                                    limit = 0
+                                ).result?.total ?: 0
+                                if (fc > resCount) {
+                                    resCount = fc
+                                    matchedFilterStr = filterJson
+                                    matchedTerm = term
+                                    if (fc > 25) break
+                                }
+                            } catch (_: Exception) {}
+                        }
+                    }
 
-        if (totalActive == 0 && singleCandidateFilter != null) {
-            totalActive = 1
-            matchedFilter = singleCandidateFilter
-        }
+                    // C. Fallback to CKAN fulltext query (only if exact column filters found nothing)
+                    if (resCount == 0) {
+                        for (term in allSearchTerms.take(4)) {
+                            try {
+                                val qc = NetworkClient.apiService.getSameModelActiveCount(
+                                    resourceId = resId,
+                                    filters = "{\"tozeret_cd\":$makeCd}",
+                                    query = term,
+                                    limit = 0
+                                ).result?.total ?: 0
+                                if (qc > resCount) {
+                                    resCount = qc
+                                    matchedTerm = term
+                                    if (qc > 25) break
+                                }
+                            } catch (_: Exception) {}
+                        }
+                    }
 
-        var totalInactive = 0
-        if (matchedQueryTerm != null) {
-            try {
-                val c1 = NetworkClient.apiService.getDeregisteredCount(
-                    resourceId = "f6efe89a-fb3d-43a4-bb61-9bf12a9b9099",
-                    filters = "{\"tozeret_cd\":$makeCd}",
-                    query = matchedQueryTerm,
-                    limit = 0
-                ).result?.total ?: 0
-                if (c1 > 0) {
-                    totalInactive = c1
-                } else if (year < 2005 || isOffRoad) {
-                    val c2 = NetworkClient.apiService.getDeregisteredCount(
-                        resourceId = "6f6acd03-f351-4a8f-8ecf-df792f4f573a",
-                        filters = "{\"tozeret_cd\":$makeCd}",
-                        query = matchedQueryTerm,
-                        limit = 0
-                    ).result?.total ?: 0
-                    totalInactive = c2
-                }
-            } catch (_: Exception) {}
-        } else if (matchedFilter != null) {
-            // Active matched a model-specific filter!
-            // Query inactive ONLY with model-specific filters (starting with matchedFilter).
-            // NEVER fall back to brand-wide {"tozeret_cd": $makeCd} when active matched a specific model!
-            suspend fun queryInactiveSpecific(resId: String): Int {
-                val filtersToTry = listOf(matchedFilter) + (candidateModelFilters - matchedFilter)
-                for (f in filtersToTry) {
-                    try {
-                        val c = NetworkClient.apiService.getDeregisteredCount(resourceId = resId, filters = f, limit = 0).result?.total ?: 0
-                        if (c > 0) return c
-                    } catch (_: Exception) {}
-                }
-                return 0
-            }
-            val c1 = queryInactiveSpecific("f6efe89a-fb3d-43a4-bb61-9bf12a9b9099")
-            totalInactive = if (c1 > 0) c1 else if (year < 2005 || isOffRoad) queryInactiveSpecific("6f6acd03-f351-4a8f-8ecf-df792f4f573a") else 0
-
-            // If still 0 inactive, check if any search term matches inactive
-            if (totalInactive == 0 && baseInfo.searchTerms.isNotEmpty()) {
-                for (term in baseInfo.searchTerms) {
-                    if (term.isNotBlank() && term != vehicle.make) {
+                    // D. Fallback to modelCd if available and count is still 0
+                    if (resCount == 0 && modelCd != null && modelCd > 0) {
                         try {
-                            val inactQ = NetworkClient.apiService.getDeregisteredCount(
-                                resourceId = if (year < 2005 || isOffRoad) "6f6acd03-f351-4a8f-8ecf-df792f4f573a" else "f6efe89a-fb3d-43a4-bb61-9bf12a9b9099",
+                            val mc = NetworkClient.apiService.getSameModelActiveCount(
+                                resourceId = resId,
+                                filters = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}",
+                                limit = 0
+                            ).result?.total ?: 0
+                            if (mc > 0) {
+                                resCount = mc
+                                matchedFilterStr = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}"
+                            }
+                        } catch (_: Exception) {}
+                    }
+
+                    // Sum across resources if commercial or if both returned counts
+                    if (isHeavyOrCommercial || (activeTotal > 0 && resCount > 0)) {
+                        activeTotal += resCount
+                    } else if (resCount > activeTotal) {
+                        activeTotal = resCount
+                    }
+                }
+
+                Triple(activeTotal, matchedTerm, matchedFilterStr)
+            }
+
+            // 2. ASYNC QUERY FOR INACTIVE VEHICLES (Runs IN PARALLEL with activeJob!)
+            val inactiveJob = async {
+                val checkVintage = year < 2018 || isOffRoad || isHeavyOrCommercial
+
+                // Query modern deregistered (f6efe89a)
+                val modernDeferred = async {
+                    var maxCount = 0
+
+                    // A. Prioritize exact kinuy_mishari filter
+                    for (term in (kinuyTerms + baseInfo.searchTerms).distinct()) {
+                        try {
+                            val filterJson = "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"$term\"}"
+                            val fc = NetworkClient.apiService.getDeregisteredCount(
+                                resourceId = "f6efe89a-fb3d-43a4-bb61-9bf12a9b9099",
+                                filters = filterJson,
+                                limit = 0
+                            ).result?.total ?: 0
+                            if (fc > maxCount) maxCount = fc
+                            if (fc > 25) break
+                        } catch (_: Exception) {}
+                    }
+
+                    // B. Exact degem_nm filter
+                    if (maxCount < 25) {
+                        for (term in allSearchTerms.take(5)) {
+                            try {
+                                val filterJson = "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$term\"}"
+                                val fc = NetworkClient.apiService.getDeregisteredCount(
+                                    resourceId = "f6efe89a-fb3d-43a4-bb61-9bf12a9b9099",
+                                    filters = filterJson,
+                                    limit = 0
+                                ).result?.total ?: 0
+                                if (fc > maxCount) maxCount = fc
+                                if (fc > 25) break
+                            } catch (_: Exception) {}
+                        }
+                    }
+
+                    // C. Fulltext query
+                    if (maxCount == 0) {
+                        for (term in allSearchTerms.take(4)) {
+                            try {
+                                val c = NetworkClient.apiService.getDeregisteredCount(
+                                    resourceId = "f6efe89a-fb3d-43a4-bb61-9bf12a9b9099",
+                                    filters = "{\"tozeret_cd\":$makeCd}",
+                                    query = term,
+                                    limit = 0
+                                ).result?.total ?: 0
+                                if (c > maxCount) maxCount = c
+                                if (c > 25) break
+                            } catch (_: Exception) {}
+                        }
+                    }
+
+                    // D. Fallback to degem_cd
+                    if (maxCount == 0 && modelCd != null && modelCd > 0) {
+                        try {
+                            maxCount = NetworkClient.apiService.getDeregisteredCount(
+                                resourceId = "f6efe89a-fb3d-43a4-bb61-9bf12a9b9099",
+                                filters = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}",
+                                limit = 0
+                            ).result?.total ?: 0
+                        } catch (_: Exception) {}
+                    }
+                    maxCount
+                }
+
+                // Query vintage deregistered (6f6acd03) - Note: NEVER filter on kinuy_mishari in 6f6acd03!
+                val vintageDeferred = async {
+                    if (!checkVintage) return@async 0
+                    var maxCount = 0
+                    for (term in allSearchTerms.take(5)) {
+                        // Try exact degem_nm filter
+                        try {
+                            val fc = NetworkClient.apiService.getDeregisteredCount(
+                                resourceId = "6f6acd03-f351-4a8f-8ecf-df792f4f573a",
+                                filters = "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$term\"}",
+                                limit = 0
+                            ).result?.total ?: 0
+                            if (fc > maxCount) maxCount = fc
+                            if (fc > 25) break
+                        } catch (_: Exception) {}
+                        // Try fulltext query
+                        try {
+                            val qc = NetworkClient.apiService.getDeregisteredCount(
+                                resourceId = "6f6acd03-f351-4a8f-8ecf-df792f4f573a",
                                 filters = "{\"tozeret_cd\":$makeCd}",
                                 query = term,
                                 limit = 0
                             ).result?.total ?: 0
-                            if (inactQ > 0) {
-                                totalInactive = inactQ
-                                break
-                            }
+                            if (qc > maxCount) maxCount = qc
+                            if (qc > 25) break
                         } catch (_: Exception) {}
                     }
+                    maxCount
+                }
+
+                val modernCount = modernDeferred.await()
+                val vintageCount = vintageDeferred.await()
+
+                modernCount + vintageCount
+            }
+
+            val (totalActive, matchedTerm, matchedFilter) = activeJob.await()
+            val totalInactive = inactiveJob.await()
+
+            val finalActive = if (totalActive > 0) totalActive else if (isOffRoad) 0 else 1
+            val finalInactive = if (isOffRoad) totalInactive.coerceAtLeast(1) else totalInactive
+
+            // 3. ASYNC QUERY FOR YEAR BREAKDOWN (Multi-year distribution)
+            val centerYear = year
+            val currentYear = java.time.LocalDate.now().year
+            val yearsToQuery = ((centerYear - 3)..(centerYear + 3)).filter { it in 1948..currentYear }
+
+            val yearJobs = yearsToQuery.map { yr ->
+                async {
+                    var yrActive = 0
+                    for (resId in activeResourcesToSearch) {
+                        var c = 0
+                        if (matchedFilter != null) {
+                            try {
+                                val f = matchedFilter.removeSuffix("}") + ",\"shnat_yitzur\":$yr}"
+                                c = NetworkClient.apiService.getSameModelActiveCount(
+                                    resourceId = resId,
+                                    filters = f,
+                                    limit = 0
+                                ).result?.total ?: 0
+                            } catch (_: Exception) {}
+                        }
+                        if (c == 0 && matchedTerm != null) {
+                            try {
+                                c = NetworkClient.apiService.getSameModelActiveCount(
+                                    resourceId = resId,
+                                    filters = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$yr}",
+                                    query = matchedTerm,
+                                    limit = 0
+                                ).result?.total ?: 0
+                            } catch (_: Exception) {}
+                        }
+                        yrActive += c
+                    }
+
+                    var inModern = 0
+                    if (yr >= 2000) {
+                        if (matchedFilter != null) {
+                            try {
+                                val f = matchedFilter.removeSuffix("}") + ",\"shnat_yitzur\":$yr}"
+                                inModern = NetworkClient.apiService.getDeregisteredCount(
+                                    resourceId = "f6efe89a-fb3d-43a4-bb61-9bf12a9b9099",
+                                    filters = f,
+                                    limit = 0
+                                ).result?.total ?: 0
+                            } catch (_: Exception) {}
+                        }
+                        if (inModern == 0 && matchedTerm != null) {
+                            try {
+                                inModern = NetworkClient.apiService.getDeregisteredCount(
+                                    resourceId = "f6efe89a-fb3d-43a4-bb61-9bf12a9b9099",
+                                    filters = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$yr}",
+                                    query = matchedTerm,
+                                    limit = 0
+                                ).result?.total ?: 0
+                            } catch (_: Exception) {}
+                        }
+                    }
+
+                    var inVintage = 0
+                    if (yr < 2018) {
+                        val vintageFilter = if (matchedFilter != null && !matchedFilter.contains("kinuy_mishari")) {
+                            matchedFilter.removeSuffix("}") + ",\"shnat_yitzur\":$yr}"
+                        } else null
+                        if (vintageFilter != null) {
+                            try {
+                                inVintage = NetworkClient.apiService.getDeregisteredCount(
+                                    resourceId = "6f6acd03-f351-4a8f-8ecf-df792f4f573a",
+                                    filters = vintageFilter,
+                                    limit = 0
+                                ).result?.total ?: 0
+                            } catch (_: Exception) {}
+                        }
+                        if (inVintage == 0 && matchedTerm != null) {
+                            try {
+                                inVintage = NetworkClient.apiService.getDeregisteredCount(
+                                    resourceId = "6f6acd03-f351-4a8f-8ecf-df792f4f573a",
+                                    filters = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$yr}",
+                                    query = matchedTerm,
+                                    limit = 0
+                                ).result?.total ?: 0
+                            } catch (_: Exception) {}
+                        }
+                    }
+
+                    ModelYearCount(yr, yrActive, inModern + inVintage)
                 }
             }
-        } else {
-            // No model-specific filter matched active!
-            suspend fun queryInactiveAny(resId: String): Pair<Int, String?> {
-                for (f in candidateModelFilters) {
-                    try {
-                        val c = NetworkClient.apiService.getDeregisteredCount(resourceId = resId, filters = f, limit = 0).result?.total ?: 0
-                        if (c > 0) return Pair(c, f)
-                    } catch (_: Exception) {}
+
+            val queriedBreakdown = yearJobs.awaitAll().filter { it.totalCount > 0 }
+            val breakdown = if (queriedBreakdown.isNotEmpty()) {
+                val list = queriedBreakdown.sortedByDescending { it.year }.toMutableList()
+                val existingCenter = list.indexOfFirst { it.year == centerYear }
+                if (existingCenter >= 0) {
+                    val currentItem = list[existingCenter]
+                    if (currentItem.activeCount == 0 && !isOffRoad) {
+                        list[existingCenter] = currentItem.copy(activeCount = 1)
+                    }
+                } else {
+                    list.add(ModelYearCount(centerYear, if (finalActive > 0 && !isOffRoad) 1 else 0, if (isOffRoad) 1 else 0))
+                    list.sortByDescending { it.year }
                 }
-                return Pair(0, null)
-            }
-            val (c1, _) = queryInactiveAny("f6efe89a-fb3d-43a4-bb61-9bf12a9b9099")
-            if (c1 > 0) {
-                totalInactive = c1
-            } else if (year < 2005 || isOffRoad) {
-                val (c2, _) = queryInactiveAny("6f6acd03-f351-4a8f-8ecf-df792f4f573a")
-                totalInactive = c2
+                list
+            } else {
+                mutableListOf(ModelYearCount(year, finalActive, finalInactive))
             }
 
-            // If NEITHER active nor inactive matched ANY model filter, and vehicle has no model info:
-            val hasSpecificModel = !vehicle.model.isNullOrBlank() || !vehicle.modelCode.isNullOrBlank()
-            if (totalActive == 0 && totalInactive == 0 && !hasSpecificModel) {
-                // Fall back to brand-wide for BOTH
-                val brandFilter = "{\"tozeret_cd\":$makeCd}"
-                try {
-                    totalActive = NetworkClient.apiService.getSameModelActiveCount(resourceId = activeResourceId, filters = brandFilter, limit = 0).result?.total ?: 0
-                } catch (_: Exception) {}
-                try {
-                    totalInactive = NetworkClient.apiService.getDeregisteredCount(resourceId = "f6efe89a-fb3d-43a4-bb61-9bf12a9b9099", filters = brandFilter, limit = 0).result?.total ?: 0
-                } catch (_: Exception) {}
-            }
+            ModelStatistics(
+                totalActive = finalActive,
+                totalInactive = finalInactive,
+                breakdownByYear = breakdown
+            )
         }
-
-        var activeYearCount = 0
-        if (modelCd != null && modelCd > 0) {
-            try {
-                val yearFilter = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd,\"shnat_yitzur\":$year}"
-                activeYearCount = NetworkClient.apiService.getSameModelActiveCount(resourceId = activeResourceId, filters = yearFilter, limit = 0).result?.total ?: 0
-            } catch (_: Exception) {}
-        } else if (matchedQueryTerm != null) {
-            try {
-                val yearFilter = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$year}"
-                activeYearCount = NetworkClient.apiService.getSameModelActiveCount(resourceId = activeResourceId, filters = yearFilter, query = matchedQueryTerm, limit = 0).result?.total ?: 0
-            } catch (_: Exception) {}
-        } else if (matchedFilter != null) {
-            try {
-                val baseObj = org.json.JSONObject(matchedFilter)
-                baseObj.put("shnat_yitzur", year)
-                activeYearCount = NetworkClient.apiService.getSameModelActiveCount(resourceId = activeResourceId, filters = baseObj.toString(), limit = 0).result?.total ?: 0
-            } catch (_: Exception) {}
-        }
-
-        val finalActive = if (totalActive > 0) totalActive else if (isOffRoad) 0 else 1
-        val finalInactive = if (isOffRoad) totalInactive.coerceAtLeast(1) else totalInactive
-
-        val breakdown = mutableListOf<ModelYearCount>()
-        breakdown.add(ModelYearCount(year, if (activeYearCount > 0) activeYearCount else (if (isOffRoad) 0 else 1), if (isOffRoad) 1 else 0))
-
-        return ModelStatistics(
-            totalActive = finalActive,
-            totalInactive = finalInactive,
-            breakdownByYear = breakdown
-        )
     }
 
     fun toggleEquipmentView() {
