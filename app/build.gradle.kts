@@ -16,8 +16,8 @@ android {
         applicationId = "com.avih6.vehiclecheck"
         minSdk = 24
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.84.0"
+        versionCode = 5
+        versionName = "0.84.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

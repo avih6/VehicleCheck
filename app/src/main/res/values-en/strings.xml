@@ -155,4 +155,6 @@ https://play.google.com/store/apps/details?id=com.avih6.vehiclecheck"</string>
     <string name="report_email_body">Hello,\nI would like to report incorrect data for this vehicle:\n\nLicense Plate: %1$s\nMake &amp; Model: %2$s\nYear: %3$s\nTrim / Commercial Name: %4$s\n\nDescription of incorrect data or comments:\n\n\n---\nApp Version: %5$s\nDevice: %6$s\n</string>
     <string name="report_email_chooser">Send report via email</string>
     <string name="report_email_no_app">No email app found to send the report</string>
+    <string name="contact_email_subject">%1$s - Support &amp; Feedback</string>
+    <string name="contact_email_body">\n\n\n--- Please write your message above this line ---\n--- System Information ---\nApp Name: %1$s\nApp Version: %2$s (%3$s)\nAndroid OS: %4$s (API %5$s)\nDevice: %6$s</string>
 </resources>

@@ -681,11 +681,28 @@ private fun launchCustomTab(context: Context, url: String) {
 private fun sendEmail(context: Context) {
     val packageInfo = try {
         context.packageManager.getPackageInfo(context.packageName, 0)
-    } catch (e: Exception) { null }
+    } catch (_: Exception) { null }
     val currentVersion = packageInfo?.versionName ?: BuildConfig.VERSION_NAME
+    val currentVersionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        packageInfo?.longVersionCode ?: BuildConfig.VERSION_CODE.toLong()
+    } else {
+        @Suppress("DEPRECATION")
+        (packageInfo?.versionCode?.toLong() ?: BuildConfig.VERSION_CODE.toLong())
+    }
 
-    val emailSubject = context.getString(R.string.app_name)
-    val emailBody = "\n\n\n---\nApp Version: $currentVersion\nOS: Android ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})\nDevice: ${Build.MANUFACTURER} ${Build.MODEL}\n"
+    val appName = context.getString(R.string.app_name)
+    val emailSubject = context.getString(R.string.contact_email_subject, appName)
+    val deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}".trim()
+
+    val emailBody = context.getString(
+        R.string.contact_email_body,
+        appName,
+        currentVersion,
+        currentVersionCode.toString(),
+        Build.VERSION.RELEASE,
+        Build.VERSION.SDK_INT.toString(),
+        deviceModel
+    )
 
     val mailtoUri = Uri.parse(
         "mailto:av6development@gmail.com" +
@@ -699,5 +716,5 @@ private fun sendEmail(context: Context) {
     }
     try {
         context.startActivity(emailIntent)
-    } catch (e: Exception) {}
+    } catch (_: Exception) {}
 }
