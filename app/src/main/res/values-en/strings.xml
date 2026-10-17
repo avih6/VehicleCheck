@@ -151,10 +151,14 @@ https://play.google.com/store/apps/details?id=com.avih6.vehiclecheck"</string>
     <string name="menu_disabled_permit">Disabled Permit Check (Parking Badges)</string>
     <string name="btn_more_options">More options</string>
     <string name="report_incorrect_data_btn">Report Incorrect Vehicle Data</string>
-    <string name="report_email_subject">Incorrect vehicle data report: %1$s</string>
-    <string name="report_email_body">Hello,\nI would like to report incorrect data for this vehicle:\n\nLicense Plate: %1$s\nMake &amp; Model: %2$s\nYear: %3$s\nTrim / Commercial Name: %4$s\n\nDescription of incorrect data or comments:\n\n\n---\nApp Version: %5$s\nDevice: %6$s\n</string>
+    <string name="report_email_subject">%1$s - Incorrect vehicle data report: %2$s</string>
+    <string name="report_email_body">\n\n\n--- Please write your message above this line ---\nDescription of incorrect data or comments:\n\n\n--- Vehicle Details ---\nLicense Plate: %1$s\nMake &amp; Model: %2$s\nYear: %3$s\nTrim / Commercial Name: %4$s\n\n--- System Information ---\nApp Name: %5$s\nApp Version: %6$s (%7$s)\nAndroid OS: %8$s (API %9$s)\nDevice: %10$s\n</string>
     <string name="report_email_chooser">Send report via email</string>
     <string name="report_email_no_app">No email app found to send the report</string>
+    <string name="report_incorrect_image_btn">Report Incorrect Image</string>
+    <string name="report_image_email_subject">%1$s - Incorrect Image Report (%2$s)</string>
+    <string name="report_image_email_body">\n\n\n--- Please write your message above this line ---\nDescription of the image issue (e.g. incorrect car, unrelated picture, wrong model):\n\n\n--- Reported Image Details ---\nWikimedia File: %1$s\nDirect Image URL: %2$s\nSource Page URL: %3$s\nAssociated Vehicle / Search: %4$s\n\n--- System Information ---\nApp Name: %5$s\nApp Version: %6$s (%7$s)\nAndroid OS: %8$s (API %9$s)\nDevice: %10$s\n</string>
+    <string name="report_image_email_chooser">Send image report via email</string>
     <string name="contact_email_subject">%1$s - Support &amp; Feedback</string>
     <string name="contact_email_body">\n\n\n--- Please write your message above this line ---\n--- System Information ---\nApp Name: %1$s\nApp Version: %2$s (%3$s)\nAndroid OS: %4$s (API %5$s)\nDevice: %6$s</string>
 </resources>

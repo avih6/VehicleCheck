@@ -39,6 +39,7 @@ import coil.request.ImageRequest
 import com.avih6.vehiclecheck.BuildConfig
 import com.avih6.vehiclecheck.R
 import com.avih6.vehiclecheck.data.*
+import com.avih6.vehiclecheck.util.ReportUtils
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -415,7 +416,8 @@ fun ResultCard(
             year = vehicle.year,
             color = vehicle.color,
             trimLevel = vehicle.trimLevel,
-            category = vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory
+            category = vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory,
+            formattedPlate = formattedPlate
         )
 
         // 2. License Plate Badge & Action Buttons
@@ -1144,22 +1146,6 @@ private fun ReportIncorrectDataButton(
         vehicle.trimLevel ?: vehicle.modelCode.orEmpty()
     }
 
-    val packageInfo = try {
-        context.packageManager.getPackageInfo(context.packageName, 0)
-    } catch (_: Exception) { null }
-    val currentVersion = packageInfo?.versionName ?: BuildConfig.VERSION_NAME
-
-    val subject = context.getString(R.string.report_email_subject, formattedPlate)
-    val body = context.getString(
-        R.string.report_email_body,
-        formattedPlate,
-        listOf(make, model).filter { it.isNotBlank() }.joinToString(" "),
-        year.ifBlank { "-" },
-        trimOrCommercial.ifBlank { "-" },
-        currentVersion,
-        "${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})"
-    )
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -1173,24 +1159,14 @@ private fun ReportIncorrectDataButton(
                     putString("make", make)
                 })
 
-                val mailtoUri = Uri.parse(
-                    "mailto:av6development@gmail.com" +
-                            "?subject=" + Uri.encode(subject) +
-                            "&body=" + Uri.encode(body)
+                ReportUtils.sendVehicleDataReport(
+                    context = context,
+                    formattedPlate = formattedPlate,
+                    make = make,
+                    model = model,
+                    year = year,
+                    trimOrCommercial = trimOrCommercial
                 )
-
-                val emailIntent = Intent(Intent.ACTION_SENDTO, mailtoUri).apply {
-                    putExtra(Intent.EXTRA_EMAIL, arrayOf("av6development@gmail.com"))
-                    putExtra(Intent.EXTRA_SUBJECT, subject)
-                    putExtra(Intent.EXTRA_TEXT, body)
-                }
-
-                try {
-                    val chooser = Intent.createChooser(emailIntent, context.getString(R.string.report_email_chooser))
-                    context.startActivity(chooser)
-                } catch (_: Exception) {
-                    Toast.makeText(context, context.getString(R.string.report_email_no_app), Toast.LENGTH_SHORT).show()
-                }
             },
             shape = RoundedCornerShape(20.dp),
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),

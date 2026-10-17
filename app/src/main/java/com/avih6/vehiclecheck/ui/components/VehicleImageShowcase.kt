@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -29,9 +31,11 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.avih6.vehiclecheck.R
 import com.avih6.vehiclecheck.data.CarGalleryImage
 import com.avih6.vehiclecheck.data.VehicleUtils
 import com.avih6.vehiclecheck.data.WikimediaGalleryService
+import com.avih6.vehiclecheck.util.ReportUtils
 import kotlinx.coroutines.launch
 
 @Composable
@@ -42,6 +46,7 @@ fun VehicleImageShowcase(
     color: String?,
     trimLevel: String? = null,
     category: String? = null,
+    formattedPlate: String? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -243,15 +248,37 @@ fun VehicleImageShowcase(
                         }
 
                         if (currentFullscreenImage != null) {
-                            IconButton(onClick = {
-                                val sendIntent = Intent().apply {
-                                    action = Intent.ACTION_SEND
-                                    putExtra(Intent.EXTRA_TEXT, "תמונת רכב ($hebrewMake $modelName):\n${currentFullscreenImage.imageUrl}")
-                                    type = "text/plain"
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(onClick = {
+                                    val sendIntent = Intent().apply {
+                                        action = Intent.ACTION_SEND
+                                        putExtra(Intent.EXTRA_TEXT, "תמונת רכב ($hebrewMake $modelName):\n${currentFullscreenImage.imageUrl}")
+                                        type = "text/plain"
+                                    }
+                                    context.startActivity(Intent.createChooser(sendIntent, "שתף תמונת רכב"))
+                                }) {
+                                    Icon(Icons.Default.Share, contentDescription = "שתף תמונת רכב", tint = Color.White)
                                 }
-                                context.startActivity(Intent.createChooser(sendIntent, "שתף תמונת רכב"))
-                            }) {
-                                Icon(Icons.Default.Share, contentDescription = "שתף תמונת רכב", tint = Color.White)
+
+                                IconButton(onClick = {
+                                    ReportUtils.sendImageReport(
+                                        context = context,
+                                        image = currentFullscreenImage,
+                                        vehicleOrSearchContext = listOfNotNull(
+                                            formattedPlate?.let { "לוחית: $it" },
+                                            hebrewMake,
+                                            modelName,
+                                            year?.toString(),
+                                            trimLevel
+                                        ).joinToString(" | ")
+                                    )
+                                }) {
+                                    Icon(
+                                        Icons.Outlined.Flag,
+                                        contentDescription = stringResource(R.string.report_incorrect_image_btn),
+                                        tint = Color.White
+                                    )
+                                }
                             }
                         } else {
                             Spacer(Modifier.width(48.dp))
@@ -314,23 +341,55 @@ fun VehicleImageShowcase(
 
                                 if (currentFullscreenImage.descriptionUrl.isNotBlank()) {
                                     Spacer(Modifier.height(6.dp))
-                                    FilledTonalButton(
-                                        onClick = {
-                                            try {
-                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(currentFullscreenImage.descriptionUrl))
-                                                context.startActivity(intent)
-                                            } catch (_: Exception) { }
-                                        },
-                                        shape = RoundedCornerShape(8.dp),
-                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(14.dp))
-                                        Spacer(Modifier.width(6.dp))
-                                        Text(
-                                            text = "צפייה במקור וזכויות יוצרים בוויקימדיה",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
+                                        FilledTonalButton(
+                                            onClick = {
+                                                try {
+                                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(currentFullscreenImage.descriptionUrl))
+                                                    context.startActivity(intent)
+                                                } catch (_: Exception) { }
+                                            },
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                                        ) {
+                                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(14.dp))
+                                            Spacer(Modifier.width(6.dp))
+                                            Text(
+                                                text = "צפייה במקור וזכויות יוצרים בוויקימדיה",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+
+                                        OutlinedButton(
+                                            onClick = {
+                                                ReportUtils.sendImageReport(
+                                                    context = context,
+                                                    image = currentFullscreenImage,
+                                                    vehicleOrSearchContext = listOfNotNull(
+                                                        formattedPlate?.let { "לוחית: $it" },
+                                                        hebrewMake,
+                                                        modelName,
+                                                        year?.toString(),
+                                                        trimLevel
+                                                    ).joinToString(" | ")
+                                                )
+                                            },
+                                            shape = RoundedCornerShape(8.dp),
+                                            border = BorderStroke(1.dp, Color(0xFFFF8A80).copy(alpha = 0.6f)),
+                                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                        ) {
+                                            Icon(Icons.Outlined.Flag, contentDescription = null, tint = Color(0xFFFF8A80), modifier = Modifier.size(14.dp))
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(
+                                                text = stringResource(R.string.report_incorrect_image_btn),
+                                                fontSize = 11.sp,
+                                                color = Color(0xFFFF8A80)
+                                            )
+                                        }
                                     }
                                 }
                         }
@@ -462,12 +521,54 @@ fun VehicleImageShowcase(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "תמונה חופשית • החלק לתמונות נוספות",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 11.sp
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "תמונה חופשית",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 11.sp
+                    )
+                    Text("•", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f), fontSize = 10.sp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable {
+                                val currentImg = images.getOrNull(cardPagerState.currentPage)
+                                if (currentImg != null) {
+                                    ReportUtils.sendImageReport(
+                                        context = context,
+                                        image = currentImg,
+                                        vehicleOrSearchContext = listOfNotNull(
+                                            formattedPlate?.let { "לוחית: $it" },
+                                            hebrewMake,
+                                            modelName,
+                                            year?.toString(),
+                                            trimLevel
+                                        ).joinToString(" | ")
+                                    )
+                                }
+                            }
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Flag,
+                            contentDescription = stringResource(R.string.report_incorrect_image_btn),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Spacer(Modifier.width(3.dp))
+                        Text(
+                            text = stringResource(R.string.report_incorrect_image_btn),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontSize = 10.5.sp
+                        )
+                    }
+                }
                 androidx.compose.runtime.CompositionLocalProvider(
                     androidx.compose.ui.platform.LocalLayoutDirection provides androidx.compose.ui.unit.LayoutDirection.Ltr
                 ) {

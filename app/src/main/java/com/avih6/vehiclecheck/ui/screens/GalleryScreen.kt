@@ -42,11 +42,13 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.avih6.vehiclecheck.R
 import com.avih6.vehiclecheck.data.CarGalleryImage
 import com.avih6.vehiclecheck.data.NetworkClient
 import com.avih6.vehiclecheck.data.WikimediaGalleryService
 import com.avih6.vehiclecheck.ui.components.HoverTooltipIconButton
 import com.avih6.vehiclecheck.ui.components.handCursor
+import com.avih6.vehiclecheck.util.ReportUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -414,18 +416,38 @@ fun GalleryScreen(
                                 }
                             }
 
-                            IconButton(
-                                onClick = {
-                                    val sendIntent = Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        putExtra(Intent.EXTRA_TEXT, "תמונת רכב (${currentImage.title}):\n${currentImage.imageUrl}\nמקור: ${currentImage.descriptionUrl}")
-                                        type = "text/plain"
-                                    }
-                                    context.startActivity(Intent.createChooser(sendIntent, "שתף תמונת רכב"))
-                                },
-                                modifier = Modifier.handCursor()
-                            ) {
-                                Icon(Icons.Default.Share, contentDescription = "שתף תמונת רכב", tint = Color.White)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(
+                                    onClick = {
+                                        val sendIntent = Intent().apply {
+                                            action = Intent.ACTION_SEND
+                                            putExtra(Intent.EXTRA_TEXT, "תמונת רכב (${currentImage.title}):\n${currentImage.imageUrl}\nמקור: ${currentImage.descriptionUrl}")
+                                            type = "text/plain"
+                                        }
+                                        context.startActivity(Intent.createChooser(sendIntent, "שתף תמונת רכב"))
+                                    },
+                                    modifier = Modifier.handCursor()
+                                ) {
+                                    Icon(Icons.Default.Share, contentDescription = "שתף תמונת רכב", tint = Color.White)
+                                }
+
+                                IconButton(
+                                    onClick = {
+                                        val ctxDesc = if (searchQuery.isNotBlank()) searchQuery else "$selectedBrand $selectedModel"
+                                        ReportUtils.sendImageReport(
+                                            context = context,
+                                            image = currentImage,
+                                            vehicleOrSearchContext = "גלריה: $ctxDesc"
+                                        )
+                                    },
+                                    modifier = Modifier.handCursor()
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.Flag,
+                                        contentDescription = context.getString(R.string.report_incorrect_image_btn),
+                                        tint = Color.White
+                                    )
+                                }
                             }
                         }
                     }
@@ -519,24 +541,52 @@ fun GalleryScreen(
 
                                 if (currentImage.descriptionUrl.isNotBlank()) {
                                     Spacer(Modifier.height(6.dp))
-                                    FilledTonalButton(
-                                        onClick = {
-                                            try {
-                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(currentImage.descriptionUrl))
-                                                context.startActivity(intent)
-                                            } catch (_: Exception) { }
-                                        },
-                                        shape = RoundedCornerShape(8.dp),
-                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                                        modifier = Modifier.handCursor()
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(14.dp))
-                                        Spacer(Modifier.width(6.dp))
-                                        Text(
-                                            text = "צפייה במקור וזכויות יוצרים בוויקימדיה",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
+                                        FilledTonalButton(
+                                            onClick = {
+                                                try {
+                                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(currentImage.descriptionUrl))
+                                                    context.startActivity(intent)
+                                                } catch (_: Exception) { }
+                                            },
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                            modifier = Modifier.handCursor()
+                                        ) {
+                                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(14.dp))
+                                            Spacer(Modifier.width(6.dp))
+                                            Text(
+                                                text = "צפייה במקור וזכויות יוצרים בוויקימדיה",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+
+                                        OutlinedButton(
+                                            onClick = {
+                                                val ctxDesc = if (searchQuery.isNotBlank()) searchQuery else "$selectedBrand $selectedModel"
+                                                ReportUtils.sendImageReport(
+                                                    context = context,
+                                                    image = currentImage,
+                                                    vehicleOrSearchContext = "גלריה: $ctxDesc"
+                                                )
+                                            },
+                                            shape = RoundedCornerShape(8.dp),
+                                            border = BorderStroke(1.dp, Color(0xFFFF8A80).copy(alpha = 0.6f)),
+                                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                            modifier = Modifier.handCursor()
+                                        ) {
+                                            Icon(Icons.Outlined.Flag, contentDescription = null, tint = Color(0xFFFF8A80), modifier = Modifier.size(14.dp))
+                                            Spacer(Modifier.width(4.dp))
+                                            Text(
+                                                text = context.getString(R.string.report_incorrect_image_btn),
+                                                fontSize = 11.sp,
+                                                color = Color(0xFFFF8A80)
+                                            )
+                                        }
                                     }
                                 }
                             }
