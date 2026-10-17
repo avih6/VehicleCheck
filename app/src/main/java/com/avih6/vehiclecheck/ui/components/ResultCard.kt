@@ -4277,8 +4277,11 @@ fun AutoBrandLogo(
                 else -> Icons.Default.DirectionsCar
             }
 
-            // Immediately display the fallback icon so there is never a blank white circle
-            if (!isLoaded || urls.isEmpty() || logoUrlIndex >= urls.count() || slug == "car" || isGolfCart || isTow) {
+            val hasLogoToTry = urls.isNotEmpty() && logoUrlIndex < urls.count() && slug != "car" && !isGolfCart && !isTow
+            val shouldShowFallback = isGolfCart || isTow || urls.isEmpty() || slug == "car" || (logoUrlIndex >= urls.count() && !isLoaded)
+
+            // Only display fallback icon if there is no logo to try, or if all logo URLs failed
+            if (shouldShowFallback) {
                 if (isGolfCart) {
                     Icon(
                         painter = painterResource(R.drawable.ic_golf_cart),
@@ -4297,36 +4300,36 @@ fun AutoBrandLogo(
                     Icon(
                         imageVector = fallbackIcon,
                         contentDescription = null,
-                        tint = if (useWhiteBackground) Color(0xFF1E88E5).copy(alpha = if (urls.isNotEmpty() && logoUrlIndex < urls.count()) 0.45f else 1f) else MaterialTheme.colorScheme.primary,
+                        tint = if (useWhiteBackground) Color(0xFF1E88E5) else MaterialTheme.colorScheme.primary,
                         modifier = Modifier.fillMaxSize(0.7f)
                     )
                 }
             }
 
-            if (urls.isNotEmpty() && logoUrlIndex < urls.count() && slug != "car") {
+            if (hasLogoToTry) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(urls[logoUrlIndex])
                         .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
-                    .crossfade(true)
-                    .build(),
-                contentDescription = "סמל יצרן $hebrewMake",
-                modifier = Modifier
-                    .fillMaxSize(if (slug == "mitsubishi") 0.82f else 0.92f)
-                    .then(if (slug == "mitsubishi") Modifier.offset(y = (-4).dp) else Modifier),
-                contentScale = ContentScale.Fit,
-                onSuccess = {
-                    isLoaded = true
-                },
-                onError = {
-                    if (logoUrlIndex < urls.count() - 1) {
-                        logoUrlIndex++
-                    } else {
-                        logoUrlIndex = urls.count()
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "סמל יצרן $hebrewMake",
+                    modifier = Modifier
+                        .fillMaxSize(if (slug == "mitsubishi") 0.82f else 0.92f)
+                        .then(if (slug == "mitsubishi") Modifier.offset(y = (-4).dp) else Modifier),
+                    contentScale = ContentScale.Fit,
+                    onSuccess = {
+                        isLoaded = true
+                    },
+                    onError = {
+                        if (logoUrlIndex < urls.count() - 1) {
+                            logoUrlIndex++
+                        } else {
+                            logoUrlIndex = urls.count()
+                        }
                     }
-                }
-            )
-        }
+                )
+            }
     }
 }
 }
