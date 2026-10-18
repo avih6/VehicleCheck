@@ -730,8 +730,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
 
-                val plateLong = plateStr.toLongOrNull() ?: 0L
-                val filtersStr = "{\"mispar_rechev\":$plateLong}"
+                val plateLong = plateStr.toLongOrNull()
+                val filtersStr = "{\"mispar_rechev\":${plateLong ?: 0L}}"
                 val paddedPlate = if (plateStr.length == 7) "0$plateStr" else plateStr
 
                 // 1. Parallel Fetch across active datasets
@@ -1612,7 +1612,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                 var c = 0
                                 val canUseMatchedFilter = matchedFilter != null &&
                                     (supportsKinuyAndDegemCd(resId) || (!matchedFilter.contains("kinuy_mishari") && !matchedFilter.contains("degem_cd")))
-                                if (canUseMatchedFilter && matchedFilter != null) {
+                                if (canUseMatchedFilter) {
                                     try {
                                         val f = matchedFilter.removeSuffix("}") + ",\"shnat_yitzur\":$yr}"
                                         c = NetworkClient.apiService.getSameModelActiveCount(
