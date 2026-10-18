@@ -1,6 +1,9 @@
 # Optimization & Code Shrinking
--repackageclasses ''
 -allowaccessmodification
+
+# Keep Data Models & Services
+-keep class com.avih6.vehiclecheck.data.** { *; }
+-dontwarn com.avih6.vehiclecheck.data.**
 
 # Keep Room
 -keep class * extends androidx.room.RoomDatabase
@@ -13,6 +16,11 @@
     @kotlinx.serialization.Serializable <fields>;
 }
 -keep class kotlinx.serialization.** { *; }
+-dontwarn retrofit2.**
+-keep class retrofit2.** { *; }
+-keepclasseswithmembers interface * {
+    @retrofit2.http.* <methods>;
+}
 
 # Coil Image Loader
 -dontwarn coil.**
