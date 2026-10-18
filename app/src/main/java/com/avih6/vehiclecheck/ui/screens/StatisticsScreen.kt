@@ -90,6 +90,7 @@ fun StatisticsScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val isEn = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "en"
     val focusManager = LocalFocusManager.current
     val totalCount by viewModel.dbVehicleCount.collectAsState()
     val lastUpdated by viewModel.dbLastUpdated.collectAsState()
@@ -141,13 +142,13 @@ fun StatisticsScreen(
         )
     }
 
-    val fuelStats = remember(displayTotal) {
+    val fuelStats = remember(displayTotal, isEn) {
         listOf(
-            FuelStat("בנזין", Icons.Default.LocalGasStation, 67.8f, (67.8f / 100f * displayTotal).toInt(), Color(0xFF1E88E5)),
-            FuelStat("היברידי (HEV / MHEV)", Icons.Default.BatteryChargingFull, 16.4f, (16.4f / 100f * displayTotal).toInt(), Color(0xFF43A047)),
-            FuelStat("חשמלי מלא (BEV)", Icons.Default.Bolt, 8.8f, (8.8f / 100f * displayTotal).toInt(), Color(0xFF00ACC1)),
-            FuelStat("דיזל / סולר", Icons.Default.LocalGasStation, 6.2f, (6.2f / 100f * displayTotal).toInt(), Color(0xFFFFB300)),
-            FuelStat("גפ\"מ (גז) ופלאג-אין", Icons.Default.LocalGasStation, 0.8f, (0.8f / 100f * displayTotal).toInt(), Color(0xFFE53935))
+            FuelStat(if (isEn) "Gasoline" else "בנזין", Icons.Default.LocalGasStation, 67.8f, (67.8f / 100f * displayTotal).toInt(), Color(0xFF1E88E5)),
+            FuelStat(if (isEn) "Hybrid (HEV / MHEV)" else "היברידי (HEV / MHEV)", Icons.Default.BatteryChargingFull, 16.4f, (16.4f / 100f * displayTotal).toInt(), Color(0xFF43A047)),
+            FuelStat(if (isEn) "All-Electric (BEV)" else "חשמלי מלא (BEV)", Icons.Default.Bolt, 8.8f, (8.8f / 100f * displayTotal).toInt(), Color(0xFF00ACC1)),
+            FuelStat(if (isEn) "Diesel" else "דיזל / סולר", Icons.Default.LocalGasStation, 6.2f, (6.2f / 100f * displayTotal).toInt(), Color(0xFFFFB300)),
+            FuelStat(if (isEn) "LPG & Plug-in" else "גפ\"מ (גז) ופלאג-אין", Icons.Default.LocalGasStation, 0.8f, (0.8f / 100f * displayTotal).toInt(), Color(0xFFE53935))
         )
     }
 
@@ -178,13 +179,13 @@ fun StatisticsScreen(
                     Spacer(Modifier.width(14.dp))
                     Column {
                         Text(
-                            text = "מצבת כלי הרכב בישראל",
+                            text = if (isEn) "Vehicle Fleet in Israel" else "מצבת כלי הרכב בישראל",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Black,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "נתונים וסטטיסטיקות רשמיים ממאגרי משרד התחבורה",
+                            text = if (isEn) "Official statistics from Ministry of Transport databases" else "נתונים וסטטיסטיקות רשמיים ממאגרי משרד התחבורה",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -195,7 +196,7 @@ fun StatisticsScreen(
                                 shape = RoundedCornerShape(6.dp)
                             ) {
                                 Text(
-                                    text = "עודכן: $lastUpdated",
+                                    text = if (isEn) "Updated: $lastUpdated" else "עודכן: $lastUpdated",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary,
@@ -241,14 +242,14 @@ fun StatisticsScreen(
                                 textAlign = TextAlign.Center
                             )
                             Text(
-                                text = "סה״כ פעילים בישראל",
+                                text = if (isEn) "Total Active in Israel" else "סה״כ פעילים בישראל",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 textAlign = TextAlign.Center
                             )
                             Text(
-                                text = "פרטי, משא ודו-גלגלי",
+                                text = if (isEn) "Cars, Commercial & Moto" else "פרטי, משא ודו-גלגלי",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center
@@ -281,14 +282,14 @@ fun StatisticsScreen(
                                 textAlign = TextAlign.Center
                             )
                             Text(
-                                text = "סה״כ כלי רכב בכללי",
+                                text = if (isEn) "Grand Total in Registry" else "סה״כ כלי רכב בכללי",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 textAlign = TextAlign.Center
                             )
                             Text(
-                                text = "כולל ישנים וצמ״א",
+                                text = if (isEn) "Incl. Vintage & Heavy" else "כולל ישנים וצמ״א",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center
@@ -320,13 +321,13 @@ fun StatisticsScreen(
                                 textAlign = TextAlign.Center
                             )
                             Text(
-                                text = "פרטי ומסחרי פעיל",
+                                text = if (isEn) "Active Cars & Vans" else "פרטי ומסחרי פעיל",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center
                             )
                             Text(
-                                text = "${"%.1f".format(fleetStats.activePrivatePercent)}% מהפעילים",
+                                text = if (isEn) "${"%.1f".format(fleetStats.activePrivatePercent)}% of Active" else "${"%.1f".format(fleetStats.activePrivatePercent)}% מהפעילים",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary,
                                 textAlign = TextAlign.Center
@@ -352,13 +353,13 @@ fun StatisticsScreen(
                                 textAlign = TextAlign.Center
                             )
                             Text(
-                                text = "מחושמלים (EV/היבריד)",
+                                text = if (isEn) "Electrified (EV / Hybrid)" else "מחושמלים (EV/היבריד)",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center
                             )
                             Text(
-                                text = "25.2% מהפעילים",
+                                text = if (isEn) "25.2% of Active" else "25.2% מהפעילים",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF2E7D32),
@@ -402,13 +403,13 @@ fun StatisticsScreen(
                                 Spacer(Modifier.width(8.dp))
                                 Column {
                                     Text(
-                                        text = "פילוח מצבת הרכבים והמאגרים",
+                                        text = if (isEn) "Registry & Fleet Breakdown" else "פילוח מצבת הרכבים והמאגרים",
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "התפלגות פעילים, ירדו מהכביש, צמ״א והיסטוריים",
+                                        text = if (isEn) "Active, off-road, heavy equipment & vintage" else "התפלגות פעילים, ירדו מהכביש, צמ״א והיסטוריים",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -426,7 +427,7 @@ fun StatisticsScreen(
                             ) {
                                 Icon(
                                     imageVector = if (showFleetBreakdown) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                    contentDescription = if (showFleetBreakdown) "כווץ" else "הרחב",
+                                    contentDescription = if (isEn) (if (showFleetBreakdown) "Collapse" else "Expand") else (if (showFleetBreakdown) "כווץ" else "הרחב"),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
@@ -443,25 +444,25 @@ fun StatisticsScreen(
 
                                 // Section 1: Active breakdown
                                 Text(
-                                    text = "כלי רכב פעילים על הכביש (סה״כ %,d)".format(fleetStats.totalActive),
+                                    text = if (isEn) "Active Vehicles on Road (Total %,d)".format(fleetStats.totalActive) else "כלי רכב פעילים על הכביש (סה״כ %,d)".format(fleetStats.totalActive),
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 FleetBreakdownRow(
-                                    title = "רכב פרטי ומסחרי פעיל",
+                                    title = if (isEn) "Active Passenger & Commercial" else "רכב פרטי ומסחרי פעיל",
                                     count = fleetStats.activePrivate,
                                     percent = fleetStats.activePrivatePercent,
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 FleetBreakdownRow(
-                                    title = "משאיות, אוטובוסים ורכב כבד (>3.5 טון)",
+                                    title = if (isEn) "Trucks, Buses & Heavy (>3.5t)" else "משאיות, אוטובוסים ורכב כבד (>3.5 טון)",
                                     count = fleetStats.activeHeavy,
                                     percent = fleetStats.activeHeavyPercent,
                                     color = Color(0xFF1976D2)
                                 )
                                 FleetBreakdownRow(
-                                    title = "אופנועים וקטנועים (דו-גלגלי)",
+                                    title = if (isEn) "Motorcycles & Scooters (2-Wheelers)" else "אופנועים וקטנועים (דו-גלגלי)",
                                     count = fleetStats.activeMotorcycles,
                                     percent = fleetStats.activeMotorcyclesPercent,
                                     color = Color(0xFF0097A7)
@@ -472,28 +473,28 @@ fun StatisticsScreen(
 
                                 // Section 2: Inactive & Vintage
                                 Text(
-                                    text = "כלי רכב שירדו מהכביש וביטולים בעבר (סה״כ %,d)".format(fleetStats.totalInactive),
+                                    text = if (isEn) "Deregistered & Scrapped Vehicles (Total %,d)".format(fleetStats.totalInactive) else "כלי רכב שירדו מהכביש וביטולים בעבר (סה״כ %,d)".format(fleetStats.totalInactive),
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFFD32F2F)
                                 )
                                 FleetSimpleCountRow(
-                                    title = "הורדו מהכביש ב-2017 עד היום",
+                                    title = if (isEn) "Deregistered 2017 to Present" else "הורדו מהכביש ב-2017 עד היום",
                                     count = fleetStats.inactive2017
                                 )
                                 FleetSimpleCountRow(
-                                    title = "הורדו מהכביש בשנים 2010–2016",
+                                    title = if (isEn) "Deregistered in 2010–2016" else "הורדו מהכביש בשנים 2010–2016",
                                     count = fleetStats.inactive2010_2016
                                 )
                                 FleetSimpleCountRow(
-                                    title = "הורדו מהכביש בשנים 2000–2009",
+                                    title = if (isEn) "Deregistered in 2000–2009" else "הורדו מהכביש בשנים 2000–2009",
                                     count = fleetStats.inactive2000_2009
                                 )
                                 FleetSimpleCountRow(
-                                    title = "רכבים ישנים והיסטוריים",
-                                    subtitle = "לפני שנת 2000 (סוסיתא, כרמל ורכבי אספנות)",
+                                    title = if (isEn) "Vintage & Classic Vehicles" else "רכבים ישנים והיסטוריים",
+                                    subtitle = if (isEn) "Pre-2000 (Sussita, Carmel & Collector cars)" else "לפני שנת 2000 (סוסיתא, כרמל ורכבי אספנות)",
                                     count = fleetStats.inactiveVintagePre2000,
-                                    badge = "היסטורי"
+                                    badge = if (isEn) "Vintage" else "היסטורי"
                                 )
 
                                 Spacer(Modifier.height(4.dp))
@@ -501,16 +502,16 @@ fun StatisticsScreen(
 
                                 // Section 3: Tzama (Heavy Engineering Equipment)
                                 Text(
-                                    text = "ציוד מכני הנדסי (צמ״א / צמ״ה)",
+                                    text = if (isEn) "Heavy Machinery & Engineering Equipment" else "ציוד מכני הנדסי (צמ״א / צמ״ה)",
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFFF57C00)
                                 )
                                 FleetSimpleCountRow(
-                                    title = "ציוד הנדסי כבד ברישיון",
-                                    subtitle = "שופלים, מחפרים, דחפורים, מנופים וטרקטורים",
+                                    title = if (isEn) "Licensed Heavy Equipment" else "ציוד הנדסי כבד ברישיון",
+                                    subtitle = if (isEn) "Loaders, excavators, bulldozers, cranes & tractors" else "שופלים, מחפרים, דחפורים, מנופים וטרקטורים",
                                     count = fleetStats.engineeringEquipment,
-                                    badge = "צמ״א",
+                                    badge = if (isEn) "Heavy" else "צמ״א",
                                     badgeColor = Color(0xFFF57C00)
                                 )
 
@@ -526,7 +527,7 @@ fun StatisticsScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = "סה״כ כלל כלי הרכב שנרשמו אי פעם בישראל:",
+                                            text = if (isEn) "Grand Total Vehicles Registered in Israel:" else "סה״כ כלל כלי הרכב שנרשמו אי פעם בישראל:",
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -573,7 +574,7 @@ fun StatisticsScreen(
                             modifier = Modifier.size(22.dp)
                         )
                         Text(
-                            text = "חיפוש וניתוח סטטיסטי של דגם",
+                            text = if (isEn) "Vehicle Model Statistical Analysis" else "חיפוש וניתוח סטטיסטי של דגם",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -581,7 +582,7 @@ fun StatisticsScreen(
 
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        text = "הקלד שם דגם או יצרן לקבלת כמויות פעילים, שרידות, שנתונים ובטיחות",
+                        text = if (isEn) "Enter model or make to view active counts, survival rate, years & safety" else "הקלד שם דגם או יצרן לקבלת כמויות פעילים, שרידות, שנתונים ובטיחות",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -591,7 +592,7 @@ fun StatisticsScreen(
                     OutlinedTextField(
                         value = modelQuery,
                         onValueChange = { viewModel.onModelSearchQueryChange(it) },
-                        placeholder = { Text("למשל: איוניק 5, טוסון, קורולה, טסלה 3...") },
+                        placeholder = { Text(if (isEn) "e.g. Ioniq 5, Tucson, Corolla, Model 3..." else "למשל: איוניק 5, טוסון, קורולה, טסלה 3...") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
@@ -601,7 +602,7 @@ fun StatisticsScreen(
                         trailingIcon = {
                             if (modelQuery.isNotBlank()) {
                                 IconButton(onClick = { viewModel.clearModelStatistics() }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "נקה")
+                                    Icon(Icons.Default.Clear, contentDescription = if (isEn) "Clear" else "נקה")
                                 }
                             }
                         },
@@ -641,13 +642,13 @@ fun StatisticsScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        text = "הצעות לדגמים תואמים:",
+                                        text = if (isEn) "Matching Model Suggestions:" else "הצעות לדגמים תואמים:",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                     Text(
-                                        text = "${modelSuggestions.size} תוצאות",
+                                        text = if (isEn) "${modelSuggestions.size} results" else "${modelSuggestions.size} תוצאות",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -710,7 +711,7 @@ fun StatisticsScreen(
                                                     verticalAlignment = Alignment.CenterVertically
                                                 ) {
                                                     Text(
-                                                        text = "בחר",
+                                                        text = if (isEn) "Select" else "בחר",
                                                         fontSize = 11.sp,
                                                         fontWeight = FontWeight.Bold,
                                                         color = MaterialTheme.colorScheme.primary
@@ -757,7 +758,7 @@ fun StatisticsScreen(
                         } else {
                             Icon(Icons.Default.Analytics, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("נתח נתוני דגם", fontWeight = FontWeight.Bold)
+                            Text(if (isEn) "Analyze Model Data" else "נתח נתוני דגם", fontWeight = FontWeight.Bold)
                         }
                     }
 
@@ -765,7 +766,7 @@ fun StatisticsScreen(
 
                     // Quick suggestion chips
                     Text(
-                        text = "דגמים פופולריים לניתוח מהיר:",
+                        text = if (isEn) "Popular models for quick analysis:" else "דגמים פופולריים לניתוח מהיר:",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -807,12 +808,12 @@ fun StatisticsScreen(
                         CircularProgressIndicator(modifier = Modifier.size(36.dp))
                         Spacer(Modifier.height(12.dp))
                         Text(
-                            text = "שולף ומנתח נתונים ממאגרי משרד התחבורה...",
+                            text = if (isEn) "Fetching & analyzing data from Ministry of Transport..." else "שולף ומנתח נתונים ממאגרי משרד התחבורה...",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "סופר רכבים פעילים, שנתונים, סוגי מנוע ושרידות",
+                            text = if (isEn) "Counting active vehicles, model years, engine types and survival rate" else "סופר רכבים פעילים, שנתונים, סוגי מנוע ושרידות",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -876,12 +877,12 @@ fun StatisticsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "התפלגות סוגי הנעה ודלק",
+                            text = if (isEn) "Powertrain & Fuel Distribution" else "התפלגות סוגי הנעה ודלק",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "סה\"כ 100%",
+                            text = if (isEn) "Total 100%" else "סה\"כ 100%",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -944,12 +945,12 @@ fun StatisticsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "יצרני הרכב המובילים בישראל",
+                        text = if (isEn) "Leading Vehicle Brands in Israel" else "יצרני הרכב המובילים בישראל",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "לפי כמות כלי רכב פעילים ברישומי משרד התחבורה",
+                        text = if (isEn) "By active registered vehicles in Ministry of Transport" else "לפי כמות כלי רכב פעילים ברישומי משרד התחבורה",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1011,7 +1012,7 @@ fun StatisticsScreen(
 
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = "${brand.nameHe} (${brand.nameEn})",
+                                            text = if (isEn) brand.nameEn else "${brand.nameHe} (${brand.nameEn})",
                                             fontWeight = FontWeight.Bold,
                                             style = MaterialTheme.typography.bodyMedium
                                         )
@@ -1025,7 +1026,7 @@ fun StatisticsScreen(
                                             color = MaterialTheme.colorScheme.primary
                                         )
                                         Text(
-                                            text = "${brand.sharePercent}% מהשוק",
+                                            text = if (isEn) "${brand.sharePercent}% of Market" else "${brand.sharePercent}% מהשוק",
                                             fontSize = 10.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -1089,7 +1090,7 @@ fun StatisticsScreen(
                                                 color = MaterialTheme.colorScheme.primary
                                             )
                                             Text(
-                                                text = "טוען כמויות דגמים עדכניות ממאגר משרד התחבורה...",
+                                                text = if (isEn) "Loading latest model counts from Ministry of Transport..." else "טוען כמויות דגמים עדכניות ממאגר משרד התחבורה...",
                                                 fontSize = 11.sp,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -1101,14 +1102,14 @@ fun StatisticsScreen(
                                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                                         ) {
                                             Text(
-                                                text = "דגמים נפוצים בישראל (לחץ לניתוח):",
+                                                text = if (isEn) "Popular Models in Israel (tap to analyze):" else "דגמים נפוצים בישראל (לחץ לניתוח):",
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.primary
                                             )
                                             if (!liveModelList.isNullOrEmpty()) {
                                                 Text(
-                                                    text = "• מעודכן בלייב ממאגר הרישוי",
+                                                    text = if (isEn) "• Live updated from registry" else "• מעודכן בלייב ממאגר הרישוי",
                                                     fontSize = 10.sp,
                                                     color = MaterialTheme.colorScheme.secondary
                                                 )
@@ -1189,12 +1190,12 @@ fun StatisticsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "עובדות ותובנות על כבישי ישראל",
+                        text = if (isEn) "Facts & Insights on Israeli Roads" else "עובדות ותובנות על כבישי ישראל",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "לפי נתונים מהלמ״ס, מעודכן לשנת 2026",
+                        text = if (isEn) "According to CBS data, updated for 2026" else "לפי נתונים מהלמ״ס, מעודכן לשנת 2026",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 12.dp)
@@ -1202,23 +1203,23 @@ fun StatisticsScreen(
 
                     InsightRow(
                         icon = Icons.Default.Speed,
-                        label = "נסועה שנתית ממוצעת:",
-                        value = "כ-15,400 ק\"מ לרכב פרטי בשנה"
+                        label = if (isEn) "Average Annual Mileage:" else "נסועה שנתית ממוצעת:",
+                        value = if (isEn) "~15,400 km for private cars per year" else "כ-15,400 ק\"מ לרכב פרטי בשנה"
                     )
                     InsightRow(
                         icon = Icons.Default.CalendarToday,
-                        label = "גיל רכב ממוצע:",
-                        value = "כ-7.4 שנים לרכב פרטי"
+                        label = if (isEn) "Average Vehicle Age:" else "גיל רכב ממוצע:",
+                        value = if (isEn) "~7.4 years for private cars" else "כ-7.4 שנים לרכב פרטי"
                     )
                     InsightRow(
                         icon = Icons.Default.DeleteOutline,
-                        label = "רכבים שנגרעים מדי שנה:",
-                        value = "כ-5.8% (~220,000 רכבים יורדים מהכביש)"
+                        label = if (isEn) "Annual Scrappage Rate:" else "רכבים שנגרעים מדי שנה:",
+                        value = if (isEn) "~5.8% (~220,000 vehicles decommissioned)" else "כ-5.8% (~220,000 רכבים יורדים מהכביש)"
                     )
                     InsightRow(
                         icon = Icons.Default.Shield,
-                        label = "ציון בטיחות ממוצע:",
-                        value = "ציון 5.8 מתוך 8 במבחני משרד התחבורה"
+                        label = if (isEn) "Average Safety Score:" else "ציון בטיחות ממוצע:",
+                        value = if (isEn) "Score 5.8 out of 8 in MOT tests" else "ציון 5.8 מתוך 8 במבחני משרד התחבורה"
                     )
                 }
             }
@@ -1269,6 +1270,7 @@ fun NationalFleetTrendGraph(
     lastUpdated: String?,
     modifier: Modifier = Modifier
 ) {
+    val isEn = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "en"
     val animProgress = remember { Animatable(0f) }
 
     LaunchedEffect(totalCount) {
@@ -1298,14 +1300,14 @@ fun NationalFleetTrendGraph(
 
     var selectedChartMode by remember { mutableIntStateOf(0) } // 0: Yearly Fleet, 1: Daily Pace, 2: Monthly Deliveries
 
-    val dailyData = remember {
+    val dailyData = remember(isEn) {
         listOf(
-            DailyTrendPoint("א'", "ראשון", 1120),
-            DailyTrendPoint("ב'", "שני", 980),
-            DailyTrendPoint("ג'", "שלישי", 940),
-            DailyTrendPoint("ד'", "רביעי", 910),
-            DailyTrendPoint("ה'", "חמישי", 880),
-            DailyTrendPoint("ו'", "שישי", 240)
+            DailyTrendPoint(if (isEn) "Sun" else "א'", if (isEn) "Sunday" else "ראשון", 1120),
+            DailyTrendPoint(if (isEn) "Mon" else "ב'", if (isEn) "Monday" else "שני", 980),
+            DailyTrendPoint(if (isEn) "Tue" else "ג'", if (isEn) "Tuesday" else "שלישי", 940),
+            DailyTrendPoint(if (isEn) "Wed" else "ד'", if (isEn) "Wednesday" else "רביעי", 910),
+            DailyTrendPoint(if (isEn) "Thu" else "ה'", if (isEn) "Thursday" else "חמישי", 880),
+            DailyTrendPoint(if (isEn) "Fri" else "ו'", if (isEn) "Friday" else "שישי", 240)
         )
     }
 
@@ -1313,16 +1315,16 @@ fun NationalFleetTrendGraph(
         if (dailyData.isNotEmpty()) kotlin.math.round(dailyData.map { it.count }.average()).toInt() else 845
     }
 
-    val monthlyData = remember {
+    val monthlyData = remember(isEn) {
         listOf(
-            MonthlyTrendPoint("ינו'", 32400),
-            MonthlyTrendPoint("פבר'", 29100),
-            MonthlyTrendPoint("מרץ", 28500),
-            MonthlyTrendPoint("אפר'", 26800),
-            MonthlyTrendPoint("מאי", 27400),
-            MonthlyTrendPoint("יוני", 29800),
-            MonthlyTrendPoint("יולי", 31200),
-            MonthlyTrendPoint("אוג'", 28900)
+            MonthlyTrendPoint(if (isEn) "Jan" else "ינו'", 32400),
+            MonthlyTrendPoint(if (isEn) "Feb" else "פבר'", 29100),
+            MonthlyTrendPoint(if (isEn) "Mar" else "מרץ", 28500),
+            MonthlyTrendPoint(if (isEn) "Apr" else "אפר'", 26800),
+            MonthlyTrendPoint(if (isEn) "May" else "מאי", 27400),
+            MonthlyTrendPoint(if (isEn) "Jun" else "יוני", 29800),
+            MonthlyTrendPoint(if (isEn) "Jul" else "יולי", 31200),
+            MonthlyTrendPoint(if (isEn) "Aug" else "אוג'", 28900)
         )
     }
 
@@ -1334,18 +1336,26 @@ fun NationalFleetTrendGraph(
         if (monthlyData.isNotEmpty()) kotlin.math.round(monthlyData.map { it.count }.average()).toInt() else 29263
     }
 
-    val monthlyTrendStatus = remember(monthlyData) {
+    val monthlyTrendStatus = remember(monthlyData, isEn) {
         if (monthlyData.size >= 2) {
             val lastMonth = monthlyData.last().count
             val prevMonth = monthlyData[monthlyData.lastIndex - 1].count
             val diffPercent = ((lastMonth - prevMonth).toDouble() / prevMonth) * 100.0
-            when {
-                diffPercent > 3.0 -> "מגמת עלייה במסירות (+%.1f%%)".format(diffPercent)
-                diffPercent < -3.0 -> "מגמת ירידה במסירות (%.1f%%)".format(diffPercent)
-                else -> "קצב מסירות יציב (%.1f%%)".format(diffPercent)
+            if (isEn) {
+                when {
+                    diffPercent > 3.0 -> "Deliveries upward trend (+%.1f%%)".format(diffPercent)
+                    diffPercent < -3.0 -> "Deliveries downward trend (%.1f%%)".format(diffPercent)
+                    else -> "Stable delivery pace (%.1f%%)".format(diffPercent)
+                }
+            } else {
+                when {
+                    diffPercent > 3.0 -> "מגמת עלייה במסירות (+%.1f%%)".format(diffPercent)
+                    diffPercent < -3.0 -> "מגמת ירידה במסירות (%.1f%%)".format(diffPercent)
+                    else -> "קצב מסירות יציב (%.1f%%)".format(diffPercent)
+                }
             }
         } else {
-            "קצב מסירות יציב"
+            if (isEn) "Stable delivery pace" else "קצב מסירות יציב"
         }
     }
 
@@ -1399,15 +1409,19 @@ fun NationalFleetTrendGraph(
                     Column {
                         Text(
                             text = when (selectedChartMode) {
-                                1 -> "קצב עלייה ורישום יומי"
-                                2 -> "מסירות רכב חודשיות (2026)"
-                                else -> "מגמת גידול מצבת הרכב בישראל"
+                                1 -> if (isEn) "Daily Registration Pace" else "קצב עלייה ורישום יומי"
+                                2 -> if (isEn) "Monthly Deliveries (2026)" else "מסירות רכב חודשיות (2026)"
+                                else -> if (isEn) "National Fleet Growth Trend" else "מגמת גידול מצבת הרכב בישראל"
                             },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = if (!lastUpdated.isNullOrBlank()) "מתעדכן יומית • $lastUpdated" else "מתעדכן יומית ממאגר משרד התחבורה",
+                            text = if (isEn) {
+                                if (!lastUpdated.isNullOrBlank()) "Updated daily • $lastUpdated" else "Updated daily from Ministry of Transport"
+                            } else {
+                                if (!lastUpdated.isNullOrBlank()) "מתעדכן יומית • $lastUpdated" else "מתעדכן יומית ממאגר משרד התחבורה"
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -1423,9 +1437,9 @@ fun NationalFleetTrendGraph(
                 ) {
                     Text(
                         text = when (selectedChartMode) {
-                            1 -> "$dailyAverage ממוצע ליום"
-                            2 -> "כ-%,d בחודש (ממוצע)".format(monthlyAverage)
-                            else -> "+%.1f%% שנתי".format(annualGrowthPercent)
+                            1 -> if (isEn) "$dailyAverage daily avg" else "$dailyAverage ממוצע ליום"
+                            2 -> if (isEn) "~%,d/mo (avg)".format(monthlyAverage) else "כ-%,d בחודש (ממוצע)".format(monthlyAverage)
+                            else -> if (isEn) "+%.1f%% annual".format(annualGrowthPercent) else "+%.1f%% שנתי".format(annualGrowthPercent)
                         },
                         color = Color(0xFF2E7D32),
                         fontWeight = FontWeight.Black,
@@ -1442,7 +1456,11 @@ fun NationalFleetTrendGraph(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                listOf("שנתי (מצבה)", "קצב יומי", "חודשי (2026)").forEachIndexed { index, title ->
+                listOf(
+                    if (isEn) "Yearly (Fleet)" else "שנתי (מצבה)",
+                    if (isEn) "Daily Pace" else "קצב יומי",
+                    if (isEn) "Monthly (2026)" else "חודשי (2026)"
+                ).forEachIndexed { index, title ->
                     FilterChip(
                         selected = (selectedChartMode == index),
                         onClick = { selectedChartMode = index },
@@ -1640,9 +1658,9 @@ fun NationalFleetTrendGraph(
             ) {
                 Text(
                     text = when (selectedChartMode) {
-                        1 -> "שיא מסירות שבועי: יום ראשון"
-                        2 -> "סך מסירות מתחילת השנה: %,d".format(monthlyTotalDeliveries)
-                        else -> "מצבת כלי רכב פעילים: %,d".format(totalCount)
+                        1 -> if (isEn) "Weekly Delivery Peak: Sunday" else "שיא מסירות שבועי: יום ראשון"
+                        2 -> if (isEn) "YTD Deliveries: %,d".format(monthlyTotalDeliveries) else "סך מסירות מתחילת השנה: %,d".format(monthlyTotalDeliveries)
+                        else -> if (isEn) "Active Vehicle Fleet: %,d".format(totalCount) else "מצבת כלי רכב פעילים: %,d".format(totalCount)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
@@ -1650,9 +1668,9 @@ fun NationalFleetTrendGraph(
                 )
                 Text(
                     text = when (selectedChartMode) {
-                        1 -> "ממוצע: כ-$dailyAverage רכבים ביום"
+                        1 -> if (isEn) "Avg: ~$dailyAverage vehicles/day" else "ממוצע: כ-$dailyAverage רכבים ביום"
                         2 -> monthlyTrendStatus
-                        else -> "גידול ממוצע: כ-%,d בשנה".format(annualAverageGrowth)
+                        else -> if (isEn) "Avg growth: ~%,d/year".format(annualAverageGrowth) else "גידול ממוצע: כ-%,d בשנה".format(annualAverageGrowth)
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1672,6 +1690,7 @@ fun ModelDetailStatisticsCard(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val isEn = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "en"
     val animProgress = remember { Animatable(0f) }
 
     LaunchedEffect(detail) {
@@ -1761,7 +1780,24 @@ fun ModelDetailStatisticsCard(
                         border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
                     ) {
                         Text(
-                            text = detail.classification,
+                            text = if (isEn) {
+                                when {
+                                    detail.classification.contains("פנאי") || detail.classification.contains("שטח") -> "SUV / Crossover"
+                                    detail.classification.contains("פרטי") -> "Passenger Car"
+                                    detail.classification.contains("מסחרי") -> "Commercial"
+                                    detail.classification.contains("משאית") -> "Truck"
+                                    detail.classification.contains("אוטובוס") -> "Bus"
+                                    detail.classification.contains("מונית") -> "Taxi"
+                                    detail.classification.contains("אופנוע") -> "Motorcycle"
+                                    detail.classification.contains("קטנוע") -> "Scooter"
+                                    detail.classification.contains("טרקטור") -> "Tractor"
+                                    detail.classification.contains("אספנות") -> "Vintage Car"
+                                    detail.classification.contains("גרר") -> "Tow Truck"
+                                    detail.classification.contains("גולף") -> "Golf Cart"
+                                    detail.classification.contains("צמ\"ה") || detail.classification.contains("צמ״ה") -> "Heavy Equipment"
+                                    else -> detail.classification
+                                }
+                            } else detail.classification,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
@@ -1778,7 +1814,7 @@ fun ModelDetailStatisticsCard(
                 ) {
                     Icon(
                         Icons.Default.Close,
-                        contentDescription = "סגור",
+                        contentDescription = if (isEn) "Close" else "סגור",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
@@ -1813,7 +1849,7 @@ fun ModelDetailStatisticsCard(
                         )
                         Spacer(Modifier.height(2.dp))
                         Text(
-                            text = "פעילים בכביש",
+                            text = if (isEn) "Active on Road" else "פעילים בכביש",
                             fontSize = 10.sp,
                             maxLines = 1,
                             softWrap = false,
@@ -1843,7 +1879,7 @@ fun ModelDetailStatisticsCard(
                         )
                         Spacer(Modifier.height(2.dp))
                         Text(
-                            text = "שרידות דגם",
+                            text = if (isEn) "Survival Rate" else "שרידות דגם",
                             fontSize = 10.sp,
                             maxLines = 1,
                             softWrap = false,
@@ -1875,7 +1911,7 @@ fun ModelDetailStatisticsCard(
                         )
                         Spacer(Modifier.height(2.dp))
                         Text(
-                            text = "ציון בטיחות",
+                            text = if (isEn) "Safety Score" else "ציון בטיחות",
                             fontSize = 10.sp,
                             maxLines = 1,
                             softWrap = false,
@@ -1896,7 +1932,7 @@ fun ModelDetailStatisticsCard(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = if (detail.enginePowerHp != null && detail.enginePowerHp > 0) "${detail.enginePowerHp}" else "רגיל",
+                            text = if (detail.enginePowerHp != null && detail.enginePowerHp > 0) "${detail.enginePowerHp}" else (if (isEn) "Standard" else "רגיל"),
                             fontWeight = FontWeight.Black,
                             fontSize = 15.sp,
                             maxLines = 1,
@@ -1905,7 +1941,7 @@ fun ModelDetailStatisticsCard(
                         )
                         Spacer(Modifier.height(2.dp))
                         Text(
-                            text = if (detail.enginePowerHp != null && detail.enginePowerHp > 0) "כ\"ס מנוע" else "הספק מנוע",
+                            text = if (detail.enginePowerHp != null && detail.enginePowerHp > 0) (if (isEn) "Engine HP" else "כ\"ס מנוע") else (if (isEn) "Engine Output" else "הספק מנוע"),
                             fontSize = 10.sp,
                             maxLines = 1,
                             softWrap = false,
@@ -1919,7 +1955,7 @@ fun ModelDetailStatisticsCard(
             if (detail.yearDistribution.isNotEmpty()) {
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    text = "התפלגות כלי רכב פעילים לפי שנתונים:",
+                    text = if (isEn) "Active vehicle distribution by year:" else "התפלגות כלי רכב פעילים לפי שנתונים:",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -2099,7 +2135,7 @@ fun ModelDetailStatisticsCard(
             ) {
                 Icon(Icons.Default.LocalGasStation, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                 Text(
-                    text = "סוגי הנעה/דלק בדגם: ${detail.fuelTypes.joinToString(", ")}",
+                    text = if (isEn) "Fuel/Engine types: ${detail.fuelTypes.joinToString(", ")}" else "סוגי הנעה/דלק בדגם: ${detail.fuelTypes.joinToString(", ")}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -2114,7 +2150,7 @@ fun ModelDetailStatisticsCard(
                 ) {
                     Icon(Icons.Default.SettingsSuggest, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                     Text(
-                        text = "תיבת הילוכים: ${detail.transmission}",
+                        text = if (isEn) "Transmission: ${detail.transmission}" else "תיבת הילוכים: ${detail.transmission}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -2135,7 +2171,7 @@ fun ModelDetailStatisticsCard(
             ) {
                 Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("הצג תמונות מגלריית הרכב", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text(if (isEn) "Show Model Photos in Gallery" else "הצג תמונות מגלריית הרכב", fontWeight = FontWeight.Bold, fontSize = 15.sp)
             }
         }
     }

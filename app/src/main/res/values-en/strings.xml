@@ -7,6 +7,13 @@
     <string name="search_btn">Check Now</string>
     <string name="search_placeholder">Enter license plate number</string>
     <string name="search_invalid_plate">License plate must contain 5 to 8 digits</string>
+    <string name="search_input_label">Vehicle or heavy equipment plate (up to 8 digits)</string>
+    <string name="tooltip_clear_input">Clear input</string>
+    <string name="cd_clear_plate">Clear license plate field</string>
+    <string name="tooltip_voice_search">Voice search</string>
+    <string name="cd_voice_search">Voice search license plate</string>
+    <string name="tooltip_camera_scan">Scan license plate with camera</string>
+    <string name="cd_camera_scan">Scan license plate using camera</string>
     
     
     <string name="test_valid">Valid MOT Test</string>
@@ -161,4 +168,88 @@ https://play.google.com/store/apps/details?id=com.avih6.vehiclecheck"</string>
     <string name="report_image_email_chooser">Send image report via email</string>
     <string name="contact_email_subject">%1$s - Support &amp; Feedback</string>
     <string name="contact_email_body">\n\n\n--- Please write your message above this line ---\n--- System Information ---\nApp Name: %1$s\nApp Version: %2$s (%3$s)\nAndroid OS: %4$s (API %5$s)\nDevice: %6$s</string>
+
+    <!-- Recalls Screen Strings -->
+    <string name="recalls_search_label">Search make, model, defect or recall # (Recall)</string>
+    <string name="recalls_search_placeholder">e.g. 11498, Toyota, Hyundai, brakes...</string>
+    <string name="recalls_loading">Loading official safety recalls...</string>
+    <string name="recalls_empty">No safety recalls match your search.</string>
+    <string name="recalls_try_again">Try Again</string>
+    <string name="recalls_total_count">Total %1$s safety recalls (Full registry)</string>
+    <string name="recalls_showing_count">Showing %1$s of %2$s recalls</string>
+    <string name="recalls_source">Source: Ministry of Transport</string>
+    <string name="recalls_item_title">Safety Recall #%1$s</string>
+    <string name="recalls_item_year">Year %1$s</string>
+    <string name="recalls_default_make">Vehicle Make</string>
+    <string name="recalls_models_format">Models: %1$s</string>
+    <string name="recalls_all_models">All Models</string>
+    <string name="recalls_build_dates">Affected build dates: %1$s to %2$s</string>
+    <string name="recalls_fault_type">System: %1$s</string>
+    <string name="recalls_desc_title">Defect Description:</string>
+    <string name="recalls_no_desc">No description provided for this recall.</string>
+    <string name="recalls_action_required">Required Action:</string>
+    <string name="recalls_importer_title">Official Importer:</string>
+    <string name="recalls_importer_default">Importer Service</string>
+    <string name="recalls_call_importer">Call Importer (%1$s)</string>
+    <string name="recalls_open_website">Open Importer Website</string>
+    <string name="recalls_error_load">Unable to load safety recalls at this time. Check network connection.</string>
+
+    <!-- Services Screen Strings -->
+    <string name="services_cat_test_stations">Test Stations (MOT)</string>
+    <string name="services_cat_garages">Certified Garages</string>
+    <string name="services_cat_ev_charging">EV Charging Stations</string>
+    <string name="services_cat_car_dealers">Licensed Car Dealers</string>
+    <string name="services_cat_appraisers">Certified Appraisers</string>
+    <string name="services_cat_parts_trade">Auto Parts &amp; Supplies</string>
+
+    <string name="services_freshness_banner">Ministry of Transport Registry • Updated: %1$s</string>
+
+    <string name="services_search_label_test_stations">Search test stations by city or name</string>
+    <string name="services_search_label_garages">Search garages by city, name or specialty</string>
+    <string name="services_search_label_ev">Search EV stations by city or network</string>
+    <string name="services_search_label_dealers">Search car dealers by city, name or ID</string>
+    <string name="services_search_label_appraisers">Search appraisers by city or name</string>
+    <string name="services_search_label_parts">Search parts suppliers by city, name or field</string>
+
+    <string name="services_search_hint_test_stations">e.g. Tel Aviv, Computest, Dynamometer...</string>
+    <string name="services_search_hint_garages">e.g. Haifa, Toyota, Mechanics, Garage...</string>
+    <string name="services_search_hint_ev">e.g. Jerusalem, Afcon, Sonol EVI...</string>
+    <string name="services_search_hint_dealers">e.g. Tel Aviv, Auto Dealership, 514...</string>
+    <string name="services_search_hint_appraisers">e.g. Haifa, Levi, Cohen...</string>
+    <string name="services_search_hint_parts">e.g. Tires, Jerusalem, Spare Parts...</string>
+    <string name="services_clear_search">Clear Search</string>
+
+    <string name="services_loading">Loading official data from Ministry of Transport registry...</string>
+    <string name="services_empty_query">No results found for \"%1$s\"</string>
+    <string name="services_empty_general">No results found in registry</string>
+    <string name="services_reset_search">Reset Search</string>
+
+    <string name="services_count_showing">Showing %1$s of %2$s %3$s in MOT registry</string>
+    <string name="services_count_found">Found %1$s %2$s licensed by MOT</string>
+    <string name="services_name_test_stations">test stations</string>
+    <string name="services_name_garages">licensed garages</string>
+    <string name="services_name_dealers">licensed car dealers</string>
+    <string name="services_name_appraisers">certified appraisers</string>
+    <string name="services_name_parts">transport businesses</string>
+    <string name="services_count_ev_showing">Showing %1$s of %2$s charging stations in MOT registry</string>
+    <string name="services_count_ev_found">Found %1$s public EV charging stations (Full registry)</string>
+
+    <string name="services_badge_test_station">Test Station (MOT)</string>
+    <string name="services_badge_garage">Certified Garage</string>
+    <string name="services_badge_dealer">Licensed Dealer</string>
+    <string name="services_badge_appraiser">License #%1$s</string>
+    <string name="services_btn_navigate">Navigate</string>
+    <string name="services_specialty_prefix">Specialty: %1$s</string>
+    <string name="services_manager_prefix">Professional Manager: %1$s</string>
+    <string name="services_company_id_prefix">Tax ID / Business ID: %1$s</string>
+    <string name="services_region_prefix">City / Region: %1$s</string>
+    <string name="services_domain_prefix">Field: %1$s</string>
+    <string name="services_ev_total_sockets">Total Sockets: %1$s</string>
+    <string name="services_ev_fast_dc">Fast (DC): %1$s</string>
+    <string name="services_ev_slow_ac">Standard (AC): %1$s</string>
+    <string name="services_ev_default_name">Public EV Charging Station</string>
+    <string name="services_dealer_default_name">Licensed Car Dealer</string>
+    <string name="services_appraiser_default_name">Certified Car Appraiser</string>
+    <string name="services_parts_default_name">Transport Products Business</string>
+    <string name="services_unnamed">Unnamed</string>
 </resources>

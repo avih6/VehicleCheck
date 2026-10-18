@@ -50,6 +50,7 @@ fun DtcScreen(
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val isEn = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "en"
 
     var query by remember { mutableStateOf("") }
     var selectedResult by remember { mutableStateOf<DtcCodeInfo?>(null) }
@@ -168,13 +169,13 @@ fun DtcScreen(
                 Spacer(Modifier.width(10.dp))
                 Column {
                     Text(
-                        text = "אזהרת בטיחות חשובה לנהג",
+                        text = if (isEn) "Important Driver Safety Warning" else "אזהרת בטיחות חשובה לנהג",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFFE65100)
                     )
                     Text(
-                        text = "אין להשתמש באפליקציה או לבדוק תקלות בזמן נהיגה! בעת הופעת נורת אזהרה, עצור תמיד במקום בטוח בצד הדרך, כבה את המנוע, ורק אז בצע בדיקה או פנה לסיוע מקצועי.",
+                        text = if (isEn) "Never inspect fault codes or operate the app while driving! If a warning indicator illuminates, pull over safely, switch off the engine, and then perform diagnostic checks or contact a professional." else "אין להשתמש באפליקציה או לבדוק תקלות בזמן נהיגה! בעת הופעת נורת אזהרה, עצור תמיד במקום בטוח בצד הדרך, כבה את המנוע, ורק אז בצע בדיקה או פנה לסיוע מקצועי.",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFF5D4037),
                         lineHeight = 16.sp
@@ -200,8 +201,8 @@ fun DtcScreen(
                 }
             },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("חיפוש קוד תקלה או מילת מפתח") },
-            placeholder = { Text("למשל: P0300, P0420, חמצן, misfire...") },
+            label = { Text(if (isEn) "Search fault code or keyword" else "חיפוש קוד תקלה או מילת מפתח") },
+            placeholder = { Text(if (isEn) "e.g. P0300, P0420, misfire, catalytic..." else "למשל: P0300, P0420, חמצן, misfire...") },
             leadingIcon = {
                 Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             },
@@ -211,7 +212,7 @@ fun DtcScreen(
                         query = ""
                         selectedResult = null
                     }) {
-                        Icon(Icons.Default.Clear, contentDescription = "נקה חיפוש")
+                        Icon(Icons.Default.Clear, contentDescription = if (isEn) "Clear search" else "נקה חיפוש")
                     }
                 }
             },
@@ -299,13 +300,13 @@ fun DtcScreen(
                         Spacer(Modifier.width(8.dp))
                         Column {
                             Text(
-                                text = "איך להשיג קוד תקלה מהרכב? (מדריך OBD2)",
+                                text = if (isEn) "How to read fault codes? (OBD2 Guide)" else "איך להשיג קוד תקלה מהרכב? (מדריך OBD2)",
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
                             Text(
-                                text = if (isGuideExpanded) "לחץ לסגירת המדריך" else "לחץ לפתיחת מדריך 4 שלבים פשוטים",
+                                text = if (isGuideExpanded) (if (isEn) "Tap to collapse guide" else "לחץ לסגירת המדריך") else (if (isEn) "Tap to view simple 4-step guide" else "לחץ לפתיחת מדריך 4 שלבים פשוטים"),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                                 fontSize = 11.sp
@@ -315,7 +316,7 @@ fun DtcScreen(
                     IconButton(onClick = { isGuideExpanded = !isGuideExpanded }) {
                         Icon(
                             imageVector = if (isGuideExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = if (isGuideExpanded) "כווץ מדריך" else "הרחב מדריך",
+                            contentDescription = if (isGuideExpanded) (if (isEn) "Collapse guide" else "כווץ מדריך") else (if (isEn) "Expand guide" else "הרחב מדריך"),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -333,23 +334,23 @@ fun DtcScreen(
                         )
                         ObdStepItem(
                             stepNumber = "1",
-                            title = "איתור שקע ה-OBD2 ברכב",
-                            description = "בכל רכב משנת 2000 ומעלה קיים שקע דיאגנוסטיקה בעל 16 פינים, הממוקם בדרך כלל מתחת להגה או סמוך לדוושות הנהג."
+                            title = if (isEn) "Locate the vehicle's OBD2 port" else "איתור שקע ה-OBD2 ברכב",
+                            description = if (isEn) "Modern vehicles feature a 16-pin OBD2 diagnostic port, typically located under the dashboard near the steering wheel or pedals." else "בכל רכב משנת 2000 ומעלה קיים שקע דיאגנוסטיקה בעל 16 פינים, הממוקם בדרך כלל מתחת להגה או סמוך לדוושות הנהג."
                         )
                         ObdStepItem(
                             stepNumber = "2",
-                            title = "חיבור סורק OBD2 (למשל ELM327)",
-                            description = "מחברים מתאם Bluetooth / Wi-Fi אל שקע ה-OBD2 ומסובבים את מפתח הרכב למצב סוויץ' (ON) מבלי להניע."
+                            title = if (isEn) "Plug in an OBD2 scanner (ELM327)" else "חיבור סורק OBD2 (למשל ELM327)",
+                            description = if (isEn) "Plug a Bluetooth / Wi-Fi scanner adapter into the OBD2 port and turn ignition to ON without starting the engine." else "מחברים מתאם Bluetooth / Wi-Fi אל שקע ה-OBD2 ומסובבים את מפתח הרכב למצב סוויץ' (ON) מבלי להניע."
                         )
                         ObdStepItem(
                             stepNumber = "3",
-                            title = "קריאת הקוד באמצעות אפליקציה",
-                            description = "מתחברים דרך הטלפון לאפליקציית סריקה (כמו Car Scanner או Torque) ולוחצים על סריקת תקלות (Read Fault Codes)."
+                            title = if (isEn) "Read trouble codes with an app" else "קריאת הקוד באמצעות אפליקציה",
+                            description = if (isEn) "Pair your phone with the scanner via an app (like Car Scanner or Torque) and tap Read Fault Codes." else "מתחברים דרך הטלפון לאפליקציית סריקה (כמו Car Scanner או Torque) ולוחצים על סריקת תקלות (Read Fault Codes)."
                         )
                         ObdStepItem(
                             stepNumber = "4",
-                            title = "פענוח הקוד באפליקציה",
-                            description = "מעתיקים את קוד התקלה (למשל P0420) לתיבת החיפוש כאן למעלה או לוחצים על אחד מהקודים הנפוצים כדי לקבל הסבר מלא!"
+                            title = if (isEn) "Decode the code in this app" else "פענוח הקוד באפליקציה",
+                            description = if (isEn) "Copy the fault code (e.g. P0300) into the search bar above or tap a popular code to view full details and solutions!" else "מעתיקים את קוד התקלה (למשל P0420) לתיבת החיפוש כאן למעלה או לוחצים על אחד מהקודים הנפוצים כדי לקבל הסבר מלא!"
                         )
                     }
                 }
@@ -409,7 +410,7 @@ fun DtcScreen(
                                 )
                                 Spacer(Modifier.width(6.dp))
                                 Text(
-                                    text = info.severity.titleHe,
+                                    text = if (isEn) info.severity.titleEn else info.severity.titleHe,
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = severityColor,
@@ -421,7 +422,7 @@ fun DtcScreen(
                         IconButton(onClick = { selectedResult = null }) {
                             Icon(
                                 imageVector = Icons.Default.Close,
-                                contentDescription = "סגור כרטיס",
+                                contentDescription = if (isEn) "Close card" else "סגור כרטיס",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -430,12 +431,12 @@ fun DtcScreen(
                     Spacer(Modifier.height(10.dp))
 
                     Text(
-                        text = info.titleHe,
+                        text = if (isEn) info.titleEn else info.titleHe,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = info.titleEn,
+                        text = if (isEn) info.titleHe else info.titleEn,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -449,7 +450,7 @@ fun DtcScreen(
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Text(
-                            text = "מערכת: ${info.categoryHe}",
+                            text = if (isEn) "System: ${info.getCategory(true)}" else "מערכת: ${info.categoryHe}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -470,7 +471,7 @@ fun DtcScreen(
                         ) {
                             Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("העתק", style = MaterialTheme.typography.labelMedium)
+                            Text(if (isEn) "Copy" else "העתק", style = MaterialTheme.typography.labelMedium)
                         }
 
                         Button(
@@ -480,7 +481,7 @@ fun DtcScreen(
                         ) {
                             Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("שתף למוסך", style = MaterialTheme.typography.labelMedium)
+                            Text(if (isEn) "Share" else "שתף למוסך", style = MaterialTheme.typography.labelMedium)
                         }
                     }
 
@@ -490,12 +491,12 @@ fun DtcScreen(
 
                     // Description
                     Text(
-                        text = "פירוט התקלה:",
+                        text = if (isEn) "Fault Details & Explanation:" else "פירוט התקלה:",
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = info.descriptionHe,
+                        text = info.getDescription(isEn),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(vertical = 4.dp),
@@ -503,14 +504,15 @@ fun DtcScreen(
                     )
 
                     // Symptoms
-                    if (info.symptomsHe.isNotEmpty()) {
+                    val symptomsList = info.getSymptoms(isEn)
+                    if (symptomsList.isNotEmpty()) {
                         Spacer(Modifier.height(10.dp))
                         Text(
-                            text = "תסמינים אופייניים ברכב:",
+                            text = if (isEn) "Common Vehicle Symptoms:" else "תסמינים אופייניים ברכב:",
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium
                         )
-                        info.symptomsHe.forEach { sym ->
+                        symptomsList.forEach { sym ->
                             Row(modifier = Modifier.padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Text("• ", fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
                                 Text(sym, style = MaterialTheme.typography.bodySmall)
@@ -519,14 +521,15 @@ fun DtcScreen(
                     }
 
                     // Possible Causes
-                    if (info.possibleCausesHe.isNotEmpty()) {
+                    val causesList = info.getPossibleCauses(isEn)
+                    if (causesList.isNotEmpty()) {
                         Spacer(Modifier.height(10.dp))
                         Text(
-                            text = "גורמים אפשריים לתקלה:",
+                            text = if (isEn) "Possible Causes:" else "גורמים אפשריים לתקלה:",
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium
                         )
-                        info.possibleCausesHe.forEach { cause ->
+                        causesList.forEach { cause ->
                             Row(modifier = Modifier.padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Text("• ", fontWeight = FontWeight.Black, color = Color(0xFFE64A19))
                                 Text(cause, style = MaterialTheme.typography.bodySmall)
@@ -535,14 +538,15 @@ fun DtcScreen(
                     }
 
                     // Solutions
-                    if (info.solutionsHe.isNotEmpty()) {
+                    val solutionsList = info.getSolutions(isEn)
+                    if (solutionsList.isNotEmpty()) {
                         Spacer(Modifier.height(10.dp))
                         Text(
-                            text = "דרכי טיפול מומלצות:",
+                            text = if (isEn) "Recommended Solutions:" else "דרכי טיפול מומלצות:",
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.bodyMedium
                         )
-                        info.solutionsHe.forEach { sol ->
+                        solutionsList.forEach { sol ->
                             Row(modifier = Modifier.padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Text("✔ ", fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
                                 Text(sol, style = MaterialTheme.typography.bodySmall)
@@ -563,14 +567,18 @@ fun DtcScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (query.isNotBlank()) "תוצאות חיפוש (${liveSearchResults.size})" else "קודי תקלות במערכת (${liveSearchResults.size})",
+                    text = if (isEn) {
+                        if (query.isNotBlank()) "Search Results (${liveSearchResults.size})" else "System Fault Codes (${liveSearchResults.size})"
+                    } else {
+                        if (query.isNotBlank()) "תוצאות חיפוש (${liveSearchResults.size})" else "קודי תקלות במערכת (${liveSearchResults.size})"
+                    },
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
                 if (selectedResult != null) {
                     TextButton(onClick = { selectedResult = null }) {
-                        Text("הצג את כל הרשימה", style = MaterialTheme.typography.labelSmall)
+                        Text(if (isEn) "Show full list" else "הצג את כל הרשימה", style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
@@ -627,14 +635,14 @@ fun DtcScreen(
 
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = item.titleHe,
+                                    text = if (isEn) item.titleEn else item.titleHe,
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.SemiBold,
                                     maxLines = 1,
                                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                 )
                                 Text(
-                                    text = item.titleEn,
+                                    text = if (isEn) item.titleHe else item.titleEn,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
@@ -683,7 +691,7 @@ fun DtcScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "קוד תקלה לא נמצא",
+                            text = if (isEn) "Fault Code Not Found" else "קוד תקלה לא נמצא",
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.error
@@ -691,7 +699,11 @@ fun DtcScreen(
                     }
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "הערך שהוזן (\"$query\") אינו מוכר כקוד תקלה או אינו בפורמט תקני של OBD2.\n\nקוד תקני מורכב מאות אחת (P למנוע, C לשלדה, B למרכב, U לרשת) ואחריה 4 תווים (למשל: P0420, P0300, B0010, C0040).",
+                        text = if (isEn) {
+                            "The entered value (\"$query\") was not recognized as a fault code or is not in a valid OBD2 format.\n\nA standard OBD2 code consists of one letter (P for powertrain, C for chassis, B for body, U for network) followed by 4 digits (e.g., P0420, P0300, B0010, C0040)."
+                        } else {
+                            "הערך שהוזן (\"$query\") אינו מוכר כקוד תקלה או אינו בפורמט תקני של OBD2.\n\nקוד תקני מורכב מאות אחת (P למנוע, C לשלדה, B למרכב, U לרשת) ואחריה 4 תווים (למשל: P0420, P0300, B0010, C0040)."
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = 20.sp

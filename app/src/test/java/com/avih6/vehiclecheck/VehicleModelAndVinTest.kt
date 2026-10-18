@@ -115,4 +115,33 @@ class VehicleModelAndVinTest {
         assertFalse("Technical trim code SK9DYJL should NOT pollute search terms when model name is present", baseInfo.searchTerms.contains("SK9DYJL"))
         assertEquals("FORESTER", baseInfo.exactKinuyFilter)
     }
+
+    @Test
+    fun testEclipseCrossAndVolvoB11RModelExtraction() {
+        // Vehicle 874-11-201: 2020 Mitsubishi Eclipse Cross
+        val eclipseInfo = VehicleUtils.extractBaseModel(
+            make = "מיצובישי יפן",
+            model = "ECLIPSE CROSS",
+            modelCode = "GK1WXTXXL6",
+            vin = "JMBXTGK1WLZ002975"
+        )
+        assertEquals("ECLIPSE CROSS", eclipseInfo.exactKinuyFilter)
+        assertEquals("ECLIPSE CROSS", eclipseInfo.searchTerms.first())
+        assertFalse("Should not split ECLIPSE CROSS into bare ECLIPSE", eclipseInfo.searchTerms.contains("ECLIPSE"))
+
+        val (makeEn, modelEn) = VehicleUtils.getEnglishMakeAndModel("מיצובישי יפן", "ECLIPSE CROSS")
+        assertEquals("mitsubishi", makeEn.lowercase())
+        assertEquals("eclipse cross", modelEn.lowercase())
+
+        // Vehicle 674-11-201: 2020 Volvo B11R 6X2 Bus
+        val volvoBusInfo = VehicleUtils.extractBaseModel(
+            make = "וולבו שבדיה",
+            model = null,
+            modelCode = "B11R 6X2",
+            vin = "YV3T2U823LA201041"
+        )
+        assertTrue("searchTerms should contain B11R", volvoBusInfo.searchTerms.contains("B11R"))
+        assertTrue("searchTerms should contain B11R 6X2", volvoBusInfo.searchTerms.contains("B11R 6X2"))
+    }
 }
+

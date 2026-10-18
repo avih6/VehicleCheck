@@ -63,6 +63,7 @@ fun GalleryScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val scope = rememberCoroutineScope()
     val gridState = rememberLazyGridState()
+    val isEn = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "en"
 
     val logGalleryEvent: (String, android.os.Bundle) -> Unit = { name, bundle ->
         try {
@@ -236,6 +237,12 @@ fun GalleryScreen(
             images = images + newImages
             nextOffset = page.nextOffset
             isLoadingMore = false
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (searchQuery.isNotBlank()) {
+            loadInitialImages(searchQuery)
         }
     }
 
@@ -512,7 +519,7 @@ fun GalleryScreen(
                                         Icon(Icons.Default.BarChart, contentDescription = null, modifier = Modifier.size(15.dp))
                                         Spacer(Modifier.width(6.dp))
                                         Text(
-                                            text = "דגם מאומת: $fullQuery • צפה בסטטיסטיקה ומפרט",
+                                            text = if (isEn) "Verified Model: $fullQuery • View Specs & Trends" else "דגם מאומת: $fullQuery • צפה בסטטיסטיקה ומפרט",
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -528,7 +535,7 @@ fun GalleryScreen(
                                 ) {
                                     if (currentImage.artist.isNotBlank()) {
                                         Text(
-                                            text = "יוצר: ${currentImage.artist} • ",
+                                            text = if (isEn) "Author: ${currentImage.artist} • " else "יוצר: ${currentImage.artist} • ",
                                             color = Color.LightGray,
                                             fontSize = 11.sp,
                                             maxLines = 1,
@@ -536,7 +543,7 @@ fun GalleryScreen(
                                         )
                                     }
                                     Text(
-                                        text = "רישיון: ${currentImage.license}",
+                                        text = if (isEn) "License: ${currentImage.license}" else "רישיון: ${currentImage.license}",
                                         color = Color(0xFF81D4FA),
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Medium
@@ -564,7 +571,7 @@ fun GalleryScreen(
                                             Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(15.dp))
                                             Spacer(Modifier.width(4.dp))
                                             Text(
-                                                text = "צפייה במקור",
+                                                text = if (isEn) "View Original" else "צפייה במקור",
                                                 fontSize = 12.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 maxLines = 1,
@@ -578,7 +585,7 @@ fun GalleryScreen(
                                                 ReportUtils.sendImageReport(
                                                     context = context,
                                                     image = currentImage,
-                                                    vehicleOrSearchContext = "גלריה: $ctxDesc"
+                                                    vehicleOrSearchContext = if (isEn) "Gallery: $ctxDesc" else "גלריה: $ctxDesc"
                                                 )
                                             },
                                             shape = RoundedCornerShape(10.dp),
@@ -620,8 +627,8 @@ fun GalleryScreen(
             value = searchQuery,
             onValueChange = { searchQuery = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("חיפוש מספר רכב, יצרן או דגם (עברית/אנגלית)") },
-            placeholder = { Text("למשל: 12-345-67, שברולט קורבט, Tesla Model Y...") },
+            label = { Text(if (isEn) "Search plate number, make or model (Hebrew/English)" else "חיפוש מספר רכב, יצרן או דגם (עברית/אנגלית)") },
+            placeholder = { Text(if (isEn) "e.g. 12-345-67, Chevrolet Corvette, Tesla Model Y..." else "למשל: 12-345-67, שברולט קורבט, Tesla Model Y...") },
             leadingIcon = {
                 Icon(Icons.Default.Image, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             },
@@ -633,7 +640,7 @@ fun GalleryScreen(
                                 searchQuery = ""
                                 loadInitialImages(selectedBrand)
                             },
-                            tooltipText = "נקה חיפוש"
+                            tooltipText = if (isEn) "Clear search" else "נקה חיפוש"
                         ) {
                             Icon(Icons.Default.Clear, contentDescription = "Clear")
                         }
@@ -701,7 +708,7 @@ fun GalleryScreen(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "זוהה ממאגר משרד התחבורה: $detectedPlateVehicleInfo",
+                        text = if (isEn) "Identified from MOT database: $detectedPlateVehicleInfo" else "זוהה ממאגר משרד התחבורה: $detectedPlateVehicleInfo",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -732,7 +739,7 @@ fun GalleryScreen(
                         keyboardController?.hide()
                         loadInitialImages(brand)
                     },
-                    label = { Text(brand, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
+                    label = { Text(if (isEn && brand == "הכל") "All" else brand, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.handCursor()
                 )
@@ -749,7 +756,7 @@ fun GalleryScreen(
             ) {
                 item {
                     Text(
-                        text = "דגמים:",
+                        text = if (isEn) "Models:" else "דגמים:",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -773,7 +780,7 @@ fun GalleryScreen(
                                 loadInitialImages("$selectedBrand $model")
                             }
                         },
-                        label = { Text(model, fontSize = 11.sp) },
+                        label = { Text(if (isEn && model == "כל הדגמים") "All Models" else model, fontSize = 11.sp) },
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.handCursor()
                     )
@@ -802,7 +809,7 @@ fun GalleryScreen(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = "כל התמונות בגלריה מוצגות ברישיון שימוש חופשי (Wikimedia Commons). דיווח זכויות יוצרים בכפתור \"יצירת קשר\".",
+                    text = if (isEn) "All photos in the gallery are displayed under open licenses (Wikimedia Commons). Report copyright via \"Contact Us\"." else "כל התמונות בגלריה מוצגות ברישיון שימוש חופשי (Wikimedia Commons). דיווח זכויות יוצרים בכפתור \"יצירת קשר\".",
                     style = MaterialTheme.typography.bodySmall,
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -820,16 +827,22 @@ fun GalleryScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = if (selectedBrand != "הכל") {
-                    if (selectedModel != "כל הדגמים") "גלריית $selectedBrand $selectedModel" else "גלריית כל רכבי $selectedBrand"
-                } else "גלריית כל הרכבים (Wikimedia Commons)",
+                text = if (isEn) {
+                    if (selectedBrand != "הכל") {
+                        if (selectedModel != "כל הדגמים") "$selectedBrand $selectedModel Gallery" else "All $selectedBrand Models Gallery"
+                    } else "All Vehicles Gallery (Wikimedia Commons)"
+                } else {
+                    if (selectedBrand != "הכל") {
+                        if (selectedModel != "כל הדגמים") "גלריית $selectedBrand $selectedModel" else "גלריית כל רכבי $selectedBrand"
+                    } else "גלריית כל הרכבים (Wikimedia Commons)"
+                },
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold
             )
             if (images.isNotEmpty()) {
                 Text(
-                    text = "מוצגות %,d תמונות".format(images.size),
+                    text = if (isEn) "Showing %,d photos".format(images.size) else "מוצגות %,d תמונות".format(images.size),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -843,7 +856,7 @@ fun GalleryScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator()
                     Spacer(Modifier.height(10.dp))
-                    Text("טוען רכבים מהמאגר...", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(if (isEn) "Loading vehicles from database..." else "טוען רכבים מהמאגר...", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else if (images.isEmpty()) {
@@ -858,12 +871,12 @@ fun GalleryScreen(
                     Spacer(Modifier.height(12.dp))
                     val displayTarget = when {
                         searchQuery.isNotBlank() -> "\"$searchQuery\""
-                        selectedBrand == "הכל" -> "כל הרכבים"
+                        selectedBrand == "הכל" -> if (isEn) "All Vehicles" else "כל הרכבים"
                         selectedModel != "כל הדגמים" -> "\"$selectedBrand $selectedModel\""
                         else -> "\"$selectedBrand\""
                     }
                     Text(
-                        text = "לא נמצאו תמונות עבור $displayTarget.\nבחר באחד היצרנים או הדגמים למעלה.",
+                        text = if (isEn) "No photos found for $displayTarget.\nSelect one of the makes or models above." else "לא נמצאו תמונות עבור $displayTarget.\nבחר באחד היצרנים או הדגמים למעלה.",
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium
@@ -878,7 +891,7 @@ fun GalleryScreen(
                         },
                         modifier = Modifier.handCursor()
                     ) {
-                        Text("הצג את כל הרכבים")
+                        Text(if (isEn) "Show all vehicles" else "הצג את כל הרכבים")
                     }
                 }
             }
@@ -991,7 +1004,7 @@ fun GalleryScreen(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                                     Spacer(Modifier.width(10.dp))
-                                    Text("טוען עוד רכבים...", style = MaterialTheme.typography.bodySmall)
+                                    Text(if (isEn) "Loading more vehicles..." else "טוען עוד רכבים...", style = MaterialTheme.typography.bodySmall)
                                 }
                             } else {
                                 OutlinedButton(
@@ -1001,7 +1014,7 @@ fun GalleryScreen(
                                 ) {
                                     Icon(Icons.Default.KeyboardArrowDown, contentDescription = null)
                                     Spacer(Modifier.width(6.dp))
-                                    Text("טען עוד רכבים")
+                                    Text(if (isEn) "Load more vehicles" else "טען עוד רכבים")
                                 }
                             }
                         }

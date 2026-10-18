@@ -9,14 +9,38 @@ data class DtcCodeInfo(
     val descriptionHe: String,
     val symptomsHe: List<String>,
     val possibleCausesHe: List<String>,
-    val solutionsHe: List<String>
-)
+    val solutionsHe: List<String>,
+    val categoryEn: String = "",
+    val descriptionEn: String = "",
+    val symptomsEn: List<String> = emptyList(),
+    val possibleCausesEn: List<String> = emptyList(),
+    val solutionsEn: List<String> = emptyList()
+) {
+    fun getCategory(isEn: Boolean): String = if (isEn && categoryEn.isNotBlank()) categoryEn else if (isEn) translateCategoryToEn(categoryHe) else categoryHe
+    fun getDescription(isEn: Boolean): String = if (isEn && descriptionEn.isNotBlank()) descriptionEn else if (isEn && titleEn.isNotBlank()) "$titleEn. OBD-II diagnostic fault code detected by the vehicle electronic control unit." else descriptionHe
+    fun getSymptoms(isEn: Boolean): List<String> = if (isEn && symptomsEn.isNotEmpty()) symptomsEn else symptomsHe
+    fun getPossibleCauses(isEn: Boolean): List<String> = if (isEn && possibleCausesEn.isNotEmpty()) possibleCausesEn else possibleCausesHe
+    fun getSolutions(isEn: Boolean): List<String> = if (isEn && solutionsEn.isNotEmpty()) solutionsEn else solutionsHe
 
-enum class DtcSeverity(val titleHe: String, val colorHex: Long) {
-    LOW("נמוכה - ניתן להמשיך בנסיעה בזהירות", 0xFF4CAF50),
-    MEDIUM("בינונית - מומלץ לגשת למוסך בהקדם", 0xFFFFA000),
-    HIGH("גבוהה - סכנה לנזק, מומלץ לא לאמץ את הרכב", 0xFFE64A19),
-    CRITICAL("קריטית - עצור בצד וכבה מנוע מיד", 0xFFD32F2F)
+    companion object {
+        fun translateCategoryToEn(catHe: String): String = when {
+            catHe.contains("הצתה") || catHe.contains("דלק") -> "Ignition & Fuel Injection"
+            catHe.contains("פליטה") || catHe.contains("ממיר") -> "Exhaust & Emissions"
+            catHe.contains("קירור") -> "Cooling System"
+            catHe.contains("הילוכים") -> "Transmission & Drivetrain"
+            catHe.contains("בלימה") || catHe.contains("ABS") -> "Brakes & ABS"
+            catHe.contains("כריות") -> "Airbags & Restraints"
+            catHe.contains("תקשורת") || catHe.contains("מחשב") -> "Network & Modules"
+            else -> "Powertrain & Engine"
+        }
+    }
+}
+
+enum class DtcSeverity(val titleHe: String, val titleEn: String, val colorHex: Long) {
+    LOW("נמוכה - ניתן להמשיך בנסיעה בזהירות", "Low - Safe to drive cautiously", 0xFF4CAF50),
+    MEDIUM("בינונית - מומלץ לגשת למוסך בהקדם", "Medium - Service vehicle soon", 0xFFFFA000),
+    HIGH("גבוהה - סכנה לנזק, מומלץ לא לאמץ את הרכב", "High - Risk of damage, do not strain engine", 0xFFE64A19),
+    CRITICAL("קריטית - עצור בצד וכבה מנוע מיד", "Critical - Stop driving and turn off engine", 0xFFD32F2F)
 }
 
 enum class DtcCategory(val prefix: String, val titleHe: String) {
@@ -265,7 +289,22 @@ object DtcRepository {
         )
     }
 
-    private fun register(code: String, titleHe: String, titleEn: String, categoryHe: String, severity: DtcSeverity, desc: String, symptoms: List<String>, causes: List<String>, solutions: List<String>) {
+    private fun register(
+        code: String,
+        titleHe: String,
+        titleEn: String,
+        categoryHe: String,
+        severity: DtcSeverity,
+        desc: String,
+        symptoms: List<String>,
+        causes: List<String>,
+        solutions: List<String>,
+        categoryEn: String = "",
+        descEn: String = "",
+        symptomsEn: List<String> = emptyList(),
+        causesEn: List<String> = emptyList(),
+        solutionsEn: List<String> = emptyList()
+    ) {
         dtcMap[code.uppercase()] = DtcCodeInfo(
             code = code.uppercase(),
             titleHe = titleHe,
@@ -275,7 +314,12 @@ object DtcRepository {
             descriptionHe = desc,
             symptomsHe = symptoms,
             possibleCausesHe = causes,
-            solutionsHe = solutions
+            solutionsHe = solutions,
+            categoryEn = categoryEn,
+            descriptionEn = descEn,
+            symptomsEn = symptomsEn,
+            possibleCausesEn = causesEn,
+            solutionsEn = solutionsEn
         )
     }
 
@@ -290,7 +334,12 @@ object DtcRepository {
             desc = "מחשב המנוע (ECU) זיהה כי צילינדר אחד או יותר אינם מייצרים בעירה תקינה. מצב זה גורם לעומס על המנוע ועלול לפגוע בממיר הקטליטי.",
             symptoms = listOf("רעידות חזקות של המנוע (בסרק או בהאצה)", "נורת Check Engine מהבהבת או דולקת קבוע", "ירידה משמעותית בסחיבה ובכוח המנוע", "צריכת דלק מוגברת וריח דלק מהאגזוז"),
             causes = listOf("מצתים (פלאגים) בלויים או פגומים", "כוהל הצתה (Ignition Coil) תקול", "מזרקי דלק סתומים או דולפים", "דליפת ואקום בסעפת היניקה", "לחץ דלק נמוך (משאבת דלק/פילטר)"),
-            solutions = listOf("בדיקה והחלפת מצתים (פלאגים)", "בדיקת תקינות סלילי ההצתה (כוהלים)", "בדיקת דליפות ואקום בצנרת היניקה", "ניקוי או החלפת מזרקי דלק")
+            solutions = listOf("בדיקה והחלפת מצתים (פלאגים)", "בדיקת תקינות סלילי ההצתה (כוהלים)", "בדיקת דליפות ואקום בצנרת היניקה", "ניקוי או החלפת מזרקי דלק"),
+            categoryEn = "Ignition & Fuel Injection",
+            descEn = "The Engine Control Unit (ECU) detected that one or more cylinders are misfiring. This causes engine strain, severe hesitation, and can rapidly overheat and damage the catalytic converter.",
+            symptomsEn = listOf("Severe engine vibration or shaking at idle or under load", "Flashing or steady Check Engine light (MIL)", "Significant drop in engine acceleration and power", "Higher fuel consumption and unburned fuel odor from exhaust"),
+            causesEn = listOf("Worn out, fouled, or damaged spark plugs", "Faulty ignition coil(s) or ignition cables", "Clogged, dirty, or leaking fuel injector(s)", "Intake manifold vacuum leak or unmetered air", "Low fuel pressure (weak fuel pump or clogged fuel filter)"),
+            solutionsEn = listOf("Inspect and replace spark plugs if worn or fouled", "Test ignition coils with scanner/multimeter and replace faulty coils", "Inspect intake manifold and vacuum hoses for leaks", "Clean or replace fuel injectors and verify fuel delivery")
         )
 
         // P0301 - Cylinder 1 Misfire

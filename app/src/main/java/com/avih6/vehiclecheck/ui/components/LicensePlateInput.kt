@@ -48,19 +48,26 @@ fun LicensePlateInput(
             onValueChange(digits)
         },
         modifier = modifier.fillMaxWidth(),
-        label = { Text("מספר רכב או כלי צמ\"ה (עד 8 ספרות)") },
+        label = { Text(stringResource(R.string.search_input_label)) },
         placeholder = { Text("00-000-00") },
         leadingIcon = {
             Icon(Icons.Default.DirectionsCar, contentDescription = null)
         },
         trailingIcon = {
+            val clearTooltip = stringResource(R.string.tooltip_clear_input)
+            val clearCd = stringResource(R.string.cd_clear_plate)
+            val voiceTooltip = stringResource(R.string.tooltip_voice_search)
+            val voiceCd = stringResource(R.string.cd_voice_search)
+            val cameraTooltip = stringResource(R.string.tooltip_camera_scan)
+            val cameraCd = stringResource(R.string.cd_camera_scan)
+
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (value.isNotEmpty()) {
                     HoverTooltipIconButton(
                         onClick = onClear,
-                        tooltipText = "נקה קלט",
+                        tooltipText = clearTooltip,
                         modifier = Modifier.semantics {
-                            contentDescription = "נקה שדה לוחית רישוי"
+                            contentDescription = clearCd
                         }
                     ) {
                         Icon(
@@ -73,9 +80,9 @@ fun LicensePlateInput(
                 if (hasMicrophone) {
                     HoverTooltipIconButton(
                         onClick = onVoiceClick,
-                        tooltipText = "חיפוש קולי",
+                        tooltipText = voiceTooltip,
                         modifier = Modifier.semantics {
-                            contentDescription = "חיפוש קולי של מספר רכב"
+                            contentDescription = voiceCd
                         }
                     ) {
                         Icon(
@@ -87,9 +94,9 @@ fun LicensePlateInput(
                 if (hasCamera) {
                     HoverTooltipIconButton(
                         onClick = onCameraClick,
-                        tooltipText = "סריקת לוחית רישוי במצלמה",
+                        tooltipText = cameraTooltip,
                         modifier = Modifier.semantics {
-                            contentDescription = "סריקת לוחית רישוי באמצעות מצלמה"
+                            contentDescription = cameraCd
                         }
                     ) {
                         Icon(

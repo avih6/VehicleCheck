@@ -7,6 +7,13 @@
     <string name="search_btn">בדוק עכשיו</string>
     <string name="search_placeholder">הכנס מספר רכב לבדיקה</string>
     <string name="search_invalid_plate">מספר הרכב חייב להכיל 5 עד 8 ספרות</string>
+    <string name="search_input_label">מספר רכב או כלי צמ&quot;ה (עד 8 ספרות)</string>
+    <string name="tooltip_clear_input">נקה קלט</string>
+    <string name="cd_clear_plate">נקה שדה לוחית רישוי</string>
+    <string name="tooltip_voice_search">חיפוש קולי</string>
+    <string name="cd_voice_search">חיפוש קולי של מספר רכב</string>
+    <string name="tooltip_camera_scan">סריקת לוחית רישוי במצלמה</string>
+    <string name="cd_camera_scan">סריקת לוחית רישוי באמצעות מצלמה</string>
     
     
     <string name="test_valid">טסט בתוקף</string>
@@ -161,4 +168,88 @@ https://play.google.com/store/apps/details?id=com.avih6.vehiclecheck"</string>
     <string name="report_image_email_chooser">שליחת דיווח תמונה בדוא\"ל</string>
     <string name="contact_email_subject">%1$s - יצירת קשר ומשוב</string>
     <string name="contact_email_body">\n\n\n--- כתבו את הודעתכם מעל קו זה ---\n--- מידע טכני ---\nשם האפליקציה: %1$s\nגרסת אפליקציה: %2$s (%3$s)\nגרסת אנדרואיד: %4$s (API %5$s)\nדגם מכשיר: %6$s</string>
+
+    <!-- Recalls Screen Strings -->
+    <string name="recalls_search_label">חיפוש יצרן, דגם, תקלה או מספר קריאה (ריקול)</string>
+    <string name="recalls_search_placeholder">למשל: 11498, טויוטה, יונדאי, בלמים...</string>
+    <string name="recalls_loading">טוען קריאות שירות רשמיות...</string>
+    <string name="recalls_empty">לא נמצאו קריאות שירות התואמות לחיפוש.</string>
+    <string name="recalls_try_again">נסה שוב</string>
+    <string name="recalls_total_count">סה\"כ %1$s קריאות חוזרות (כל המאגר)</string>
+    <string name="recalls_showing_count">מוצגות %1$s מתוך %2$s קריאות</string>
+    <string name="recalls_source">מקור: משרד התחבורה</string>
+    <string name="recalls_item_title">קריאת שירות #%1$s</string>
+    <string name="recalls_item_year">שנת %1$s</string>
+    <string name="recalls_default_make">יצרן רכב</string>
+    <string name="recalls_models_format">דגמים: %1$s</string>
+    <string name="recalls_all_models">כל הדגמים</string>
+    <string name="recalls_build_dates">תאריכי ייצור מושפעים: %1$s עד %2$s</string>
+    <string name="recalls_fault_type">מכלול: %1$s</string>
+    <string name="recalls_desc_title">תיאור התקלה:</string>
+    <string name="recalls_no_desc">לא צוין תיאור לתקלה זו.</string>
+    <string name="recalls_action_required">אופן הטיפול הנדרש:</string>
+    <string name="recalls_importer_title">יבואן רשמי:</string>
+    <string name="recalls_importer_default">שירות היבואן</string>
+    <string name="recalls_call_importer">חייג ליבואן (%1$s)</string>
+    <string name="recalls_open_website">פתח אתר יבואן</string>
+    <string name="recalls_error_load">לא ניתן לטעון את מאגר הריקולים כעת. בדוק את החיבור לרשת.</string>
+
+    <!-- Services Screen Strings -->
+    <string name="services_cat_test_stations">מכוני רישוי (טסט)</string>
+    <string name="services_cat_garages">מוסכים מורשים</string>
+    <string name="services_cat_ev_charging">עמדות טעינה (EV)</string>
+    <string name="services_cat_car_dealers">סוחרי רכב מורשים</string>
+    <string name="services_cat_appraisers">שמאי רכב מוסמכים</string>
+    <string name="services_cat_parts_trade">חלפים ומוצרי תעבורה</string>
+
+    <string name="services_freshness_banner">מאגר משרד התחבורה • עודכן: %1$s</string>
+
+    <string name="services_search_label_test_stations">חיפוש מכון רישוי לפי עיר או שם</string>
+    <string name="services_search_label_garages">חיפוש מוסך לפי עיר, שם או תחום</string>
+    <string name="services_search_label_ev">חיפוש עמדת טעינה לפי עיר או מפעיל</string>
+    <string name="services_search_label_dealers">חיפוש סוחר רכב לפי עיר, שם או ח.פ</string>
+    <string name="services_search_label_appraisers">חיפוש שמאי רכב לפי עיר או שם</string>
+    <string name="services_search_label_parts">חיפוש ספק חלפים לפי עיר, שם או תחום</string>
+
+    <string name="services_search_hint_test_stations">למשל: תל אביב, קומפיוטסט, דינמומטר...</string>
+    <string name="services_search_hint_garages">למשל: חיפה, טויוטה, מכונאות, מוסך שלום...</string>
+    <string name="services_search_hint_ev">למשל: ירושלים, אפקון, סונול EVI...</string>
+    <string name="services_search_hint_dealers">למשל: תל אביב, אלבר, מגרש, 514...</string>
+    <string name="services_search_hint_appraisers">למשל: חיפה, לוי, משה...</string>
+    <string name="services_search_hint_parts">למשל: צמיגים, ירושלים, חלקי חילוף...</string>
+    <string name="services_clear_search">נקה חיפוש</string>
+
+    <string name="services_loading">טוען נתונים רשמיים ממאגר משרד התחבורה...</string>
+    <string name="services_empty_query">לא נמצאו תוצאות עבור \"%1$s\"</string>
+    <string name="services_empty_general">לא נמצאו תוצאות במאגר</string>
+    <string name="services_reset_search">איפוס חיפוש</string>
+
+    <string name="services_count_showing">מציג %1$s מתוך %2$s %3$s במאגר משרד התחבורה</string>
+    <string name="services_count_found">נמצאו %1$s %2$s ברישיון משרד התחבורה</string>
+    <string name="services_name_test_stations">מכוני רישוי</string>
+    <string name="services_name_garages">מוסכים מורשים</string>
+    <string name="services_name_dealers">סוחרי רכב מורשים</string>
+    <string name="services_name_appraisers">שמאי רכב מוסמכים</string>
+    <string name="services_name_parts">עסקי תעבורה</string>
+    <string name="services_count_ev_showing">מציג %1$s מתוך %2$s עמדות טעינה במאגר משרד התחבורה</string>
+    <string name="services_count_ev_found">נמצאו %1$s עמדות טעינה ציבוריות (מאגר ארצי מלא)</string>
+
+    <string name="services_badge_test_station">מכון רישוי (טסט)</string>
+    <string name="services_badge_garage">מוסך מורשה</string>
+    <string name="services_badge_dealer">סוחר מורשה</string>
+    <string name="services_badge_appraiser">רישיון מס\' %1$s</string>
+    <string name="services_btn_navigate">ניווט</string>
+    <string name="services_specialty_prefix">התמחות: %1$s</string>
+    <string name="services_manager_prefix">מנהל מקצועי: %1$s</string>
+    <string name="services_company_id_prefix">ח.פ / עוסק: %1$s</string>
+    <string name="services_region_prefix">אזור / יישוב: %1$s</string>
+    <string name="services_domain_prefix">תחום: %1$s</string>
+    <string name="services_ev_total_sockets">סה\"כ שקעים: %1$s</string>
+    <string name="services_ev_fast_dc">מהיר (DC): %1$s</string>
+    <string name="services_ev_slow_ac">רגיל (AC): %1$s</string>
+    <string name="services_ev_default_name">עמדת טעינה ציבורית</string>
+    <string name="services_dealer_default_name">סוחר רכב מורשה</string>
+    <string name="services_appraiser_default_name">שמאי רכב מוסמך</string>
+    <string name="services_parts_default_name">עסק מוצרי תעבורה</string>
+    <string name="services_unnamed">ללא שם</string>
 </resources>

@@ -38,6 +38,8 @@ import com.avih6.vehiclecheck.data.RecallDetailRecord
 import com.avih6.vehiclecheck.data.VehicleUtils
 import com.avih6.vehiclecheck.data.VehicleModelCatalog
 import com.avih6.vehiclecheck.ui.components.AutoBrandLogo
+import androidx.compose.ui.res.stringResource
+import com.avih6.vehiclecheck.R
 import com.avih6.vehiclecheck.ui.components.HoverTooltipIconButton
 import com.avih6.vehiclecheck.ui.components.handCursor
 import kotlinx.coroutines.Dispatchers
@@ -86,7 +88,7 @@ fun RecallsScreen(
                 })
             } catch (e: Exception) {
                 isLoading = false
-                errorMessage = "לא ניתן לטעון את מאגר הריקולים כעת. בדוק את החיבור לרשת."
+                errorMessage = context.getString(R.string.recalls_error_load)
                 viewModel?.logEvent("recalls_load_error")
             }
         }
@@ -232,8 +234,8 @@ fun RecallsScreen(
             value = searchQuery,
             onValueChange = { searchQuery = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("חיפוש יצרן, דגם, תקלה או מספר קריאה (ריקול)") },
-            placeholder = { Text("למשל: 11498, טויוטה, יונדאי, בלמים...") },
+            label = { Text(stringResource(R.string.recalls_search_label)) },
+            placeholder = { Text(stringResource(R.string.recalls_search_placeholder)) },
             leadingIcon = {
                 Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             },
@@ -241,7 +243,7 @@ fun RecallsScreen(
                 if (searchQuery.isNotEmpty()) {
                     HoverTooltipIconButton(
                         onClick = { searchQuery = "" },
-                        tooltipText = "נקה חיפוש"
+                        tooltipText = stringResource(R.string.tooltip_clear_input)
                     ) {
                         Icon(Icons.Default.Clear, contentDescription = "Clear")
                     }
@@ -277,7 +279,7 @@ fun RecallsScreen(
                             putString("year", yr)
                         })
                     },
-                    label = { Text(if (yr == "הכל") "כל השנים" else yr, fontWeight = FontWeight.Bold, fontSize = 13.sp) },
+                    label = { Text(if (yr == "הכל") stringResource(R.string.filter_all) else yr, fontWeight = FontWeight.Bold, fontSize = 13.sp) },
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.handCursor()
                 )
@@ -295,7 +297,7 @@ fun RecallsScreen(
                             putString("category", newCat)
                         })
                     },
-                    label = { Text(cat, fontSize = 12.sp) },
+                    label = { Text(translateCategory(cat), fontSize = 12.sp) },
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.handCursor()
                 )
@@ -310,7 +312,7 @@ fun RecallsScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator()
                     Spacer(Modifier.height(12.dp))
-                    Text("טוען קריאות שירות רשמיות...", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.recalls_loading), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else if (errorMessage != null) {
@@ -319,7 +321,7 @@ fun RecallsScreen(
                     Text(errorMessage!!, color = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.height(12.dp))
                     Button(onClick = { loadRecalls() }, modifier = Modifier.handCursor()) {
-                        Text("נסה שוב")
+                        Text(stringResource(R.string.recalls_try_again))
                     }
                 }
             }
@@ -334,7 +336,7 @@ fun RecallsScreen(
                     )
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        text = "לא נמצאו קריאות שירות התואמות לחיפוש.",
+                        text = stringResource(R.string.recalls_empty),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -349,13 +351,17 @@ fun RecallsScreen(
             ) {
                 val nf = java.text.NumberFormat.getIntegerInstance(java.util.Locale.US)
                 Text(
-                    text = if (filteredRecalls.size == allRecalls.size) "סה\"כ ${nf.format(allRecalls.size)} קריאות חוזרות (כל המאגר)" else "מוצגות ${nf.format(filteredRecalls.size)} מתוך ${nf.format(allRecalls.size)} קריאות",
+                    text = if (filteredRecalls.size == allRecalls.size) {
+                        stringResource(R.string.recalls_total_count, nf.format(allRecalls.size))
+                    } else {
+                        stringResource(R.string.recalls_showing_count, nf.format(filteredRecalls.size), nf.format(allRecalls.size))
+                    },
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "מקור: משרד התחבורה",
+                    text = stringResource(R.string.recalls_source),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -409,7 +415,7 @@ private fun RecallFeedCard(item: RecallDetailRecord, viewModel: MainViewModel? =
                         )
                         Spacer(Modifier.width(4.dp))
                         Text(
-                            text = "קריאת שירות #${item.recallId ?: ""}",
+                            text = stringResource(R.string.recalls_item_title, item.recallId?.toString() ?: ""),
                             color = Color.White,
                             fontWeight = FontWeight.Black,
                             fontSize = 13.sp
@@ -423,7 +429,7 @@ private fun RecallFeedCard(item: RecallDetailRecord, viewModel: MainViewModel? =
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Text(
-                            text = "שנת $yr",
+                            text = stringResource(R.string.recalls_item_year, yr.toString()),
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -457,14 +463,14 @@ private fun RecallFeedCard(item: RecallDetailRecord, viewModel: MainViewModel? =
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = item.makeName ?: "יצרן רכב",
+                        text = item.makeName ?: stringResource(R.string.recalls_default_make),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Black,
                         fontSize = 20.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "דגמים: ${item.model ?: "כל הדגמים"}",
+                        text = stringResource(R.string.recalls_models_format, item.model ?: stringResource(R.string.recalls_all_models)),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
@@ -481,7 +487,7 @@ private fun RecallFeedCard(item: RecallDetailRecord, viewModel: MainViewModel? =
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = "תאריכי ייצור מושפעים: ${item.buildStart ?: ""} עד ${item.buildEnd ?: ""}",
+                        text = stringResource(R.string.recalls_build_dates, item.buildStart ?: "", item.buildEnd ?: ""),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -505,7 +511,7 @@ private fun RecallFeedCard(item: RecallDetailRecord, viewModel: MainViewModel? =
                         Icon(Icons.Default.Build, contentDescription = null, tint = Color(0xFFE65100), modifier = Modifier.size(14.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(
-                            text = "מכלול: $fType",
+                            text = stringResource(R.string.recalls_fault_type, translateCategory(fType)),
                             color = Color(0xFFE65100),
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 12.sp
@@ -521,14 +527,14 @@ private fun RecallFeedCard(item: RecallDetailRecord, viewModel: MainViewModel? =
 
             // Fault Description (Large, clear, comfortable line height)
             Text(
-                text = "תיאור התקלה:",
+                text = stringResource(R.string.recalls_desc_title),
                 fontWeight = FontWeight.ExtraBold,
                 fontSize = 15.sp,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = item.faultDescription ?: "לא צוין תיאור לתקלה זו.",
+                text = item.faultDescription ?: stringResource(R.string.recalls_no_desc),
                 style = MaterialTheme.typography.bodyMedium,
                 fontSize = 14.sp,
                 lineHeight = 22.sp,
@@ -551,7 +557,7 @@ private fun RecallFeedCard(item: RecallDetailRecord, viewModel: MainViewModel? =
                         Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
                         Column {
-                            Text("אופן הטיפול הנדרש:", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1B5E20))
+                            Text(stringResource(R.string.recalls_action_required), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF1B5E20))
                             Text(repair, fontSize = 13.sp, color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold)
                         }
                     }
@@ -573,12 +579,12 @@ private fun RecallFeedCard(item: RecallDetailRecord, viewModel: MainViewModel? =
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "יבואן רשמי:",
+                                text = stringResource(R.string.recalls_importer_title),
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = item.importerName ?: "שירות היבואן",
+                                text = item.importerName ?: stringResource(R.string.recalls_importer_default),
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -596,7 +602,7 @@ private fun RecallFeedCard(item: RecallDetailRecord, viewModel: MainViewModel? =
                                         val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))
                                         try { context.startActivity(dialIntent) } catch (e: Exception) {}
                                     },
-                                    tooltipText = "חייג ליבואן ($phone)",
+                                    tooltipText = stringResource(R.string.recalls_call_importer, phone),
                                     modifier = Modifier.size(40.dp)
                                 ) {
                                     Surface(
@@ -629,7 +635,7 @@ private fun RecallFeedCard(item: RecallDetailRecord, viewModel: MainViewModel? =
                                         val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse(fullUrl))
                                         try { context.startActivity(webIntent) } catch (e: Exception) {}
                                     },
-                                    tooltipText = "פתח אתר יבואן",
+                                    tooltipText = stringResource(R.string.recalls_open_website),
                                     modifier = Modifier.size(40.dp)
                                 ) {
                                     Surface(
@@ -653,5 +659,24 @@ private fun RecallFeedCard(item: RecallDetailRecord, viewModel: MainViewModel? =
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun translateCategory(cat: String): String {
+    val isEn = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "en"
+    if (!isEn) return cat
+    return when (cat) {
+        "הכל" -> "All"
+        "בלמים" -> "Brakes"
+        "כריות אוויר" -> "Airbags"
+        "היגוי" -> "Steering"
+        "דלק" -> "Fuel"
+        "מנוע" -> "Engine"
+        "חשמל" -> "Electrical"
+        "מתלים" -> "Suspension"
+        "חגורות" -> "Seatbelts"
+        "תוכנה" -> "Software"
+        else -> cat
     }
 }

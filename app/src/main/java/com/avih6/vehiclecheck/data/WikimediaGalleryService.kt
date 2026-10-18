@@ -411,7 +411,19 @@ object WikimediaGalleryService {
     )
 
     private fun isJunkOrNonVehicle(title: String, description: String = "", artist: String = "", categories: String = ""): Boolean {
-        val titleLower = title.lowercase()
+        val titleLower = title.lowercase().trim()
+
+        // Block brand-only titles (which are company logos / corporate emblems)
+        val brandOnlyNames = setOf(
+            "toyota", "טויוטה", "hyundai", "יונדאי", "kia", "קיה", "mazda", "מאזדה",
+            "tesla", "טסלה", "chevrolet", "שברולט", "ford", "פורד", "audi", "אאודי",
+            "bmw", "ב.מ.וו", "mercedes", "מרצדס", "volkswagen", "פולקסווגן", "skoda", "סקודה",
+            "lexus", "לקסוס", "volvo", "וולוו", "peugeot", "פיג'ו", "renault", "רנו"
+        )
+        if (brandOnlyNames.contains(titleLower)) return true
+        if (titleLower.contains("logo") || titleLower.contains("emblem") || titleLower.contains("לוגו") || titleLower.contains("סמל")) {
+            return true
+        }
 
         // 1. Check title against blocked multi-word phrases
         if (blockedPhrases.any { titleLower.contains(it) }) return true
@@ -478,11 +490,10 @@ object WikimediaGalleryService {
                 val extraImages = coroutineScope {
                     val dWikiEn = async {
                         if (brand.isNotBlank() && model.isNotBlank()) fetchWikipediaSearch("$brand $model", limit = 10, isHebrew = false)
-                        else if (brand.isNotBlank()) fetchWikipediaSearch(brand, limit = 10, isHebrew = false)
                         else emptyList()
                     }
                     val dWikiHe = async {
-                        if (cleanMake.isNotBlank()) fetchWikipediaSearch("$cleanMake $cleanModel".trim(), limit = 6, isHebrew = true)
+                        if (cleanMake.isNotBlank() && cleanModel.isNotBlank()) fetchWikipediaSearch("$cleanMake $cleanModel".trim(), limit = 6, isHebrew = true)
                         else emptyList()
                     }
                     val dCat = async {
@@ -810,9 +821,10 @@ object WikimediaGalleryService {
         var score = 0
         val textToSearch = "${image.title} ${image.description}".lowercase()
 
-        // Reject interior / engine bay terms if present anywhere in text
-        val hasInteriorOrEngine = listOf("engine", "motor", "interior", "seat", "seats", "dashboard", "steering wheel", "cockpit", "radiator", "trunk", "underbody", "chassis").any {
-            textToSearch.contains(it)
+        // Reject interior / engine bay terms if present in image title
+        val titleLower = image.title.lowercase()
+        val hasInteriorOrEngine = listOf("engine", "interior", "dashboard", "steering wheel", "cockpit", "radiator", "trunk", "underbody").any {
+            titleLower.contains(it)
         }
         if (hasInteriorOrEngine) {
             return -100000
@@ -937,8 +949,8 @@ object WikimediaGalleryService {
                 "MINI $miniModel car automobile"
             }
             brand.equals("man", ignoreCase = true) -> "MAN truck commercial vehicle"
-            model.isNotBlank() && !model.equals("car", ignoreCase = true) -> "$brand $model car"
-            brand.isNotBlank() && !brand.equals("car", ignoreCase = true) -> "$brand car vehicle"
+            model.isNotBlank() && !model.equals("car", ignoreCase = true) -> "$brand $model"
+            brand.isNotBlank() && !brand.equals("car", ignoreCase = true) -> "$brand automobile"
             else -> "automobiles passenger cars vehicle"
         }
     }

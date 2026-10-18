@@ -521,7 +521,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val plate = _query.value.trim()
         val clean = plate.filter { it.isDigit() }.take(8)
         if (clean.isEmpty() || clean.length > 8) {
-            _searchState.value = SearchState.Error("מספר הרכב או כלי הצמ\"ה חייב להכיל עד 8 ספרות")
+            _searchState.value = SearchState.Error(getApplication<Application>().getString(R.string.search_invalid_plate))
             return
         }
         // Block duplicate consecutive requests if already loading the exact same plate
@@ -738,11 +738,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val (activeVehicle, equipmentRecord, equipmentPollution) = coroutineScope {
                     val privateDef = async {
                         try {
-                            val resp = NetworkClient.apiService.getPrivateVehicle(filters = filtersStr)
-                            resp.result?.records?.firstOrNull() ?: run {
-                                NetworkClient.apiService.searchVehicleByQuery(query = plateStr).result?.records?.firstOrNull { it.licensePlate == plateLong }
+                            if (plateLong != null) {
+                                NetworkClient.apiService.getPrivateVehicle(filters = filtersStr).result?.records?.firstOrNull()
+                            } else {
+                                NetworkClient.apiService.searchVehicleByQuery(query = plateStr).result?.records?.firstOrNull()
                             }
-                        } catch (_: Exception) { null }
+                        } catch (_: Exception) {
+                            try {
+                                NetworkClient.apiService.searchVehicleByQuery(query = plateStr).result?.records?.firstOrNull { it.licensePlate == plateLong }
+                            } catch (_: Exception) { null }
+                        }
                     }
                     val importDef = async {
                         try {
@@ -751,17 +756,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     val publicDef = async {
                         try {
-                            NetworkClient.apiService.getPublicVehicle(filters = filtersStr).result?.records?.firstOrNull()
-                                ?: NetworkClient.apiService.getPublicVehicle(filters = "{\"mispar_rechev\":\"$plateStr\"}").result?.records?.firstOrNull()
-                                ?: NetworkClient.apiService.getPublicVehicle(filters = "{\"mispar_rechev\":\"$paddedPlate\"}").result?.records?.firstOrNull()
-                        } catch (_: Exception) { null }
+                            if (plateLong != null) {
+                                NetworkClient.apiService.getPublicVehicle(filters = filtersStr).result?.records?.firstOrNull()
+                            } else {
+                                NetworkClient.apiService.getPublicVehicle(filters = "{\"mispar_rechev\":\"$plateStr\"}").result?.records?.firstOrNull()
+                            }
+                        } catch (_: Exception) {
+                            try {
+                                NetworkClient.apiService.getPublicVehicle(filters = "{\"mispar_rechev\":\"$paddedPlate\"}").result?.records?.firstOrNull()
+                            } catch (_: Exception) { null }
+                        }
                     }
                     val heavyDef = async {
                         try {
-                            NetworkClient.apiService.getHeavyVehicle(filters = filtersStr).result?.records?.firstOrNull()
-                                ?: NetworkClient.apiService.getHeavyVehicle(filters = "{\"mispar_rechev\":\"$plateStr\"}").result?.records?.firstOrNull()
-                                ?: NetworkClient.apiService.getHeavyVehicle(filters = "{\"mispar_rechev\":\"$paddedPlate\"}").result?.records?.firstOrNull()
-                        } catch (_: Exception) { null }
+                            if (plateLong != null) {
+                                NetworkClient.apiService.getHeavyVehicle(filters = filtersStr).result?.records?.firstOrNull()
+                            } else {
+                                NetworkClient.apiService.getHeavyVehicle(filters = "{\"mispar_rechev\":\"$plateStr\"}").result?.records?.firstOrNull()
+                            }
+                        } catch (_: Exception) {
+                            try {
+                                NetworkClient.apiService.getHeavyVehicle(filters = "{\"mispar_rechev\":\"$paddedPlate\"}").result?.records?.firstOrNull()
+                            } catch (_: Exception) { null }
+                        }
                     }
                     val bikeDef = async {
                         try {
@@ -770,8 +787,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     val zamaDef = async {
                         try {
-                            NetworkClient.apiService.getEngineeringEquipment(filters = "{\"mispar_tzama\":$plateLong}").result?.records?.firstOrNull()
-                                ?: NetworkClient.apiService.getEngineeringEquipment(filters = "{\"mispar_tzama\":\"$plateStr\"}").result?.records?.firstOrNull()
+                            if (plateLong != null) {
+                                NetworkClient.apiService.getEngineeringEquipment(filters = "{\"mispar_tzama\":$plateLong}").result?.records?.firstOrNull()
+                            } else {
+                                NetworkClient.apiService.getEngineeringEquipment(filters = "{\"mispar_tzama\":\"$plateStr\"}").result?.records?.firstOrNull()
+                            }
                         } catch (_: Exception) { null }
                     }
 
@@ -987,10 +1007,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
                 val extraHistoryDeferred = async {
                     try {
-                        NetworkClient.apiService.getExtraHistory(filters = filtersStr).result?.records?.firstOrNull() ?: run {
-                            NetworkClient.apiService.searchExtraHistoryByQuery(query = plateStr).result?.records?.firstOrNull {
-                                it.licensePlate == plateLong
-                            }
+                        if (plateLong != null) {
+                            NetworkClient.apiService.getExtraHistory(filters = filtersStr).result?.records?.firstOrNull()
+                        } else {
+                            NetworkClient.apiService.searchExtraHistoryByQuery(query = plateStr).result?.records?.firstOrNull()
                         }
                     } catch (_: Exception) {
                         try {
@@ -1003,11 +1023,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
                 val permitDeferred = async {
                     try {
-                        val permitFilters = "{\"MISPAR RECHEV\":$plateLong}"
-                        NetworkClient.apiService.getDisabledPermit(filters = permitFilters).result?.records?.firstOrNull() ?: run {
-                            NetworkClient.apiService.searchDisabledPermitByQuery(query = plateStr).result?.records?.firstOrNull {
-                                it.licensePlate == plateLong
-                            }
+                        if (plateLong != null) {
+                            val permitFilters = "{\"MISPAR RECHEV\":$plateLong}"
+                            NetworkClient.apiService.getDisabledPermit(filters = permitFilters).result?.records?.firstOrNull()
+                        } else {
+                            NetworkClient.apiService.searchDisabledPermitByQuery(query = plateStr).result?.records?.firstOrNull()
                         }
                     } catch (_: Exception) {
                         try {
@@ -1066,14 +1086,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
 
                 val baseInfo = VehicleUtils.extractBaseModel(vehicle.make, vehicle.model, vehicle.modelCode, vehicle.vin)
-                val statsKey = "${makeCd}_${modelCd}_${year}_${baseInfo.baseModel}_v5"
+                val statsKey = "${makeCd}_${modelCd}_${year}_${baseInfo.baseModel}_v6"
+                var statsTimedOut = false
                 val statsDeferred = async {
                     modelStatsCache.get(statsKey)?.let { return@async it }
-                    val computedStats = withTimeoutOrNull(12000L) {
+                    val computedStats = withTimeoutOrNull(15000L) {
                         computeModelStatistics(vehicle, isEngineering, isOffRoad, baseInfo)
-                    } ?: ModelStatistics(if (isOffRoad) 0 else 1, if (isOffRoad) 1 else 0)
-                    modelStatsCache.put(statsKey, computedStats)
-                    computedStats
+                    }
+                    if (computedStats != null) {
+                        if (computedStats.totalActive > 1 || computedStats.totalInactive > 0 || isEngineering) {
+                            modelStatsCache.put(statsKey, computedStats)
+                        }
+                        computedStats
+                    } else {
+                        statsTimedOut = true
+                        ModelStatistics(if (isOffRoad) 0 else 1, if (isOffRoad) 1 else 0)
+                    }
                 }
 
                 val (recalls, recallDetail) = recallsDeferred.await()
@@ -1137,8 +1165,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 _searchProgress.value = 1.0f
                 _searchState.value = finalSuccess
 
-                // Cache the full success for 0ms re-lookups
-                searchResultCache.put(cacheKey, finalSuccess)
+                // Cache the full success for 0ms re-lookups only when stats did not time out
+                if (!statsTimedOut) {
+                    searchResultCache.put(cacheKey, finalSuccess)
+                }
 
                 searchTrace.putAttribute("status", "success")
                 searchTrace.putAttribute("make", vehicle.make ?: "unknown")
@@ -1283,12 +1313,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             else -> listOf("053cea08-09bc-40ec-8f7a-156f0677aff3", "cd3acc5c-03c3-4c89-9c54-d40f93c0d790")
         }
 
+        // 053cea08, 851ecab1, and f6efe89a have kinuy_mishari and degem_cd columns in data.gov.il
+        fun supportsKinuyAndDegemCd(resId: String): Boolean =
+            resId == "053cea08-09bc-40ec-8f7a-156f0677aff3" ||
+            resId == "851ecab1-0622-4dbe-a6c7-f950cf82abf9" ||
+            resId == "f6efe89a-fb3d-43a4-bb61-9bf12a9b9099"
+
         // Candidate commercial model terms (kinuy_mishari in data.gov.il)
-        val kinuyTerms = listOfNotNull(
-            baseInfo.exactKinuyFilter?.trim(),
-            vehicle.model?.trim(),
-            baseInfo.baseModel.trim()
-        ).filter { it.isNotBlank() && it != vehicle.make && it.length >= 2 }.distinct()
+        val hasCommercialModel = !vehicle.model.isNullOrBlank() || !baseInfo.exactKinuyFilter.isNullOrBlank()
+        val kinuyTerms = if (hasCommercialModel) {
+            listOfNotNull(
+                baseInfo.exactKinuyFilter?.trim(),
+                vehicle.model?.trim(),
+                baseInfo.baseModel.trim()
+            ).filter { it.isNotBlank() && it != vehicle.make && it.length >= 2 }.distinct()
+        } else {
+            emptyList()
+        }
 
         val allSearchTerms = (kinuyTerms + baseInfo.searchTerms + listOfNotNull(vehicle.modelCode?.trim()))
             .filter { it.isNotBlank() && it != vehicle.make && it.length >= 2 }
@@ -1300,69 +1341,116 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 var activeTotal = 0
                 var matchedTerm: String? = null
                 var matchedFilterStr: String? = null
+                val matchedResources = mutableListOf<String>()
 
                 for (resId in activeResourcesToSearch) {
                     var resCount = 0
 
-                    // A. Prioritize exact kinuy_mishari filter (commercial model name) - 100% exact & avoids CKAN fulltext stemming bugs
-                    for (term in (kinuyTerms + baseInfo.searchTerms).distinct()) {
-                        try {
-                            val filterJson = "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"$term\"}"
-                            val fc = NetworkClient.apiService.getSameModelActiveCount(
-                                resourceId = resId,
-                                filters = filterJson,
-                                limit = 0
-                            ).result?.total ?: 0
-                            if (fc > resCount) {
-                                resCount = fc
-                                matchedFilterStr = filterJson
-                                matchedTerm = term
-                                if (fc > 25) break
+                    // A. Prioritize exact kinuy_mishari filter (ONLY on resources that have kinuy_mishari)
+                    if (supportsKinuyAndDegemCd(resId) && kinuyTerms.isNotEmpty()) {
+                        val primaryResults = kinuyTerms.take(3).map { term ->
+                            async {
+                                try {
+                                    val filterJson = "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"$term\"}"
+                                    val fc = NetworkClient.apiService.getSameModelActiveCount(
+                                        resourceId = resId,
+                                        filters = filterJson,
+                                        limit = 0
+                                    ).result?.total ?: 0
+                                    Triple(fc, term, filterJson)
+                                } catch (_: Exception) {
+                                    Triple(0, term, "")
+                                }
                             }
-                        } catch (_: Exception) {}
-                    }
+                        }.awaitAll()
 
-                    // B. If no or small match, try degem_nm exact filter (for older vehicles or models stored in degem_nm)
-                    if (resCount < 25) {
-                        for (term in allSearchTerms.take(5)) {
-                            try {
-                                val filterJson = "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$term\"}"
-                                val fc = NetworkClient.apiService.getSameModelActiveCount(
-                                    resourceId = resId,
-                                    filters = filterJson,
-                                    limit = 0
-                                ).result?.total ?: 0
-                                if (fc > resCount) {
-                                    resCount = fc
-                                    matchedFilterStr = filterJson
-                                    matchedTerm = term
-                                    if (fc > 25) break
+                        val bestPrimary = primaryResults.maxByOrNull { it.first }
+                        if (bestPrimary != null && bestPrimary.first > resCount) {
+                            resCount = bestPrimary.first
+                            matchedTerm = bestPrimary.second
+                            matchedFilterStr = bestPrimary.third
+                        }
+
+                        // Only try secondary searchTerms on kinuy_mishari if primary kinuyTerms returned 0
+                        if (resCount == 0) {
+                            val extraTerms = baseInfo.searchTerms.filter { it !in kinuyTerms && it.length >= 2 }.take(3)
+                            if (extraTerms.isNotEmpty()) {
+                                val extraResults = extraTerms.map { term ->
+                                    async {
+                                        try {
+                                            val filterJson = "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"$term\"}"
+                                            val fc = NetworkClient.apiService.getSameModelActiveCount(
+                                                resourceId = resId,
+                                                filters = filterJson,
+                                                limit = 0
+                                            ).result?.total ?: 0
+                                            Triple(fc, term, filterJson)
+                                        } catch (_: Exception) {
+                                            Triple(0, term, "")
+                                        }
+                                    }
+                                }.awaitAll()
+                                val bestExtra = extraResults.maxByOrNull { it.first }
+                                if (bestExtra != null && bestExtra.first > resCount) {
+                                    resCount = bestExtra.first
+                                    matchedTerm = bestExtra.second
+                                    matchedFilterStr = bestExtra.third
                                 }
-                            } catch (_: Exception) {}
+                            }
                         }
                     }
 
-                    // C. Fallback to CKAN fulltext query (only if exact column filters found nothing)
-                    if (resCount == 0) {
-                        for (term in allSearchTerms.take(4)) {
-                            try {
-                                val qc = NetworkClient.apiService.getSameModelActiveCount(
-                                    resourceId = resId,
-                                    filters = "{\"tozeret_cd\":$makeCd}",
-                                    query = term,
-                                    limit = 0
-                                ).result?.total ?: 0
-                                if (qc > resCount) {
-                                    resCount = qc
-                                    matchedTerm = term
-                                    if (qc > 25) break
+                    // B. If no match on kinuy_mishari (or resource lacks kinuy_mishari), try degem_nm in parallel
+                    if (resCount == 0 && allSearchTerms.isNotEmpty()) {
+                        val degemResults = allSearchTerms.take(4).map { term ->
+                            async {
+                                try {
+                                    val filterJson = "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$term\"}"
+                                    val fc = NetworkClient.apiService.getSameModelActiveCount(
+                                        resourceId = resId,
+                                        filters = filterJson,
+                                        limit = 0
+                                    ).result?.total ?: 0
+                                    Triple(fc, term, filterJson)
+                                } catch (_: Exception) {
+                                    Triple(0, term, "")
                                 }
-                            } catch (_: Exception) {}
+                            }
+                        }.awaitAll()
+                        val bestDegem = degemResults.maxByOrNull { it.first }
+                        if (bestDegem != null && bestDegem.first > resCount) {
+                            resCount = bestDegem.first
+                            matchedTerm = bestDegem.second
+                            matchedFilterStr = bestDegem.third
                         }
                     }
 
-                    // D. Fallback to modelCd if available and count is still 0
-                    if (resCount == 0 && modelCd != null && modelCd > 0) {
+                    // C. Fallback to CKAN fulltext query in parallel (only if exact column filters found nothing)
+                    if (resCount == 0 && allSearchTerms.isNotEmpty()) {
+                        val queryResults = allSearchTerms.take(3).map { term ->
+                            async {
+                                try {
+                                    val qc = NetworkClient.apiService.getSameModelActiveCount(
+                                        resourceId = resId,
+                                        filters = "{\"tozeret_cd\":$makeCd}",
+                                        query = term,
+                                        limit = 0
+                                    ).result?.total ?: 0
+                                    Pair(qc, term)
+                                } catch (_: Exception) {
+                                    Pair(0, term)
+                                }
+                            }
+                        }.awaitAll()
+                        val bestQuery = queryResults.maxByOrNull { it.first }
+                        if (bestQuery != null && bestQuery.first > resCount) {
+                            resCount = bestQuery.first
+                            matchedTerm = bestQuery.second
+                        }
+                    }
+
+                    // D. Fallback to modelCd (ONLY on resources that have degem_cd)
+                    if (resCount == 0 && supportsKinuyAndDegemCd(resId) && modelCd != null && modelCd > 0) {
                         try {
                             val mc = NetworkClient.apiService.getSameModelActiveCount(
                                 resourceId = resId,
@@ -1376,112 +1464,124 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         } catch (_: Exception) {}
                     }
 
+                    if (resCount > 0) {
+                        matchedResources.add(resId)
+                    }
+
                     // Sum across resources if commercial or if both returned counts
                     if (isHeavyOrCommercial || (activeTotal > 0 && resCount > 0)) {
                         activeTotal += resCount
                     } else if (resCount > activeTotal) {
                         activeTotal = resCount
                     }
+
+                    // Once the primary resource matched active vehicles, only check the secondary resource for borderline 3.2t-4.2t light-commercial vans
+                    val weight = vehicle.totalWeight ?: 0
+                    val isBorderlineVan = isHeavyOrCommercial && weight in 3200..4200
+                    if (activeTotal > 0 && !isBorderlineVan) {
+                        break
+                    }
                 }
 
-                Triple(activeTotal, matchedTerm, matchedFilterStr)
+                Triple(activeTotal, matchedTerm, Pair(matchedFilterStr, matchedResources.ifEmpty { listOf(activeResourcesToSearch.first()) }))
             }
 
             // 2. ASYNC QUERY FOR INACTIVE VEHICLES (Runs IN PARALLEL with activeJob!)
             val inactiveJob = async {
                 val checkVintage = year < 2018 || isOffRoad || isHeavyOrCommercial
+                val modernDeregisteredRes = "851ecab1-0622-4dbe-a6c7-f950cf82abf9"
 
-                // Query modern deregistered (f6efe89a)
+                // Query modern deregistered (851ecab1 - includes passenger cars, buses, and heavy vehicles)
                 val modernDeferred = async {
                     var maxCount = 0
 
-                    // A. Prioritize exact kinuy_mishari filter
-                    for (term in (kinuyTerms + baseInfo.searchTerms).distinct()) {
-                        try {
-                            val filterJson = "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"$term\"}"
-                            val fc = NetworkClient.apiService.getDeregisteredCount(
-                                resourceId = "f6efe89a-fb3d-43a4-bb61-9bf12a9b9099",
-                                filters = filterJson,
-                                limit = 0
-                            ).result?.total ?: 0
-                            if (fc > maxCount) maxCount = fc
-                            if (fc > 25) break
-                        } catch (_: Exception) {}
+                    // A. Prioritize exact kinuy_mishari filter in parallel
+                    if (kinuyTerms.isNotEmpty()) {
+                        val kinuyCounts = kinuyTerms.take(3).map { term ->
+                            async {
+                                try {
+                                    val filterJson = "{\"tozeret_cd\":$makeCd,\"kinuy_mishari\":\"$term\"}"
+                                    NetworkClient.apiService.getDeregisteredCount(
+                                        resourceId = modernDeregisteredRes,
+                                        filters = filterJson,
+                                        limit = 0
+                                    ).result?.total ?: 0
+                                } catch (_: Exception) { 0 }
+                            }
+                        }.awaitAll()
+                        maxCount = kinuyCounts.maxOrNull() ?: 0
                     }
 
-                    // B. Exact degem_nm filter
-                    if (maxCount < 25) {
-                        for (term in allSearchTerms.take(5)) {
-                            try {
-                                val filterJson = "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$term\"}"
-                                val fc = NetworkClient.apiService.getDeregisteredCount(
-                                    resourceId = "f6efe89a-fb3d-43a4-bb61-9bf12a9b9099",
-                                    filters = filterJson,
-                                    limit = 0
-                                ).result?.total ?: 0
-                                if (fc > maxCount) maxCount = fc
-                                if (fc > 25) break
-                            } catch (_: Exception) {}
+                    // B. If kinuyTerms returned 0 (or vehicle has no kinuy_mishari, e.g. buses/trucks), try degem_nm + degem_cd in a single parallel batch
+                    if (maxCount == 0 && allSearchTerms.isNotEmpty()) {
+                        val fallbackJobs = allSearchTerms.take(4).map { term ->
+                            async {
+                                try {
+                                    NetworkClient.apiService.getDeregisteredCount(
+                                        resourceId = modernDeregisteredRes,
+                                        filters = "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$term\"}",
+                                        limit = 0
+                                    ).result?.total ?: 0
+                                } catch (_: Exception) { 0 }
+                            }
+                        }.toMutableList()
+                        if (modelCd != null && modelCd > 0) {
+                            fallbackJobs.add(async {
+                                try {
+                                    NetworkClient.apiService.getDeregisteredCount(
+                                        resourceId = modernDeregisteredRes,
+                                        filters = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}",
+                                        limit = 0
+                                    ).result?.total ?: 0
+                                } catch (_: Exception) { 0 }
+                            })
                         }
+                        maxCount = fallbackJobs.awaitAll().maxOrNull() ?: 0
                     }
 
-                    // C. Fulltext query
-                    if (maxCount == 0) {
-                        for (term in allSearchTerms.take(4)) {
-                            try {
-                                val c = NetworkClient.apiService.getDeregisteredCount(
-                                    resourceId = "f6efe89a-fb3d-43a4-bb61-9bf12a9b9099",
-                                    filters = "{\"tozeret_cd\":$makeCd}",
-                                    query = term,
-                                    limit = 0
-                                ).result?.total ?: 0
-                                if (c > maxCount) maxCount = c
-                                if (c > 25) break
-                            } catch (_: Exception) {}
-                        }
+                    // C. Fallback to fulltext query on 851ecab1 if exact filters returned 0
+                    if (maxCount == 0 && allSearchTerms.isNotEmpty()) {
+                        val queryCounts = allSearchTerms.take(2).map { term ->
+                            async {
+                                try {
+                                    NetworkClient.apiService.getDeregisteredCount(
+                                        resourceId = modernDeregisteredRes,
+                                        filters = "{\"tozeret_cd\":$makeCd}",
+                                        query = term,
+                                        limit = 0
+                                    ).result?.total ?: 0
+                                } catch (_: Exception) { 0 }
+                            }
+                        }.awaitAll()
+                        maxCount = queryCounts.maxOrNull() ?: 0
                     }
 
-                    // D. Fallback to degem_cd
-                    if (maxCount == 0 && modelCd != null && modelCd > 0) {
-                        try {
-                            maxCount = NetworkClient.apiService.getDeregisteredCount(
-                                resourceId = "f6efe89a-fb3d-43a4-bb61-9bf12a9b9099",
-                                filters = "{\"tozeret_cd\":$makeCd,\"degem_cd\":$modelCd}",
-                                limit = 0
-                            ).result?.total ?: 0
-                        } catch (_: Exception) {}
-                    }
                     maxCount
                 }
 
-                // Query vintage deregistered (6f6acd03) - Note: NEVER filter on kinuy_mishari in 6f6acd03!
+                // Query vintage deregistered (6f6acd03) - Note: NEVER filter on kinuy_mishari or degem_cd in 6f6acd03!
                 val vintageDeferred = async {
-                    if (!checkVintage) return@async 0
-                    var maxCount = 0
-                    for (term in allSearchTerms.take(5)) {
-                        // Try exact degem_nm filter
-                        try {
-                            val fc = NetworkClient.apiService.getDeregisteredCount(
-                                resourceId = "6f6acd03-f351-4a8f-8ecf-df792f4f573a",
-                                filters = "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$term\"}",
-                                limit = 0
-                            ).result?.total ?: 0
-                            if (fc > maxCount) maxCount = fc
-                            if (fc > 25) break
-                        } catch (_: Exception) {}
-                        // Try fulltext query
-                        try {
-                            val qc = NetworkClient.apiService.getDeregisteredCount(
-                                resourceId = "6f6acd03-f351-4a8f-8ecf-df792f4f573a",
-                                filters = "{\"tozeret_cd\":$makeCd}",
-                                query = term,
-                                limit = 0
-                            ).result?.total ?: 0
-                            if (qc > maxCount) maxCount = qc
-                            if (qc > 25) break
-                        } catch (_: Exception) {}
-                    }
-                    maxCount
+                    if (!checkVintage || allSearchTerms.isEmpty()) return@async 0
+                    val vintageCounts = allSearchTerms.take(3).map { term ->
+                        async {
+                            try {
+                                val fc = NetworkClient.apiService.getDeregisteredCount(
+                                    resourceId = "6f6acd03-f351-4a8f-8ecf-df792f4f573a",
+                                    filters = "{\"tozeret_cd\":$makeCd,\"degem_nm\":\"$term\"}",
+                                    limit = 0
+                                ).result?.total ?: 0
+                                if (fc > 0) fc else {
+                                    NetworkClient.apiService.getDeregisteredCount(
+                                        resourceId = "6f6acd03-f351-4a8f-8ecf-df792f4f573a",
+                                        filters = "{\"tozeret_cd\":$makeCd}",
+                                        query = term,
+                                        limit = 0
+                                    ).result?.total ?: 0
+                                }
+                            } catch (_: Exception) { 0 }
+                        }
+                    }.awaitAll()
+                    vintageCounts.maxOrNull() ?: 0
                 }
 
                 val modernCount = modernDeferred.await()
@@ -1490,100 +1590,107 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 modernCount + vintageCount
             }
 
-            val (totalActive, matchedTerm, matchedFilter) = activeJob.await()
+            val (totalActive, matchedTerm, filterAndResources) = activeJob.await()
+            val (matchedFilter, resourcesForYearBreakdown) = filterAndResources
             val totalInactive = inactiveJob.await()
 
             val finalActive = if (totalActive > 0) totalActive else if (isOffRoad) 0 else 1
             val finalInactive = if (isOffRoad) totalInactive.coerceAtLeast(1) else totalInactive
 
-            // 3. ASYNC QUERY FOR YEAR BREAKDOWN (Multi-year distribution)
+            // 3. ASYNC QUERY FOR YEAR BREAKDOWN (Isolated in its own 4500ms timeout so it can NEVER discard finalActive/finalInactive!)
             val centerYear = year
             val currentYear = java.time.LocalDate.now().year
             val yearsToQuery = ((centerYear - 3)..(centerYear + 3)).filter { it in 1948..currentYear }
+            val modernDeregisteredRes = "851ecab1-0622-4dbe-a6c7-f950cf82abf9"
 
-            val yearJobs = yearsToQuery.map { yr ->
-                async {
-                    var yrActive = 0
-                    for (resId in activeResourcesToSearch) {
-                        var c = 0
-                        if (matchedFilter != null) {
-                            try {
-                                val f = matchedFilter.removeSuffix("}") + ",\"shnat_yitzur\":$yr}"
-                                c = NetworkClient.apiService.getSameModelActiveCount(
-                                    resourceId = resId,
-                                    filters = f,
-                                    limit = 0
-                                ).result?.total ?: 0
-                            } catch (_: Exception) {}
+            val queriedBreakdown = try {
+                withTimeoutOrNull(4500L) {
+                    val yearJobs = yearsToQuery.map { yr ->
+                        async {
+                            var yrActive = 0
+                            for (resId in resourcesForYearBreakdown) {
+                                var c = 0
+                                val canUseMatchedFilter = matchedFilter != null &&
+                                    (supportsKinuyAndDegemCd(resId) || (!matchedFilter.contains("kinuy_mishari") && !matchedFilter.contains("degem_cd")))
+                                if (canUseMatchedFilter && matchedFilter != null) {
+                                    try {
+                                        val f = matchedFilter.removeSuffix("}") + ",\"shnat_yitzur\":$yr}"
+                                        c = NetworkClient.apiService.getSameModelActiveCount(
+                                            resourceId = resId,
+                                            filters = f,
+                                            limit = 0
+                                        ).result?.total ?: 0
+                                    } catch (_: Exception) {}
+                                } else if (matchedTerm != null) {
+                                    try {
+                                        c = NetworkClient.apiService.getSameModelActiveCount(
+                                            resourceId = resId,
+                                            filters = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$yr}",
+                                            query = matchedTerm,
+                                            limit = 0
+                                        ).result?.total ?: 0
+                                    } catch (_: Exception) {}
+                                }
+                                yrActive += c
+                            }
+
+                            var inModern = 0
+                            if (yr >= 2000) {
+                                if (matchedFilter != null) {
+                                    try {
+                                        val f = matchedFilter.removeSuffix("}") + ",\"shnat_yitzur\":$yr}"
+                                        inModern = NetworkClient.apiService.getDeregisteredCount(
+                                            resourceId = modernDeregisteredRes,
+                                            filters = f,
+                                            limit = 0
+                                        ).result?.total ?: 0
+                                    } catch (_: Exception) {}
+                                } else if (matchedTerm != null) {
+                                    try {
+                                        inModern = NetworkClient.apiService.getDeregisteredCount(
+                                            resourceId = modernDeregisteredRes,
+                                            filters = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$yr}",
+                                            query = matchedTerm,
+                                            limit = 0
+                                        ).result?.total ?: 0
+                                    } catch (_: Exception) {}
+                                }
+                            }
+
+                            var inVintage = 0
+                            if (yr < 2018) {
+                                val vintageFilter = if (matchedFilter != null && !matchedFilter.contains("kinuy_mishari") && !matchedFilter.contains("degem_cd")) {
+                                    matchedFilter.removeSuffix("}") + ",\"shnat_yitzur\":$yr}"
+                                } else null
+                                if (vintageFilter != null) {
+                                    try {
+                                        inVintage = NetworkClient.apiService.getDeregisteredCount(
+                                            resourceId = "6f6acd03-f351-4a8f-8ecf-df792f4f573a",
+                                            filters = vintageFilter,
+                                            limit = 0
+                                        ).result?.total ?: 0
+                                    } catch (_: Exception) {}
+                                } else if (matchedTerm != null) {
+                                    try {
+                                        inVintage = NetworkClient.apiService.getDeregisteredCount(
+                                            resourceId = "6f6acd03-f351-4a8f-8ecf-df792f4f573a",
+                                            filters = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$yr}",
+                                            query = matchedTerm,
+                                            limit = 0
+                                        ).result?.total ?: 0
+                                    } catch (_: Exception) {}
+                                }
+                            }
+
+                            ModelYearCount(yr, yrActive, inModern + inVintage)
                         }
-                        if (c == 0 && matchedTerm != null) {
-                            try {
-                                c = NetworkClient.apiService.getSameModelActiveCount(
-                                    resourceId = resId,
-                                    filters = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$yr}",
-                                    query = matchedTerm,
-                                    limit = 0
-                                ).result?.total ?: 0
-                            } catch (_: Exception) {}
-                        }
-                        yrActive += c
                     }
-
-                    var inModern = 0
-                    if (yr >= 2000) {
-                        if (matchedFilter != null) {
-                            try {
-                                val f = matchedFilter.removeSuffix("}") + ",\"shnat_yitzur\":$yr}"
-                                inModern = NetworkClient.apiService.getDeregisteredCount(
-                                    resourceId = "f6efe89a-fb3d-43a4-bb61-9bf12a9b9099",
-                                    filters = f,
-                                    limit = 0
-                                ).result?.total ?: 0
-                            } catch (_: Exception) {}
-                        }
-                        if (inModern == 0 && matchedTerm != null) {
-                            try {
-                                inModern = NetworkClient.apiService.getDeregisteredCount(
-                                    resourceId = "f6efe89a-fb3d-43a4-bb61-9bf12a9b9099",
-                                    filters = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$yr}",
-                                    query = matchedTerm,
-                                    limit = 0
-                                ).result?.total ?: 0
-                            } catch (_: Exception) {}
-                        }
-                    }
-
-                    var inVintage = 0
-                    if (yr < 2018) {
-                        val vintageFilter = if (matchedFilter != null && !matchedFilter.contains("kinuy_mishari")) {
-                            matchedFilter.removeSuffix("}") + ",\"shnat_yitzur\":$yr}"
-                        } else null
-                        if (vintageFilter != null) {
-                            try {
-                                inVintage = NetworkClient.apiService.getDeregisteredCount(
-                                    resourceId = "6f6acd03-f351-4a8f-8ecf-df792f4f573a",
-                                    filters = vintageFilter,
-                                    limit = 0
-                                ).result?.total ?: 0
-                            } catch (_: Exception) {}
-                        }
-                        if (inVintage == 0 && matchedTerm != null) {
-                            try {
-                                inVintage = NetworkClient.apiService.getDeregisteredCount(
-                                    resourceId = "6f6acd03-f351-4a8f-8ecf-df792f4f573a",
-                                    filters = "{\"tozeret_cd\":$makeCd,\"shnat_yitzur\":$yr}",
-                                    query = matchedTerm,
-                                    limit = 0
-                                ).result?.total ?: 0
-                            } catch (_: Exception) {}
-                        }
-                    }
-
-                    ModelYearCount(yr, yrActive, inModern + inVintage)
-                }
+                    yearJobs.awaitAll().filter { it.totalCount > 0 }
+                } ?: emptyList()
+            } catch (_: Exception) {
+                emptyList()
             }
 
-            val queriedBreakdown = yearJobs.awaitAll().filter { it.totalCount > 0 }
             val breakdown = if (queriedBreakdown.isNotEmpty()) {
                 val list = queriedBreakdown.sortedByDescending { it.year }.toMutableList()
                 val existingCenter = list.indexOfFirst { it.year == centerYear }

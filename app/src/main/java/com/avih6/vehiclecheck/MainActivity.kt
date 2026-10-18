@@ -567,6 +567,8 @@ fun MainAppShell(viewModel: MainViewModel) {
                         modifier = Modifier.fillMaxSize()
                     )
                     5 -> {
+                        val isEn = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "en"
+                        val defaultQuery = if (isEn) "All" else "הכל"
                         val currentSearchState = viewModel.searchState.collectAsState().value
                         val initialQuery = if (currentSearchState is com.avih6.vehiclecheck.data.SearchState.Success) {
                             val v = currentSearchState.vehicle
@@ -576,8 +578,8 @@ fun MainAppShell(viewModel: MainViewModel) {
                                 trimLevel = v.trimLevel,
                                 category = v.effectiveVehicleCategory ?: v.vehicleCategory
                             )
-                            if (modelEn.isNotBlank() && modelEn != "car") "$makeEn $modelEn".trim() else makeEn.trim().ifBlank { "הכל" }
-                        } else "הכל"
+                            if (modelEn.isNotBlank() && modelEn != "car") "$makeEn $modelEn".trim() else makeEn.trim().ifBlank { defaultQuery }
+                        } else defaultQuery
 
                         com.avih6.vehiclecheck.ui.screens.GalleryScreen(
                             initialQuery = initialQuery,

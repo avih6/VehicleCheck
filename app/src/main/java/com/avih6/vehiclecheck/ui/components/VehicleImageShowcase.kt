@@ -51,6 +51,7 @@ fun VehicleImageShowcase(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val isEn = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "en"
 
     val cacheKey = remember(hebrewMake, modelName, year, color, trimLevel, category) {
         WikimediaGalleryService.getShowcaseCacheKey(hebrewMake, modelName, year, color, trimLevel, category)
@@ -144,7 +145,7 @@ fun VehicleImageShowcase(
                                     .setHeader("User-Agent", "VehicleCheckApp/1.0 (https://github.com/avih6/VehicleCheck; admin@vehiclecheck.app)")
                                     .crossfade(true)
                                     .build(),
-                                contentDescription = img.altText.ifBlank { "תמונת רכב $hebrewMake $modelName" },
+                                contentDescription = img.altText.ifBlank { if (isEn) "Vehicle photo $hebrewMake $modelName" else "תמונת רכב $hebrewMake $modelName" },
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Fit
                             )
@@ -171,7 +172,7 @@ fun VehicleImageShowcase(
                             .background(Color.Black.copy(alpha = 0.55f), CircleShape)
                             .size(48.dp)
                     ) {
-                        Icon(Icons.Default.ChevronRight, contentDescription = "התמונה הקודמת", tint = Color.White, modifier = Modifier.size(28.dp))
+                        Icon(Icons.Default.ChevronRight, contentDescription = if (isEn) "Previous photo" else "התמונה הקודמת", tint = Color.White, modifier = Modifier.size(28.dp))
                     }
                 }
 
@@ -193,7 +194,7 @@ fun VehicleImageShowcase(
                             .background(Color.Black.copy(alpha = 0.55f), CircleShape)
                             .size(48.dp)
                     ) {
-                        Icon(Icons.Default.ChevronLeft, contentDescription = "התמונה הבאה", tint = Color.White, modifier = Modifier.size(28.dp))
+                        Icon(Icons.Default.ChevronLeft, contentDescription = if (isEn) "Next photo" else "התמונה הבאה", tint = Color.White, modifier = Modifier.size(28.dp))
                     }
                 }
 
@@ -227,7 +228,7 @@ fun VehicleImageShowcase(
                                 selectedFullscreenIndex = null
                             }
                         ) {
-                            Icon(Icons.Default.Close, contentDescription = "סגור מסך מלא", tint = Color.White)
+                            Icon(Icons.Default.Close, contentDescription = if (isEn) "Close fullscreen" else "סגור מסך מלא", tint = Color.White)
                         }
 
                         if (images.size > 1) {
@@ -256,12 +257,12 @@ fun VehicleImageShowcase(
                                 IconButton(onClick = {
                                     val sendIntent = Intent().apply {
                                         action = Intent.ACTION_SEND
-                                        putExtra(Intent.EXTRA_TEXT, "תמונת רכב ($hebrewMake $modelName):\n${currentFullscreenImage.imageUrl}")
+                                        putExtra(Intent.EXTRA_TEXT, "${if (isEn) "Vehicle photo" else "תמונת רכב"} ($hebrewMake $modelName):\n${currentFullscreenImage.imageUrl}")
                                         type = "text/plain"
                                     }
-                                    context.startActivity(Intent.createChooser(sendIntent, "שתף תמונת רכב"))
+                                    context.startActivity(Intent.createChooser(sendIntent, if (isEn) "Share vehicle photo" else "שתף תמונת רכב"))
                                 }) {
-                                    Icon(Icons.Default.Share, contentDescription = "שתף תמונת רכב", tint = Color.White)
+                                    Icon(Icons.Default.Share, contentDescription = if (isEn) "Share vehicle photo" else "שתף תמונת רכב", tint = Color.White)
                                 }
 
                                 IconButton(onClick = {
@@ -269,7 +270,7 @@ fun VehicleImageShowcase(
                                         context = context,
                                         image = currentFullscreenImage,
                                         vehicleOrSearchContext = listOfNotNull(
-                                            formattedPlate?.let { "לוחית: $it" },
+                                            formattedPlate?.let { if (isEn) "Plate: $it" else "לוחית: $it" },
                                             hebrewMake,
                                             modelName,
                                             year?.toString(),
@@ -537,8 +538,9 @@ fun VehicleImageShowcase(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    val isEn = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "en"
                     Text(
-                        text = "תמונה חופשית",
+                        text = if (isEn) "Free License" else "תמונה חופשית",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 11.sp

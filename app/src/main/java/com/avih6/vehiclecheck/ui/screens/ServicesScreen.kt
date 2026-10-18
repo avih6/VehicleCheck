@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -32,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.avih6.vehiclecheck.MainViewModel
+import com.avih6.vehiclecheck.R
 import com.avih6.vehiclecheck.data.CarAppraiserRecord
 import com.avih6.vehiclecheck.data.CarDealerRecord
 import com.avih6.vehiclecheck.data.EvChargingStationRecord
@@ -113,6 +115,14 @@ fun ServicesScreen(
                     ServicesCategory.APPRAISERS -> Icons.Default.VerifiedUser
                     ServicesCategory.PARTS_TRADE -> Icons.Default.CarRepair
                 }
+                val catTitle = when (cat) {
+                    ServicesCategory.TEST_STATIONS -> stringResource(R.string.services_cat_test_stations)
+                    ServicesCategory.GARAGES -> stringResource(R.string.services_cat_garages)
+                    ServicesCategory.EV_CHARGING -> stringResource(R.string.services_cat_ev_charging)
+                    ServicesCategory.CAR_DEALERS -> stringResource(R.string.services_cat_car_dealers)
+                    ServicesCategory.APPRAISERS -> stringResource(R.string.services_cat_appraisers)
+                    ServicesCategory.PARTS_TRADE -> stringResource(R.string.services_cat_parts_trade)
+                }
                 FilterChip(
                     selected = isSelected,
                     onClick = {
@@ -121,7 +131,7 @@ fun ServicesScreen(
                             putString("category", cat.name.lowercase())
                         })
                     },
-                    label = { Text(cat.titleHe, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, fontSize = 12.sp) },
+                    label = { Text(catTitle, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, fontSize = 12.sp) },
                     leadingIcon = {
                         Icon(catIcon, contentDescription = null, modifier = Modifier.size(16.dp))
                     },
@@ -147,7 +157,7 @@ fun ServicesScreen(
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    text = "מאגר משרד התחבורה • עודכן: $lastUpdated",
+                    text = stringResource(R.string.services_freshness_banner, lastUpdated ?: ""),
                     style = MaterialTheme.typography.labelSmall,
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
@@ -165,24 +175,24 @@ fun ServicesScreen(
             label = {
                 Text(
                     when (category) {
-                        ServicesCategory.TEST_STATIONS -> "חיפוש מכון רישוי לפי עיר או שם"
-                        ServicesCategory.GARAGES -> "חיפוש מוסך לפי עיר, שם או תחום"
-                        ServicesCategory.EV_CHARGING -> "חיפוש עמדת טעינה לפי עיר או מפעיל"
-                        ServicesCategory.CAR_DEALERS -> "חיפוש סוחר רכב לפי עיר, שם או ח.פ"
-                        ServicesCategory.APPRAISERS -> "חיפוש שמאי רכב לפי עיר או שם"
-                        ServicesCategory.PARTS_TRADE -> "חיפוש ספק חלפים לפי עיר, שם או תחום"
+                        ServicesCategory.TEST_STATIONS -> stringResource(R.string.services_search_label_test_stations)
+                        ServicesCategory.GARAGES -> stringResource(R.string.services_search_label_garages)
+                        ServicesCategory.EV_CHARGING -> stringResource(R.string.services_search_label_ev)
+                        ServicesCategory.CAR_DEALERS -> stringResource(R.string.services_search_label_dealers)
+                        ServicesCategory.APPRAISERS -> stringResource(R.string.services_search_label_appraisers)
+                        ServicesCategory.PARTS_TRADE -> stringResource(R.string.services_search_label_parts)
                     }
                 )
             },
             placeholder = {
                 Text(
                     when (category) {
-                        ServicesCategory.TEST_STATIONS -> "למשל: תל אביב, קומפיוטסט, דינמומטר..."
-                        ServicesCategory.GARAGES -> "למשל: חיפה, טויוטה, מכונאות, מוסך שלום..."
-                        ServicesCategory.EV_CHARGING -> "למשל: ירושלים, אפקון, סונול EVI..."
-                        ServicesCategory.CAR_DEALERS -> "למשל: תל אביב, אלבר, מגרש, 514..."
-                        ServicesCategory.APPRAISERS -> "למשל: חיפה, לוי, משה..."
-                        ServicesCategory.PARTS_TRADE -> "למשל: צמיגים, ירושלים, חלקי חילוף..."
+                        ServicesCategory.TEST_STATIONS -> stringResource(R.string.services_search_hint_test_stations)
+                        ServicesCategory.GARAGES -> stringResource(R.string.services_search_hint_garages)
+                        ServicesCategory.EV_CHARGING -> stringResource(R.string.services_search_hint_ev)
+                        ServicesCategory.CAR_DEALERS -> stringResource(R.string.services_search_hint_dealers)
+                        ServicesCategory.APPRAISERS -> stringResource(R.string.services_search_hint_appraisers)
+                        ServicesCategory.PARTS_TRADE -> stringResource(R.string.services_search_hint_parts)
                     }
                 )
             },
@@ -192,7 +202,7 @@ fun ServicesScreen(
             trailingIcon = {
                 if (query.isNotEmpty()) {
                     IconButton(onClick = { viewModel.setServicesQuery("") }) {
-                        Icon(Icons.Default.Clear, contentDescription = "נקה חיפוש")
+                        Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.services_clear_search))
                     }
                 }
             },
@@ -222,7 +232,7 @@ fun ServicesScreen(
                         FilterChip(
                             selected = isSel,
                             onClick = { viewModel.setTestStationFilter(opt.title) },
-                            label = { Text(opt.title, fontSize = 11.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal) },
+                            label = { Text(translateTestStationOption(opt.title), fontSize = 11.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal) },
                             shape = RoundedCornerShape(8.dp)
                         )
                     }
@@ -239,7 +249,7 @@ fun ServicesScreen(
                         FilterChip(
                             selected = isSel,
                             onClick = { viewModel.setGarageSpecialtyFilter(opt.title) },
-                            label = { Text(opt.title, fontSize = 11.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal) },
+                            label = { Text(translateGarageOption(opt.title), fontSize = 11.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal) },
                             shape = RoundedCornerShape(8.dp)
                         )
                     }
@@ -256,7 +266,7 @@ fun ServicesScreen(
                         FilterChip(
                             selected = isSel,
                             onClick = { viewModel.setEvFilter(opt) },
-                            label = { Text(opt, fontSize = 11.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal) },
+                            label = { Text(translateEvOption(opt), fontSize = 11.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal) },
                             shape = RoundedCornerShape(8.dp)
                         )
                     }
@@ -276,14 +286,14 @@ fun ServicesScreen(
                 ) {
                     CircularProgressIndicator(modifier = Modifier.size(36.dp))
                     Spacer(Modifier.height(10.dp))
-                    Text("טוען נתונים רשמיים ממאגר משרד התחבורה...", style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.services_loading), style = MaterialTheme.typography.bodySmall)
                 }
             } else {
                 when (category) {
                     ServicesCategory.TEST_STATIONS, ServicesCategory.GARAGES -> {
                         if (filteredGarages.isEmpty()) {
                             EmptyServicesView(
-                                message = if (query.isNotBlank()) "לא נמצאו תוצאות עבור \"$query\"" else "לא נמצאו תוצאות במאגר",
+                                message = if (query.isNotBlank()) stringResource(R.string.services_empty_query, query) else stringResource(R.string.services_empty_general),
                                 onReset = { viewModel.setServicesQuery("") }
                             )
                         } else {
@@ -293,11 +303,11 @@ fun ServicesScreen(
                                 contentPadding = PaddingValues(bottom = 90.dp)
                             ) {
                                 item {
-                                    val entityName = if (category == ServicesCategory.TEST_STATIONS) "מכוני רישוי" else "מוסכים מורשים"
+                                    val entityName = if (category == ServicesCategory.TEST_STATIONS) stringResource(R.string.services_name_test_stations) else stringResource(R.string.services_name_garages)
                                     val headerText = if (totalCount != null && totalCount!! > filteredGarages.size) {
-                                        "מציג %,d מתוך %,d %s במאגר משרד התחבורה".format(filteredGarages.size, totalCount, entityName)
+                                        stringResource(R.string.services_count_showing, "%,d".format(filteredGarages.size), "%,d".format(totalCount), entityName)
                                     } else {
-                                        "נמצאו %,d %s ברישיון משרד התחבורה".format(filteredGarages.size, entityName)
+                                        stringResource(R.string.services_count_found, "%,d".format(filteredGarages.size), entityName)
                                     }
                                     Text(
                                         text = headerText,
@@ -315,7 +325,7 @@ fun ServicesScreen(
                     ServicesCategory.EV_CHARGING -> {
                         if (filteredStations.isEmpty()) {
                             EmptyServicesView(
-                                message = if (query.isNotBlank()) "לא נמצאו עמדות טעינה עבור \"$query\"" else "לא נמצאו עמדות במאגר",
+                                message = if (query.isNotBlank()) stringResource(R.string.services_empty_query, query) else stringResource(R.string.services_empty_general),
                                 onReset = { viewModel.setServicesQuery("") }
                             )
                         } else {
@@ -326,9 +336,9 @@ fun ServicesScreen(
                             ) {
                                 item {
                                     val headerText = if (totalCount != null && totalCount!! > filteredStations.size) {
-                                        "מציג %,d מתוך %,d עמדות טעינה במאגר משרד התחבורה".format(filteredStations.size, totalCount)
+                                        stringResource(R.string.services_count_ev_showing, "%,d".format(filteredStations.size), "%,d".format(totalCount))
                                     } else {
-                                        "נמצאו %,d עמדות טעינה ציבוריות (מאגר ארצי מלא)".format(filteredStations.size)
+                                        stringResource(R.string.services_count_ev_found, "%,d".format(filteredStations.size))
                                     }
                                     Text(
                                         text = headerText,
@@ -346,7 +356,7 @@ fun ServicesScreen(
                     ServicesCategory.CAR_DEALERS -> {
                         if (carDealers.isEmpty()) {
                             EmptyServicesView(
-                                message = if (query.isNotBlank()) "לא נמצאו סוחרי רכב עבור \"$query\"" else "לא נמצאו סוחרי רכב במאגר",
+                                message = if (query.isNotBlank()) stringResource(R.string.services_empty_query, query) else stringResource(R.string.services_empty_general),
                                 onReset = { viewModel.setServicesQuery("") }
                             )
                         } else {
@@ -356,10 +366,11 @@ fun ServicesScreen(
                                 contentPadding = PaddingValues(bottom = 90.dp)
                             ) {
                                 item {
+                                    val entityName = stringResource(R.string.services_name_dealers)
                                     val headerText = if (totalCount != null && totalCount!! > carDealers.size) {
-                                        "מציג %,d מתוך %,d סוחרי רכב מורשים במאגר משרד התחבורה".format(carDealers.size, totalCount)
+                                        stringResource(R.string.services_count_showing, "%,d".format(carDealers.size), "%,d".format(totalCount), entityName)
                                     } else {
-                                        "נמצאו %,d סוחרי רכב מורשים ברישיון משרד התחבורה".format(carDealers.size)
+                                        stringResource(R.string.services_count_found, "%,d".format(carDealers.size), entityName)
                                     }
                                     Text(
                                         text = headerText,
@@ -377,7 +388,7 @@ fun ServicesScreen(
                     ServicesCategory.APPRAISERS -> {
                         if (appraisers.isEmpty()) {
                             EmptyServicesView(
-                                message = if (query.isNotBlank()) "לא נמצאו שמאי רכב עבור \"$query\"" else "לא נמצאו שמאי רכב במאגר",
+                                message = if (query.isNotBlank()) stringResource(R.string.services_empty_query, query) else stringResource(R.string.services_empty_general),
                                 onReset = { viewModel.setServicesQuery("") }
                             )
                         } else {
@@ -387,10 +398,11 @@ fun ServicesScreen(
                                 contentPadding = PaddingValues(bottom = 90.dp)
                             ) {
                                 item {
+                                    val entityName = stringResource(R.string.services_name_appraisers)
                                     val headerText = if (totalCount != null && totalCount!! > appraisers.size) {
-                                        "מציג %,d מתוך %,d שמאי רכב במאגר משרד התחבורה".format(appraisers.size, totalCount)
+                                        stringResource(R.string.services_count_showing, "%,d".format(appraisers.size), "%,d".format(totalCount), entityName)
                                     } else {
-                                        "נמצאו %,d שמאי רכב מוסמכים (מאגר ארצי מלא)".format(appraisers.size)
+                                        stringResource(R.string.services_count_found, "%,d".format(appraisers.size), entityName)
                                     }
                                     Text(
                                         text = headerText,
@@ -408,7 +420,7 @@ fun ServicesScreen(
                     ServicesCategory.PARTS_TRADE -> {
                         if (partsTrade.isEmpty()) {
                             EmptyServicesView(
-                                message = if (query.isNotBlank()) "לא נמצאו עסקים עבור \"$query\"" else "לא נמצאו עסקים במאגר",
+                                message = if (query.isNotBlank()) stringResource(R.string.services_empty_query, query) else stringResource(R.string.services_empty_general),
                                 onReset = { viewModel.setServicesQuery("") }
                             )
                         } else {
@@ -418,10 +430,11 @@ fun ServicesScreen(
                                 contentPadding = PaddingValues(bottom = 90.dp)
                             ) {
                                 item {
+                                    val entityName = stringResource(R.string.services_name_parts)
                                     val headerText = if (totalCount != null && totalCount!! > partsTrade.size) {
-                                        "מציג %,d מתוך %,d עסקי תעבורה במאגר משרד התחבורה".format(partsTrade.size, totalCount)
+                                        stringResource(R.string.services_count_showing, "%,d".format(partsTrade.size), "%,d".format(totalCount), entityName)
                                     } else {
-                                        "נמצאו %,d עסקי סחר ויבוא מוצרי תעבורה מורשים".format(partsTrade.size)
+                                        stringResource(R.string.services_count_found, "%,d".format(partsTrade.size), entityName)
                                     }
                                     Text(
                                         text = headerText,
@@ -464,7 +477,7 @@ private fun GarageCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = garage.garageName ?: "ללא שם",
+                    text = garage.garageName ?: stringResource(R.string.services_unnamed),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -478,7 +491,7 @@ private fun GarageCard(
                     border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.35f))
                 ) {
                     Text(
-                        text = if (isTest) "מכון רישוי (טסט)" else "מוסך מורשה",
+                        text = if (isTest) stringResource(R.string.services_badge_test_station) else stringResource(R.string.services_badge_garage),
                         color = badgeColor,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
@@ -505,13 +518,13 @@ private fun GarageCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Handyman, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("התמחות: ${garage.specialty}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.services_specialty_prefix, garage.specialty ?: ""), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Spacer(Modifier.height(4.dp))
             }
 
             if (!garage.managerName.isNullOrBlank()) {
-                Text("מנהל מקצועי: ${garage.managerName}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f))
+                Text(stringResource(R.string.services_manager_prefix, garage.managerName ?: ""), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f))
             }
 
             Spacer(Modifier.height(10.dp))
@@ -563,7 +576,7 @@ private fun GarageCard(
                 ) {
                     Icon(Icons.Default.Navigation, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("ניווט", style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(R.string.services_btn_navigate), style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
@@ -591,7 +604,7 @@ private fun EvStationCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = station.stationName ?: "עמדת טעינה ציבורית",
+                    text = station.stationName ?: stringResource(R.string.services_ev_default_name),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -638,7 +651,7 @@ private fun EvStationCard(
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Text(
-                        text = "סה\"כ שקעים: ${station.totalSockets ?: 0}",
+                        text = stringResource(R.string.services_ev_total_sockets, (station.totalSockets ?: 0).toString()),
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
@@ -657,7 +670,7 @@ private fun EvStationCard(
                             Icon(Icons.Default.Bolt, contentDescription = null, tint = Color(0xFF2E7D32), modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
                             Text(
-                                text = "מהיר (DC): ${station.fastSockets}",
+                                text = stringResource(R.string.services_ev_fast_dc, station.fastSockets?.toString() ?: "0"),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF2E7D32)
@@ -673,7 +686,7 @@ private fun EvStationCard(
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Text(
-                            text = "רגיל (AC): ${station.slowSockets}",
+                            text = stringResource(R.string.services_ev_slow_ac, station.slowSockets?.toString() ?: "0"),
                             style = MaterialTheme.typography.labelSmall,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
@@ -706,7 +719,7 @@ private fun EvStationCard(
             ) {
                 Icon(Icons.Default.Navigation, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("ניווט", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.services_btn_navigate), style = MaterialTheme.typography.labelMedium)
             }
         }
     }
@@ -741,7 +754,7 @@ private fun EmptyServicesView(
             onClick = onReset,
             shape = RoundedCornerShape(10.dp)
         ) {
-            Text("איפוס חיפוש", style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.services_reset_search), style = MaterialTheme.typography.labelMedium)
         }
     }
 }
@@ -765,7 +778,7 @@ private fun CarDealerCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = dealer.name ?: "סוחר רכב מורשה",
+                    text = dealer.name ?: stringResource(R.string.services_dealer_default_name),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -779,7 +792,7 @@ private fun CarDealerCard(
                     border = BorderStroke(1.dp, Color(0xFF2E7D32).copy(alpha = 0.35f))
                 ) {
                     Text(
-                        text = "סוחר מורשה",
+                        text = stringResource(R.string.services_badge_dealer),
                         style = MaterialTheme.typography.labelSmall,
                         color = Color(0xFF2E7D32),
                         fontWeight = FontWeight.Bold,
@@ -819,7 +832,7 @@ private fun CarDealerCard(
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        text = "ח.פ / עוסק: ${dealer.companyId}",
+                        text = stringResource(R.string.services_company_id_prefix, dealer.companyId ?: ""),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -850,7 +863,7 @@ private fun CarDealerCard(
                 ) {
                     Icon(Icons.Default.Navigation, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("ניווט", style = MaterialTheme.typography.labelMedium)
+                    Text(stringResource(R.string.services_btn_navigate), style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
@@ -872,7 +885,7 @@ private fun CarAppraiserCard(appraiser: CarAppraiserRecord) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = appraiser.fullName.ifBlank { "שמאי רכב מוסמך" },
+                    text = appraiser.fullName.ifBlank { stringResource(R.string.services_appraiser_default_name) },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -886,7 +899,7 @@ private fun CarAppraiserCard(appraiser: CarAppraiserRecord) {
                     border = BorderStroke(1.dp, Color(0xFF1565C0).copy(alpha = 0.35f))
                 ) {
                     Text(
-                        text = "רישיון מס' ${appraiser.licenseNumber ?: "-"}",
+                        text = stringResource(R.string.services_badge_appraiser, appraiser.licenseNumber?.toString() ?: "-"),
                         style = MaterialTheme.typography.labelSmall,
                         color = Color(0xFF1565C0),
                         fontWeight = FontWeight.Bold,
@@ -907,7 +920,7 @@ private fun CarAppraiserCard(appraiser: CarAppraiserRecord) {
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        text = "אזור / יישוב: ${appraiser.city}",
+                        text = stringResource(R.string.services_region_prefix, appraiser.city ?: ""),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -936,7 +949,7 @@ private fun PartsTradeCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = record.businessName ?: "עסק מוצרי תעבורה",
+                    text = record.businessName ?: stringResource(R.string.services_parts_default_name),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -964,7 +977,7 @@ private fun PartsTradeCard(
             if (!record.occupation.isNullOrBlank()) {
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    text = "תחום: ${record.occupation}",
+                    text = stringResource(R.string.services_domain_prefix, record.occupation ?: ""),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
@@ -1040,10 +1053,55 @@ private fun PartsTradeCard(
                     ) {
                         Icon(Icons.Default.Navigation, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("ניווט", style = MaterialTheme.typography.labelMedium)
+                        Text(stringResource(R.string.services_btn_navigate), style = MaterialTheme.typography.labelMedium)
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun translateGarageOption(title: String): String {
+    val isEn = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "en"
+    if (!isEn) return title
+    return when (title) {
+        "הכל" -> "All"
+        "מכונאות" -> "Mechanics"
+        "מיזוג ומזגנים" -> "Air Conditioning"
+        "חשמל רכב" -> "Auto Electric"
+        "חשמלי / היברידי" -> "EV / Hybrid"
+        "פחחות וצבע" -> "Body & Paint"
+        "צמיגים" -> "Tires"
+        "כיוון מתלים ופרונט" -> "Wheel Alignment"
+        "תיבות הילוכים" -> "Transmissions"
+        else -> title
+    }
+}
+
+@Composable
+private fun translateTestStationOption(title: String): String {
+    val isEn = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "en"
+    if (!isEn) return title
+    return when (title) {
+        "הכל" -> "All"
+        "רישוי שנתי (טסט)" -> "Annual MOT Test"
+        "בדיקת קנייה ומכירה" -> "Pre-Purchase Inspection"
+        "בדיקה לאחר תאונה" -> "Post-Accident Inspection"
+        "בדיקות עשן דיזל" -> "Diesel Smoke Test"
+        "כוון מתלים ופרונט" -> "Suspension & Alignment"
+        else -> title
+    }
+}
+
+@Composable
+private fun translateEvOption(title: String): String {
+    val isEn = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "en"
+    if (!isEn) return title
+    return when (title) {
+        "הכל" -> "All"
+        "טעינה מהירה (DC)" -> "Fast Charging (DC)"
+        "טעינה רגילה (AC)" -> "Standard Charging (AC)"
+        else -> title
     }
 }

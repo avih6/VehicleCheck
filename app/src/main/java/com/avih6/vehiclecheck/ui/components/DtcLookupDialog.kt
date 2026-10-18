@@ -47,6 +47,7 @@ fun DtcLookupDialog(
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     val focusManager = LocalFocusManager.current
+    val isEn = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "en"
 
     var query by remember { mutableStateOf("") }
     var result by remember { mutableStateOf<DtcCodeInfo?>(null) }
@@ -537,7 +538,7 @@ fun DtcLookupDialog(
                                 )
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    text = "קוד תקלה לא נמצא",
+                                    text = if (isEn) "Fault Code Not Found" else "קוד תקלה לא נמצא",
                                     fontWeight = FontWeight.Bold,
                                     style = MaterialTheme.typography.titleMedium,
                                     color = MaterialTheme.colorScheme.error
@@ -545,7 +546,11 @@ fun DtcLookupDialog(
                             }
                             Spacer(Modifier.height(8.dp))
                             Text(
-                                text = "הערך שהוזן (\"$query\") אינו מוכר כקוד תקלה או אינו במבנה תקני של OBD2.\n\nקוד תקני מורכב מאות אחת (P למנוע, C לשלדה, B למרכב, U לרשת) ואחריה 4 תווים (למשל: P0420, P0300, B0001, C0035).",
+                                text = if (isEn) {
+                                    "The entered value (\"$query\") was not recognized as a fault code or is not in a valid OBD2 format.\n\nA standard OBD2 code consists of one letter (P for powertrain, C for chassis, B for body, U for network) followed by 4 digits (e.g., P0420, P0300, B0001, C0035)."
+                                } else {
+                                    "הערך שהוזן (\"$query\") אינו מוכר כקוד תקלה או אינו במבנה תקני של OBD2.\n\nקוד תקני מורכב מאות אחת (P למנוע, C לשלדה, B למרכב, U לרשת) ואחריה 4 תווים (למשל: P0420, P0300, B0001, C0035)."
+                                },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 lineHeight = 20.sp

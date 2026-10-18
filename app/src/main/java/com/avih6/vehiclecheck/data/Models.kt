@@ -943,7 +943,7 @@ object VehicleUtils {
 
         // 3. Strip noise suffixes (drive, fuel, transmission, body, trim, displacement)
         val noiseSuffixPatterns = listOf(
-            Regex("""\b(4[Xx*][42]|2[Xx*]4|4WD|2WD|AWD|FWD|RWD)\b""", RegexOption.IGNORE_CASE),
+            Regex("""\b(4[Xx*][42]|2[Xx*]4|6[Xx*][246]|8[Xx*][2468]|4WD|2WD|AWD|FWD|RWD)\b""", RegexOption.IGNORE_CASE),
             Regex("""\b(HYBRID|PLUG-?IN|PHEV|MHEV|EV|TURBO|DIESEL|GASOLINE|BENZIN|היברידי?|פלאג-?אין|חשמלי|טורבו|דיזל|בנזין)\b""", RegexOption.IGNORE_CASE),
             Regex("""\b(אוטומטי?|אוטו'?|אוט'?|ידני(ת)?|רובוטי(ת)?|רציף|טיפטרוניק|DSG|DCT|CVT|AUTO|MANUAL)\b""", RegexOption.IGNORE_CASE),
             Regex("""\b(סגור|פתוח|אחוד|ארגז|טנדר|ואן|וואן|קבינה כפולה|דאבל קבינה|תא כפול|תא יחיד|ארוך|קצר|גבוה|נמוך)\b""", RegexOption.IGNORE_CASE),
@@ -1052,10 +1052,15 @@ object VehicleUtils {
         // 8. Multi-token variations (spaced, hyphenated, concatenated)
         val tokens = cleaned.split(" ", "-", "_").filter { it.isNotBlank() }
         if (tokens.size >= 2) {
-            results.add(tokens.first())
             results.add("${tokens[0]} ${tokens[1]}")
             results.add("${tokens[0]}-${tokens[1]}")
             results.add("${tokens[0]}${tokens[1]}")
+            val secondUpper = tokens[1].uppercase()
+            val isDistinctMultiWordModel = secondUpper in setOf("CROSS", "CRUISER", "CHEROKEE", "ROVER", "FE", "MAX", "PLUS", "PRO") ||
+                    tokens[1].all { it.isDigit() }
+            if (!isDistinctMultiWordModel) {
+                results.add(tokens.first())
+            }
         }
         val unspaced = cleaned.replace(" ", "").replace("-", "")
         if (unspaced.isNotBlank()) results.add(unspaced)
@@ -1541,7 +1546,8 @@ object VehicleUtils {
         }
     }
 
-    fun formatTimeAgo(dateStr: String?): String? {
+    fun calculateDateDifference(dateStr: String?, isEn: Boolean = false): String? {
+        if (!isEn) return calculateDateDifferenceHebrew(dateStr)
         val targetDate = parseLocalDate(dateStr) ?: return null
         val today = LocalDate.now()
         val isPast = targetDate.isBefore(today)
@@ -1552,6 +1558,38 @@ object VehicleUtils {
         val years = period.years
         val months = period.months
         val days = period.days
+
+        val parts = mutableListOf<String>()
+        if (years > 0) parts.add(if (years == 1) "1 year" else "$years years")
+        if (months > 0) parts.add(if (months == 1) "1 month" else "$months months")
+        if (days > 0 && years == 0) parts.add(if (days == 1) "1 day" else "$days days")
+        else if (parts.isEmpty()) parts.add(if (days <= 0) "Today" else "$days days")
+
+        val formattedDiff = parts.joinToString(if (parts.size > 2) ", " else " and ")
+        return if (isPast) "Expired $formattedDiff ago" else "$formattedDiff remaining"
+    }
+
+    fun formatTimeAgo(dateStr: String?, isEn: Boolean = false): String? {
+        val targetDate = parseLocalDate(dateStr) ?: return null
+        val today = LocalDate.now()
+        val isPast = targetDate.isBefore(today)
+        val start = if (isPast) targetDate else today
+        val end = if (isPast) today else targetDate
+        val period = java.time.Period.between(start, end)
+
+        val years = period.years
+        val months = period.months
+        val days = period.days
+
+        if (isEn) {
+            val parts = mutableListOf<String>()
+            if (years > 0) parts.add(if (years == 1) "1 year" else "$years years")
+            if (months > 0) parts.add(if (months == 1) "1 month" else "$months months")
+            if (days > 0 && years == 0) parts.add(if (days == 1) "1 day" else "$days days")
+            else if (parts.isEmpty()) parts.add(if (days <= 0) "today" else "$days days")
+            val formattedDiff = parts.joinToString(if (parts.size > 2) ", " else " and ")
+            return if (isPast) "$formattedDiff ago" else "in $formattedDiff"
+        }
 
         val parts = mutableListOf<String>()
         if (years > 0) parts.add(if (years == 1) "שנה אחת" else if (years == 2) "שנתיים" else "$years שנים")
@@ -1620,8 +1658,12 @@ object VehicleUtils {
         }
     }
 
-    fun formatMake(raw: String?): String {
+    fun formatMake(raw: String?, isEn: Boolean = false): String {
         if (raw.isNullOrBlank()) return ""
+        if (isEn) {
+            val (makeEn, _) = getEnglishMakeAndModel(raw, "")
+            if (makeEn.isNotBlank() && makeEn != "car") return makeEn
+        }
         val lower = raw.trim().lowercase()
         if (lower.contains("דימלרקריזלר") || lower.contains("דימלר") || lower.contains("דיימלר") || lower.contains("daimler")) {
             return "מרצדס-בנץ"
@@ -2042,14 +2084,81 @@ object VehicleUtils {
         // Check if model is a generic country placeholder from old MOT data (e.g. "גרמנ", "גרמניה", "יפן", etc.)
         val isCountryPlaceholder = listOf("גרמנ", "גרמניה", "יפן", "צרפת", "איטליה", "ספרד", "שוודיה", "קוריאה", "ארהב", "ארה\"ב", "בריטניה", "אנגליה", "סין", "הודו", "טורקיה", "תורכיה", "בלגיה", "הולנד", "אוסטריה").any { mod.contains(it) }
 
-        var modelClean = if (isCountryPlaceholder) "" else mod
-            .replace("4x4", "")
-            .replace("awd", "")
-            .replace("2x4", "")
-            .replace("hybrid", "")
-            .trim()
-            .split(" ", "-", "_")
-            .firstOrNull { it.isNotBlank() && !it.contains("גרמנ") } ?: ""
+        val inParensMatch = Regex("""\(([A-Za-z0-9\s\-_/]+)\)""").find(model.orEmpty())
+        val englishInParens = inParensMatch?.groupValues?.get(1)?.trim()?.takeIf {
+            val cl = it.lowercase()
+            cl !in setOf("hybrid", "phev", "ev", "4x4", "4x2", "awd") && !cl.startsWith("יפן") && !cl.startsWith("גרמנ")
+        }
+
+        val mappedModel = when {
+            mod.contains("ראב 4") || mod.contains("ראב4") || mod.contains("rav4") -> "RAV4"
+            mod.contains("קורולה") || mod.contains("corolla") -> "Corolla"
+            mod.contains("יאריס") || mod.contains("yaris") -> "Yaris"
+            mod.contains("קאמרי") || mod.contains("camry") -> "Camry"
+            mod.contains("לנד קרוזר") || mod.contains("land cruiser") -> "Land Cruiser"
+            mod.contains("היילקס") || mod.contains("hilux") -> "Hilux"
+            mod.contains("איוניק") || mod.contains("ioniq") -> "Ioniq"
+            mod.contains("טוסון") || mod.contains("tucson") -> "Tucson"
+            mod.contains("קונה") || mod.contains("kona") -> "Kona"
+            mod.contains("אלנטרה") || mod.contains("elantra") -> "Elantra"
+            mod.contains("סנטה פה") || mod.contains("santa fe") -> "Santa Fe"
+            mod.contains("ספורטאז") || mod.contains("sportage") -> "Sportage"
+            mod.contains("פיקנטו") || mod.contains("picanto") -> "Picanto"
+            mod.contains("נירו") || mod.contains("niro") -> "Niro"
+            mod.contains("סטוניק") || mod.contains("stonic") -> "Stonic"
+            mod.contains("סורנטו") || mod.contains("sorento") -> "Sorento"
+            mod.contains("סיד") || mod.contains("ceed") -> "Ceed"
+            mod.contains("אוקטביה") || mod.contains("octavia") -> "Octavia"
+            mod.contains("קודיאק") || mod.contains("kodiaq") -> "Kodiaq"
+            mod.contains("סופרב") || mod.contains("superb") -> "Superb"
+            mod.contains("קאמיק") || mod.contains("kamiq") -> "Kamiq"
+            mod.contains("פאביה") || mod.contains("fabia") -> "Fabia"
+            mod.contains("גולף") || mod.contains("golf") -> "Golf"
+            mod.contains("פולו") || mod.contains("polo") -> "Polo"
+            mod.contains("טיגואן") || mod.contains("tiguan") -> "Tiguan"
+            mod.contains("איביזה") || mod.contains("ibiza") -> "Ibiza"
+            mod.contains("לאון") || mod.contains("leon") -> "Leon"
+            mod.contains("ארונה") || mod.contains("arona") -> "Arona"
+            mod.contains("אטקה") || mod.contains("ateca") -> "Ateca"
+            mod.contains("פורמנטור") || mod.contains("formentor") -> "Formentor"
+            mod.contains("דאסטר") || mod.contains("duster") -> "Duster"
+            mod.contains("סוויפט") || mod.contains("swift") -> "Swift"
+            mod.contains("ספארק") || mod.contains("spark") -> "Spark"
+            mod.contains("מגאן") || mod.contains("megane") -> "Megane"
+            mod.contains("קליאו") || mod.contains("clio") -> "Clio"
+            mod.contains("מאזדה 3") || mod == "3" -> "3"
+            mod.contains("מאזדה 2") || mod == "2" -> "2"
+            mod.contains("מאזדה 6") || mod == "6" -> "6"
+            mod.contains("cx-5") || mod.contains("cx5") -> "CX-5"
+            mod.contains("cx-30") || mod.contains("cx30") -> "CX-30"
+            mod.contains("סיוויק") || mod.contains("civic") -> "Civic"
+            mod.contains("פורסטר") || mod.contains("forester") -> "Forester"
+            mod.contains("אטו 3") || mod.contains("atto 3") -> "Atto 3"
+            mod.contains("דולפין") || mod.contains("dolphin") -> "Dolphin"
+            mod.contains("מודל 3") || mod.contains("model 3") -> "Model 3"
+            mod.contains("מודל y") || mod.contains("model y") -> "Model Y"
+            else -> null
+        }
+
+        var modelClean = if (isCountryPlaceholder) "" else if (mappedModel != null) mappedModel else if (englishInParens != null) englishInParens else {
+            val tokens = mod
+                .replace("4x4", "")
+                .replace("4x2", "")
+                .replace("2x4", "")
+                .replace("6x2", "")
+                .replace("6x4", "")
+                .replace("8x4", "")
+                .replace("awd", "")
+                .replace("hybrid", "")
+                .trim()
+                .split(" ", "-", "_")
+                .filter { it.isNotBlank() && !it.contains("גרמנ") }
+            when {
+                tokens.size >= 2 && (tokens[1] in setOf("cross", "cruiser", "cherokee", "rover", "fe", "max", "plus", "pro") || tokens[1].all { it.isDigit() }) ->
+                    "${tokens[0]} ${tokens[1]}"
+                else -> tokens.firstOrNull() ?: ""
+            }
+        }
 
         when {
             mod.contains("mustang") || mod.contains("מוסטנג") || trim.contains("mustang") || mod == "p44" -> modelClean = "Mustang"
@@ -2071,6 +2180,12 @@ object VehicleUtils {
                     else -> "Cooper"
                 }
             }
+        }
+
+        // If modelClean still contains Hebrew characters, strip them and keep English or fallback
+        if (modelClean.any { it in '\u0590'..'\u05FF' }) {
+            val engOnly = Regex("""[A-Za-z0-9\-]+(?:\s+[A-Za-z0-9\-]+)*""").find(modelClean)?.value
+            modelClean = engOnly ?: englishInParens ?: mappedModel ?: ""
         }
 
         if (modelClean.isBlank() || modelClean == "car") {
@@ -2335,7 +2450,8 @@ object VehicleUtils {
     fun resolveBodyType(
         vehicle: VehicleRecord,
         techSpec: VehicleTechnicalSpecRecord?,
-        quickClassification: String? = null
+        quickClassification: String? = null,
+        isEn: Boolean = false
     ): BodyTypeInfo {
         val bt = techSpec?.bodyType.orEmpty().trim().lowercase()
         val mod = vehicle.model.orEmpty().trim().lowercase()
@@ -2455,7 +2571,7 @@ object VehicleUtils {
                  !bt.contains("סטיישן") && !bt.contains("wagon") && !bt.contains("האצ'בק") &&
                  !bt.contains("שטח") && !bt.contains("suv") && !isPickup)
 
-        return when {
+        val info = when {
             isTrailer && !isTowTruck ->
                 BodyTypeInfo("גרור / נתמך", "🚛", "גרור / נתמך להובלת משא וציוד ייעודי")
             isGarbageTruck ->
@@ -2517,9 +2633,54 @@ object VehicleUtils {
                     subtitle = "מרכב רכב נוסעים פרטי סטנדרטי"
                 )
         }
+
+        if (!isEn) return info
+
+        val titleEn = when {
+            info.title.contains("פנאי-שטח") || info.title.contains("SUV") -> "SUV / Crossover (SUV)"
+            info.title.contains("סדאן") -> "Passenger Car (Sedan)"
+            info.title.contains("האצ'בק") -> "Passenger Car (Hatchback)"
+            info.title.contains("סטיישן") -> "Station Wagon"
+            info.title.contains("קופה") -> "Sports Car (Coupe)"
+            info.title.contains("קבריולט") -> "Convertible / Roadster"
+            info.title.contains("מסחרי") -> "Commercial Van"
+            info.title.contains("מיניוואן") -> "Minivan / MPV"
+            info.title.contains("טנדר") -> "Pickup Truck"
+            info.title.contains("משאית") -> "Truck"
+            info.title.contains("מונית") -> "Taxi"
+            info.title.contains("אוטובוס") -> "Bus / Transit"
+            info.title.contains("אמבולנס") -> "Ambulance"
+            info.title.contains("כיבוי") -> "Fire Engine"
+            info.title.contains("אופנוע") -> "Motorcycle"
+            info.title.contains("צמ\"ה") || info.title.contains("הנדסי") -> "Heavy Equipment"
+            else -> "Passenger Car"
+        }
+        val subEn = when {
+            info.title.contains("פנאי-שטח") || info.title.contains("SUV") -> "High-riding body combining road comfort with off-road capability"
+            info.title.contains("סדאן") -> "Classic 4-door body with separate enclosed trunk"
+            info.title.contains("האצ'בק") -> "Compact body with upward-swinging rear liftgate"
+            info.title.contains("סטיישן") -> "Extended body with large luggage capacity"
+            info.title.contains("קופה") -> "Sporty 2-door aerodynamic low-slung body"
+            info.title.contains("קבריולט") -> "Retractable soft-top or folding hardtop"
+            info.title.contains("מסחרי") -> "Work vehicle optimized for hauling cargo"
+            info.title.contains("מיניוואן") -> "Spacious family vehicle designed for 7-9 passengers"
+            info.title.contains("טנדר") -> "Light utility truck with cargo bed"
+            info.title.contains("משאית") -> "Heavy transport & hauling vehicle"
+            info.title.contains("מונית") -> "Licensed public passenger carrier"
+            info.title.contains("אוטובוס") -> "Passenger bus / transit vehicle"
+            info.title.contains("אמבולנס") -> "Emergency medical response vehicle"
+            info.title.contains("כיבוי") -> "Firefighting & rescue emergency vehicle"
+            info.title.contains("צמ\"ה") || info.title.contains("הנדסי") -> "Heavy machinery for earthmoving & construction"
+            else -> "Standard passenger vehicle body"
+        }
+        return BodyTypeInfo(titleEn, info.iconEmoji, subEn)
     }
 
-    fun resolveLegalLicenseClass(vehicle: VehicleRecord, techSpec: VehicleTechnicalSpecRecord?): Pair<String, String> {
+    fun resolveLegalLicenseClass(
+        vehicle: VehicleRecord,
+        techSpec: VehicleTechnicalSpecRecord?,
+        isEn: Boolean = false
+    ): Pair<String, String> {
         val std = (vehicle.effectiveStandardType ?: vehicle.standardType).orEmpty().trim().uppercase()
         val cat = (vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory).orEmpty().trim().lowercase()
         val mod = (vehicle.effectiveModel ?: vehicle.model ?: vehicle.modelCode).orEmpty().trim().lowercase()
@@ -2569,7 +2730,7 @@ object VehicleUtils {
                 mod.contains("אקונוליין") || mod.contains("econoline") ||
                 cat.contains("מד\"א") || cat.contains("הצלה") || trim.contains("הצלה"))
 
-        return when {
+        val (c, n) = when {
             isTrailer && !isTowTruck ->
                 Pair("גרור / נתמך (${std.ifBlank { "O" }})", "גרור נתמך • דורש רישיון גרירה E במידת הצורך")
             isGolfCart ->
@@ -2599,6 +2760,35 @@ object VehicleUtils {
             else ->
                 Pair("פרטי נוסעים (M1) • עד 3.5 טון", "משקל כולל עד 3,500 ק\"ג (דרגת רישיון B רגיל)")
         }
+
+        if (!isEn) return Pair(c, n)
+
+        val cEn = when {
+            c.contains("פרטי נוסעים") -> c.replace("פרטי נוסעים", "Passenger Car").replace("עד 3.5 טון", "Up to 3.5t")
+            c.contains("משא / מסחרי קל") -> c.replace("משא / מסחרי קל", "Light Commercial").replace("עד 3.5 טון", "Up to 3.5t")
+            c.contains("טנדר / משא קל") -> c.replace("טנדר / משא קל", "Pickup / Light Truck").replace("עד 3.5 טון", "Up to 3.5t")
+            c.contains("משא כבד") -> c.replace("משא כבד", "Heavy Truck").replace("מעל 3.5 טון", "Over 3.5t")
+            c.contains("טנדר כבד") -> c.replace("טנדר כבד", "Heavy Pickup").replace("מעל 3.5 טון", "Over 3.5t")
+            c.contains("אוטובוס") -> c.replace("אוטובוס", "Bus").replace("היסעים", "Transit")
+            c.contains("מונית") -> c.replace("מונית", "Taxi")
+            c.contains("רכב גולף") -> c.replace("רכב גולף / רכב תפעולי", "Golf Cart / Utility Vehicle")
+            c.contains("טרקטורון") -> c.replace("טרקטורון / טרקטור משא", "ATV / Heavy Quad")
+            c.contains("גרור") -> c.replace("גרור / נתמך", "Trailer / Semi-Trailer")
+            c.contains("גרר") -> c.replace("רכב גרר וחילוץ", "Tow & Recovery Truck")
+            c.contains("זבל") -> c.replace("משאית זבל / דחס", "Garbage Compactor Truck")
+            else -> c
+        }
+
+        val nEn = when {
+            n.contains("דרגת רישיון B רגיל") -> n.replace("משקל כולל עד 3,500 ק\"ג (דרגת רישיון B רגיל)", "Gross weight up to 3,500 kg (Category B license)")
+            n.contains("דרגת רישיון B") -> n.replace("משקל כולל עד 3,500 ק\"ג (דרגת רישיון B)", "Gross weight up to 3,500 kg (Category B license)")
+            n.contains("C1") -> n.replace("דרגת רישיון משאית C1", "Category C1 truck license").replace("דרגת רישיון משא C1 ומעלה", "Category C1+ truck license").replace("משקל כולל", "Gross weight").replace("ק\"ג", "kg")
+            n.contains("D") -> n.replace("רכב להסעת נוסעים • דורש רישיון ייעודי D / D1", "Passenger transport • Requires Category D / D1 license")
+            n.contains("O") || n.contains("רישיון גרירה E") -> n.replace("גרור נתמך • דורש רישיון גרירה E במידת הצורך", "Trailer • Requires Category E towing license as required")
+            else -> n
+        }
+
+        return Pair(cEn, nEn)
     }
 
     fun resolveCountryOfOrigin(vehicle: VehicleRecord, techSpec: VehicleTechnicalSpecRecord?): String? {

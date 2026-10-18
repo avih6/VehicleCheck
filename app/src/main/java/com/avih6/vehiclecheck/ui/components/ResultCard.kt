@@ -74,10 +74,15 @@ fun ResultCard(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val isEn = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "en"
     val currentYear = remember { java.time.LocalDate.now().year }
     var selectedTab by remember { mutableIntStateOf(0) }
     var showStatsDialog by remember { mutableStateOf(false) }
-    val tabs = if (isEngineeringEquipment) listOf("כללי", "מפרט", "סטטיסטיקה") else listOf("כללי", "מפרט", "בטיחות", "סביבה", "סטטיסטיקה")
+    val tabs = if (isEn) {
+        if (isEngineeringEquipment) listOf("General", "Specs", "Statistics") else listOf("General", "Specs", "Safety", "Environment", "Statistics")
+    } else {
+        if (isEngineeringEquipment) listOf("כללי", "מפרט", "סטטיסטיקה") else listOf("כללי", "מפרט", "בטיחות", "סביבה", "סטטיסטיקה")
+    }
 
     fun logResultCardEvent(name: String, params: android.os.Bundle? = null) {
         try {
@@ -553,9 +558,10 @@ fun ResultCard(
 
                 Spacer(Modifier.height(12.dp))
 
-                val formattedMake = VehicleUtils.formatMake(vehicle.make)
+                val (enMake, enModel) = if (isEn) VehicleUtils.getEnglishMakeAndModel(vehicle.make, vehicle.effectiveModel ?: vehicle.model, vehicle.trimLevel) else Pair("", "")
+                val formattedMake = if (isEn && enMake.isNotBlank()) enMake else VehicleUtils.formatMake(vehicle.make, isEn)
                 Text(
-                    text = "$formattedMake ${vehicle.year ?: ""}".trim().ifBlank { "פרטי רכב" },
+                    text = "$formattedMake ${vehicle.year ?: ""}".trim().ifBlank { if (isEn) "Vehicle Details" else "פרטי רכב" },
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Black,
                     fontSize = 22.sp,
@@ -564,7 +570,8 @@ fun ResultCard(
                     modifier = Modifier.semantics { heading() }
                 )
 
-                vehicle.effectiveModel?.let { mod ->
+                val rawMod = if (isEn && enModel.isNotBlank()) enModel else vehicle.effectiveModel
+                rawMod?.let { mod ->
                     val isCountryPlaceholder = listOf("גרמנ", "גרמניה", "יפן", "צרפת", "איטליה", "איטלי", "ארה\"ב", "ארהב", "שוודיה", "קוריאה", "סין", "הודו", "טורקיה", "תורכיה").any { mod.contains(it) }
                     if (mod.isNotBlank() && !mod.equals(formattedMake, ignoreCase = true) && !isCountryPlaceholder) {
                         Spacer(Modifier.height(2.dp))
@@ -583,8 +590,16 @@ fun ResultCard(
                     val cleanOrig = VehicleUtils.formatOriginality(origRaw)
                     if (cleanOrig.isNotBlank()) {
                         Spacer(Modifier.height(3.dp))
+                        val cleanOrigEn = when {
+                            cleanOrig.contains("פרטי") -> "Private"
+                            cleanOrig.contains("חברה") -> "Company"
+                            cleanOrig.contains("ליסינג") -> "Leasing"
+                            cleanOrig.contains("השכרה") -> "Rental"
+                            cleanOrig.contains("ממשלתי") -> "Government"
+                            else -> cleanOrig
+                        }
                         Text(
-                            text = "בעלות מקורית: $cleanOrig",
+                            text = if (isEn) "Original Ownership: $cleanOrigEn" else "בעלות מקורית: $cleanOrig",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 14.5.sp,
@@ -609,21 +624,21 @@ fun ResultCard(
                         isEngineeringEquipment -> {
                             val auth = equipmentPollution?.activityAuthorized
                             if (auth != null && auth.contains("לא מורשה")) {
-                                listOf("כלי לא מורשה פעילות", Color(0xFFFF5252), Color(0xFFD32F2F), Icons.Default.Cancel)
+                                listOf(if (isEn) "Operation Not Authorized" else "כלי לא מורשה פעילות", Color(0xFFFF5252), Color(0xFFD32F2F), Icons.Default.Cancel)
                             } else if (testStatus is TestStatus.Expired) {
-                                listOf("רישיון כלי לא בתוקף", Color(0xFFFF5252), Color(0xFFD32F2F), Icons.Default.Warning)
+                                listOf(if (isEn) "License Expired" else "רישיון כלי לא בתוקף", Color(0xFFFF5252), Color(0xFFD32F2F), Icons.Default.Warning)
                             } else if (auth != null && auth.contains("מורשה")) {
-                                listOf("כלי מורשה פעילות", Color(0xFF66BB6A), Color(0xFF2E7D32), Icons.Default.CheckCircle)
+                                listOf(if (isEn) "Operation Authorized" else "כלי מורשה פעילות", Color(0xFF66BB6A), Color(0xFF2E7D32), Icons.Default.CheckCircle)
                             } else {
-                                listOf("כלי צמ״ה ברישיון", Color(0xFF66BB6A), Color(0xFF2E7D32), Icons.Default.CheckCircle)
+                                listOf(if (isEn) "Licensed Heavy Eq." else "כלי צמ״ה ברישיון", Color(0xFF66BB6A), Color(0xFF2E7D32), Icons.Default.CheckCircle)
                             }
                         }
-                        isDealerDeposit -> listOf("הפקדת סוחר (הקפאת רישיון)", Color(0xFFE65100), Color(0xFFF57C00), Icons.Default.HourglassTop)
-                        isOffRoad -> listOf("רכב לא פעיל (ירד מהכביש)", Color(0xFFFF5252), Color(0xFFD32F2F), Icons.Default.Cancel)
-                        testStatus is TestStatus.Expired -> listOf("רישיון רכב לא בתוקף", Color(0xFFFF5252), Color(0xFFD32F2F), Icons.Default.Cancel)
-                        testStatus is TestStatus.ExpiringSoon -> listOf("טסט יפוג בקרוב", Color(0xFFFFB300), Color(0xFFFF8F00), Icons.Default.HourglassBottom)
-                        testStatus is TestStatus.Valid -> listOf("רכב פעיל ברישיון", Color(0xFF66BB6A), Color(0xFF2E7D32), Icons.Default.CheckCircle)
-                        else -> listOf("רכב פעיל", Color(0xFF66BB6A), Color(0xFF2E7D32), Icons.Default.CheckCircle)
+                        isDealerDeposit -> listOf(if (isEn) "Dealer Deposit (Frozen)" else "הפקדת סוחר (הקפאת רישיון)", Color(0xFFE65100), Color(0xFFF57C00), Icons.Default.HourglassTop)
+                        isOffRoad -> listOf(if (isEn) "Inactive (Off-Road)" else "רכב לא פעיל (ירד מהכביש)", Color(0xFFFF5252), Color(0xFFD32F2F), Icons.Default.Cancel)
+                        testStatus is TestStatus.Expired -> listOf(if (isEn) "License Expired" else "רישיון רכב לא בתוקף", Color(0xFFFF5252), Color(0xFFD32F2F), Icons.Default.Cancel)
+                        testStatus is TestStatus.ExpiringSoon -> listOf(if (isEn) "MOT Expiring Soon" else "טסט יפוג בקרוב", Color(0xFFFFB300), Color(0xFFFF8F00), Icons.Default.HourglassBottom)
+                        testStatus is TestStatus.Valid -> listOf(if (isEn) "Active & Licensed" else "רכב פעיל ברישיון", Color(0xFF66BB6A), Color(0xFF2E7D32), Icons.Default.CheckCircle)
+                        else -> listOf(if (isEn) "Active Vehicle" else "רכב פעיל", Color(0xFF66BB6A), Color(0xFF2E7D32), Icons.Default.CheckCircle)
                     }
 
                     Surface(
@@ -742,7 +757,7 @@ fun ResultCard(
                                     )
                                 } else {
                                     Text(
-                                        text = quickClassification,
+                                        text = if (isEn) translateClassification(quickClassification, true) else quickClassification,
                                         color = chipColor,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 12.sp
@@ -767,7 +782,7 @@ fun ResultCard(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "🚕 מונית (רכב ציבורי)",
+                                    text = if (isEn) "🚕 Taxi (Public Vehicle)" else "🚕 מונית (רכב ציבורי)",
                                     color = Color(0xFFE65100),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.sp
@@ -788,7 +803,7 @@ fun ResultCard(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "🏆 רכב אספנות",
+                                        text = if (isEn) "🏆 Collector Vehicle" else "🏆 רכב אספנות",
                                         color = Color(0xFFFFB300),
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 12.sp
@@ -802,7 +817,7 @@ fun ResultCard(
                     if (trim.isNotBlank()) {
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            text = "רמת גימור: $trim",
+                            text = if (isEn) "Trim: $trim" else "רמת גימור: $trim",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
@@ -832,7 +847,11 @@ fun ResultCard(
                             )
                             Spacer(Modifier.width(6.dp))
                             Text(
-                                text = if (isFirstYear) "%,d ק״מ - עודכן במבחן הרישוי האחרון".format(km) else "%,d - קילומטראז' מעודכן מהטסט האחרון".format(km),
+                                text = if (isEn) {
+                                    if (isFirstYear) "%,d km - Updated at latest MOT inspection".format(km) else "%,d km - Updated mileage from last MOT".format(km)
+                                } else {
+                                    if (isFirstYear) "%,d ק״מ - עודכן במבחן הרישוי האחרון".format(km) else "%,d - קילומטראז' מעודכן מהטסט האחרון".format(km)
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
@@ -857,10 +876,7 @@ fun ResultCard(
                             )
                             Spacer(Modifier.width(6.dp))
                             Text(
-                                text = "רכב חדש - פטור מטסט עד 3 שנים (ללא רישום ק\"מ)",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                text = if (isEn) "New vehicle - MOT exempt for up to 3 years" else "רכב חדש - פטור מטסט עד 3 שנים (ללא רישום ק\"מ)",
                             )
                         }
                     }
@@ -875,8 +891,8 @@ fun ResultCard(
         ) {
             // Disabled Permit
             StatusPill(
-                title = "תג נכה",
-                value = if (hasDisabledPermit) "פעיל" else "ללא",
+                title = if (isEn) "Disabled Permit" else "תג נכה",
+                value = if (hasDisabledPermit) (if (isEn) "Active" else "פעיל") else (if (isEn) "None" else "ללא"),
                 isPositive = hasDisabledPermit,
                 icon = Icons.AutoMirrored.Filled.Accessible,
                 modifier = Modifier.weight(1f).fillMaxHeight()
@@ -892,13 +908,22 @@ fun ResultCard(
             val isTaxi = catPill.contains("מונית")
             val busOperator = busFleet?.operatorName?.trim()?.ifBlank { null }
             val derivedOwner = vehicle.effectiveOwnership ?: vehicle.ownership
-            val isTransit = busOperator != null || derivedOwner?.contains("תחבורה ציבורית") == true || derivedOwner == "תחב\"צ"
+            val isTransit = busOperator != null || catPill.contains("שירות") || derivedOwner?.contains("תחבורה ציבורית") == true || derivedOwner == "תחב\"צ"
             val isBus = catPill.contains("אוטובוס") || stdPill.startsWith("M3") || isTransit || quickClassification.contains("אוטובוס")
+            val isSpecialShuttle = !isTransit && (
+                    catPill.contains("הסע מיוחד") ||
+                    catPill.contains("היסע") ||
+                    catPill.contains("סיור") ||
+                    catPill.contains("תיור") ||
+                    (isBus && !catPill.contains("פרטי"))
+            )
 
             val cleanClass = quickClassification
                 .replace(Regex("^[\\uD83C-\\uDBFF\\uDC00-\\uDFFF\\u2600-\\u27BF\\s]+"), "")
                 .trim()
             val categoryFallback = when {
+                isSpecialShuttle -> "היסעים"
+                isTaxi -> "מונית"
                 vehicle.effectiveVehicleCategory?.contains("מסחרי") == true || vehicle.vehicleCategoryHeavy?.contains("מסחרי") == true -> "מסחרי"
                 vehicle.effectiveVehicleCategory?.contains("פרטי") == true || vehicle.vehicleCategoryHeavy?.contains("פרטי") == true -> "פרטי"
                 cleanClass.contains("מסחרי") || cleanClass.contains("טנדר") || cleanClass.contains("משאית") -> "מסחרי"
@@ -921,30 +946,47 @@ fun ResultCard(
                 isCompany && !isEngineeringEquipment && !isTaxi -> StatusPillType.WARNING
                 else -> StatusPillType.POSITIVE
             }
+
+            val ownerDisplay = if (isEn) {
+                when {
+                    ownerStr == "תחב\"צ" -> "Transit"
+                    ownerStr.contains("פרטי") -> "Private"
+                    ownerStr.contains("חברה") -> "Company"
+                    ownerStr.contains("ליסינג") -> "Leasing"
+                    ownerStr.contains("השכרה") -> "Rental"
+                    ownerStr.contains("מסחרי") -> "Commercial"
+                    ownerStr.contains("מונית") -> "Taxi"
+                    ownerStr.contains("היסעים") -> "Shuttle"
+                    ownerStr.contains("עבודה") -> "Work Eq."
+                    ownerStr == "אין מידע" -> "Unknown"
+                    else -> ownerStr
+                }
+            } else ownerStr
+
             StatusPill(
-                title = "בעלות",
-                value = ownerStr,
+                title = if (isEn) "Ownership" else "בעלות",
+                value = ownerDisplay,
                 statusType = ownershipStatusType,
-                icon = if (isEngineeringEquipment) Icons.Default.Construction else if (!hasOwnership) Icons.AutoMirrored.Filled.HelpOutline else if (isTransit || isBus) Icons.Default.DirectionsBus else if (isTaxi) Icons.Default.DirectionsCar else if (isCompany) Icons.Default.Business else Icons.Default.Person,
+                icon = if (isEngineeringEquipment) Icons.Default.Construction else if (!hasOwnership) Icons.AutoMirrored.Filled.HelpOutline else if (isTransit || isBus || isSpecialShuttle) Icons.Default.DirectionsBus else if (isTaxi) Icons.Default.DirectionsCar else if (isCompany) Icons.Default.Business else Icons.Default.Person,
                 modifier = Modifier.weight(1f).fillMaxHeight()
             )
 
             // Test Status
             val (testStatusType, testTitle, testIcon) = when (testStatus) {
-                is TestStatus.Valid -> Triple(StatusPillType.POSITIVE, "בתוקף", Icons.Default.CalendarToday)
-                is TestStatus.ExpiringSoon -> Triple(StatusPillType.WARNING, "יפוג בקרוב", Icons.Default.HourglassBottom)
-                is TestStatus.Expired -> Triple(StatusPillType.NEGATIVE, "לא בתוקף", Icons.Default.EventBusy)
-                is TestStatus.OffRoad -> Triple(StatusPillType.NEGATIVE, "לא בתוקף", Icons.Default.Cancel)
+                is TestStatus.Valid -> Triple(StatusPillType.POSITIVE, if (isEn) "Valid" else "בתוקף", Icons.Default.CalendarToday)
+                is TestStatus.ExpiringSoon -> Triple(StatusPillType.WARNING, if (isEn) "Expiring" else "יפוג בקרוב", Icons.Default.HourglassBottom)
+                is TestStatus.Expired -> Triple(StatusPillType.NEGATIVE, if (isEn) "Expired" else "לא בתוקף", Icons.Default.EventBusy)
+                is TestStatus.OffRoad -> Triple(StatusPillType.NEGATIVE, if (isEn) "Off-Road" else "לא בתוקף", Icons.Default.Cancel)
                 TestStatus.Unknown -> if (isOffRoad) {
-                    Triple(StatusPillType.NEGATIVE, "לא בתוקף", Icons.Default.Cancel)
+                    Triple(StatusPillType.NEGATIVE, if (isEn) "Off-Road" else "לא בתוקף", Icons.Default.Cancel)
                 } else if (isTopDealerDeposit) {
-                    Triple(StatusPillType.WARNING, "הקפאת סוחר", Icons.Default.HourglassTop)
+                    Triple(StatusPillType.WARNING, if (isEn) "Dealer Deposit" else "הקפאת סוחר", Icons.Default.HourglassTop)
                 } else {
-                    Triple(StatusPillType.WARNING, "אין מידע", Icons.AutoMirrored.Filled.HelpOutline)
+                    Triple(StatusPillType.WARNING, if (isEn) "Unknown" else "אין מידע", Icons.AutoMirrored.Filled.HelpOutline)
                 }
             }
             StatusPill(
-                title = "טסט",
+                title = if (isEn) "MOT Test" else "טסט",
                 value = testTitle,
                 statusType = testStatusType,
                 icon = testIcon,
@@ -954,8 +996,8 @@ fun ResultCard(
             // Recall Pill
             val hasRecall = recalls.isNotEmpty()
             StatusPill(
-                title = "ריקול",
-                value = if (hasRecall) "פתוח" else "תקין",
+                title = if (isEn) "Recall" else "ריקול",
+                value = if (hasRecall) (if (isEn) "Open" else "פתוח") else (if (isEn) "Pass" else "תקין"),
                 isPositive = !hasRecall,
                 icon = if (hasRecall) Icons.Default.Build else Icons.Default.CheckCircle,
                 modifier = Modifier.weight(1f).fillMaxHeight()
@@ -993,7 +1035,7 @@ fun ResultCard(
                         price?.let {
                             val formattedPrice = java.text.NumberFormat.getIntegerInstance(java.util.Locale.US).format(it)
                             Text(
-                                text = "מחיר מחירון יבואן בעלייה לכביש: ₪$formattedPrice",
+                                text = if (isEn) "Original Importer Price: ₪$formattedPrice" else "מחיר מחירון יבואן בעלייה לכביש: ₪$formattedPrice",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -1001,7 +1043,7 @@ fun ResultCard(
                         }
                         impName?.let {
                             Text(
-                                text = "יבואן: $it",
+                                text = if (isEn) "Importer: $it" else "יבואן: $it",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -1219,6 +1261,7 @@ private fun GeneralTabContent(
     quickClassification: String = ""
 ) {
     val context = LocalContext.current
+    val isEn = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "en"
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         // Active vs Inactive Same Model Vehicles Count Card
@@ -1234,12 +1277,22 @@ private fun GeneralTabContent(
                 ) {
                     val hasSpecificModel = !vehicle.model.isNullOrBlank() || !vehicle.modelCode.isNullOrBlank()
                     Text(
-                        text = if (!hasSpecificModel && !vehicle.make.isNullOrBlank()) {
-                            "כמות כלי רכב מתוצרת ${vehicle.make}${if (vehicle.year != null) " (שנת ${vehicle.year})" else ""} שנרשמו במאגר"
-                        } else if (stats.totalActive == 0 && stats.totalInactive > 0) {
-                            "כמות כלי רכב מאותו הדגם שנרשמו במאגר"
+                        text = if (isEn) {
+                            if (!hasSpecificModel && !vehicle.make.isNullOrBlank()) {
+                                "Vehicles made by ${VehicleUtils.formatMake(vehicle.make, true)}${if (vehicle.year != null) " (${vehicle.year})" else ""} registered in Israel"
+                            } else if (stats.totalActive == 0 && stats.totalInactive > 0) {
+                                "Vehicles of this model registered in Israel"
+                            } else {
+                                "Active vehicles of this model registered in Israel"
+                            }
                         } else {
-                            "כמות כלי רכב הפעילים, הקיימים מאותו סוג הרכב"
+                            if (!hasSpecificModel && !vehicle.make.isNullOrBlank()) {
+                                "כמות כלי רכב מתוצרת ${vehicle.make}${if (vehicle.year != null) " (שנת ${vehicle.year})" else ""} שנרשמו במאגר"
+                            } else if (stats.totalActive == 0 && stats.totalInactive > 0) {
+                                "כמות כלי רכב מאותו הדגם שנרשמו במאגר"
+                            } else {
+                                "כמות כלי רכב הפעילים, הקיימים מאותו סוג הרכב"
+                            }
                         },
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.bodyMedium,
@@ -1264,7 +1317,7 @@ private fun GeneralTabContent(
                                 color = Color(0xFFEF5350)
                             )
                             Text(
-                                text = if (stats.totalInactive == 1) "לא פעיל" else "לא פעילים",
+                                text = if (isEn) "Inactive" else (if (stats.totalInactive == 1) "לא פעיל" else "לא פעילים"),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -1295,7 +1348,7 @@ private fun GeneralTabContent(
                                         fontSize = 13.sp
                                     )
                                     Text(
-                                        text = "פעילים",
+                                        text = if (isEn) "Active" else "פעילים",
                                         fontSize = 10.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -1315,7 +1368,7 @@ private fun GeneralTabContent(
                                 color = Color(0xFF0091EA)
                             )
                             Text(
-                                text = if (stats.totalActive == 1) "פעיל" else "פעילים",
+                                text = if (isEn) "Active" else (if (stats.totalActive == 1) "פעיל" else "פעילים"),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFF0091EA)
                             )
@@ -1326,7 +1379,7 @@ private fun GeneralTabContent(
 
                     TextButton(onClick = onShowAllCounts) {
                         Text(
-                            text = "הצג את כל הכמויות",
+                            text = if (isEn) "View All Counts" else "הצג את כל הכמויות",
                             color = Color(0xFF0091EA),
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
@@ -1357,7 +1410,7 @@ private fun GeneralTabContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "מועדי רישוי ומבחני טסט",
+                        text = if (isEn) "Licensing & MOT Dates" else "מועדי רישוי ומבחני טסט",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.semantics { heading() }
@@ -1383,9 +1436,9 @@ private fun GeneralTabContent(
                 // Next test / Expiry date or Off-Road status
                 if (isOffRoad) {
                     val formattedOffRoad = (offRoadDate?.let { VehicleUtils.formatDate(it) } ?: vehicle.testExpiryDate?.let { VehicleUtils.formatDate(it) })?.ifBlank { null }
-                    val offRoadAgo = VehicleUtils.formatTimeAgo(offRoadDate ?: vehicle.testExpiryDate)
+                    val offRoadAgo = VehicleUtils.formatTimeAgo(offRoadDate ?: vehicle.testExpiryDate, isEn)
                     val displayOffRoad = if (formattedOffRoad.isNullOrBlank() || formattedOffRoad.contains("רכב היסטור")) {
-                        "רכב ישן שנגרע מהמצבה"
+                        if (isEn) "Historic vehicle deregistered" else "רכב ישן שנגרע מהמצבה"
                     } else {
                         formattedOffRoad
                     }
@@ -1411,7 +1464,7 @@ private fun GeneralTabContent(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "מועד ביטול רישום (הורדה מהכביש):",
+                                    text = if (isEn) "Cancellation Date (Off-Road):" else "מועד ביטול רישום (הורדה מהכביש):",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.weight(1.1f)
@@ -1427,14 +1480,14 @@ private fun GeneralTabContent(
                             }
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                text = "סטטוס: הרכב בוטל / ירד מהכביש${if (!offRoadAgo.isNullOrBlank()) " ($offRoadAgo)" else ""}",
+                                text = if (isEn) "Status: Vehicle cancelled / taken off-road${if (!offRoadAgo.isNullOrBlank()) " ($offRoadAgo)" else ""}" else "סטטוס: הרכב בוטל / ירד מהכביש${if (!offRoadAgo.isNullOrBlank()) " ($offRoadAgo)" else ""}",
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFFFF5252),
                                 fontSize = 12.sp
                             )
                             Spacer(Modifier.height(3.dp))
                             Text(
-                                text = "על פי תקנות התעבורה (טוטאל לוס / פירוק / גריטה), הרכב נגרע לצמיתות ממצבת כלי הרכב ונאסר לחלוטין לתנועה בכביש.",
+                                text = if (isEn) "Pursuant to traffic regulations (total loss / scrap / salvage), vehicle was permanently removed from registry and prohibited on public roads." else "על פי תקנות התעבורה (טוטאל לוס / פירוק / גריטה), הרכב נגרע לצמיתות ממצבת כלי הרכב ונאסר לחלוטין לתנועה בכביש.",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 11.sp,
                                 lineHeight = 15.sp
@@ -1449,7 +1502,7 @@ private fun GeneralTabContent(
                         isHighlighted = vehicle.testExpiryDate != null
                     )
 
-                    val testDiff = VehicleUtils.calculateDateDifferenceHebrew(vehicle.testExpiryDate)
+                    val testDiff = VehicleUtils.calculateDateDifference(vehicle.testExpiryDate, isEn)
                     if (testDiff != null) {
                         val isValid = testStatus is TestStatus.Valid || testStatus is TestStatus.ExpiringSoon
                         Surface(
@@ -1549,8 +1602,8 @@ private fun GeneralTabContent(
         SafetyDiscountCard(safetyDiscount = safetyDiscount)
 
         // 1. Comprehensive Vehicle Classification & Body Type Card (סיווג ומרכב הרכב)
-        val bodyInfo = remember(vehicle, techSpec, quickClassification) { VehicleUtils.resolveBodyType(vehicle, techSpec, quickClassification) }
-        val (legalClass, legalLicenseNote) = remember(vehicle, techSpec) { VehicleUtils.resolveLegalLicenseClass(vehicle, techSpec) }
+        val bodyInfo = remember(vehicle, techSpec, quickClassification) { VehicleUtils.resolveBodyType(vehicle, techSpec, quickClassification, isEn) }
+        val (legalClass, legalLicenseNote) = remember(vehicle, techSpec) { VehicleUtils.resolveLegalLicenseClass(vehicle, techSpec, isEn) }
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -1559,7 +1612,7 @@ private fun GeneralTabContent(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "סיווג, מרכב וייעוד הרכב",
+                    text = if (isEn) "Vehicle Classification & Purpose" else "סיווג, מרכב וייעוד הרכב",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 12.dp)
@@ -1608,15 +1661,28 @@ private fun GeneralTabContent(
                 val isTaxiLegal = catLegal.contains("מונית")
                 val isAmbulanceLegal = catLegal.contains("אמבולנס") || catLegal.contains("רפואי") || catLegal.contains("הצלה") || (vehicle.model.orEmpty() + " " + vehicle.trimLevel.orEmpty()).contains("אמבולנס")
                 val derivedOwner = vehicle.effectiveOwnership ?: vehicle.ownership
-                val isTransitLegal = busFleet?.operatorName?.isNotBlank() == true || derivedOwner?.contains("תחבורה ציבורית") == true || derivedOwner == "תחב\"צ"
+                val isTransitLegal = busFleet?.operatorName?.isNotBlank() == true || catLegal.contains("שירות") || derivedOwner?.contains("תחבורה ציבורית") == true || derivedOwner == "תחב\"צ"
+                val isBusLegal = catLegal.contains("אוטובוס") || stdLegal.startsWith("M3") || quickClassification.contains("אוטובוס")
+                val isSpecialShuttleLegal = !isTransitLegal && (
+                        catLegal.contains("הסע מיוחד") ||
+                        catLegal.contains("היסע") ||
+                        catLegal.contains("סיור") ||
+                        catLegal.contains("תיור") ||
+                        (isBusLegal && !catLegal.contains("פרטי"))
+                )
                 val ownershipStr = when {
                     isEngineeringEquipment -> "ציוד הנדסי / עבודה"
                     busFleet?.operatorName?.isNotBlank() == true -> "תחב\"צ (${busFleet.operatorName})"
                     isTransitLegal -> "תחב\"צ"
+                    isSpecialShuttleLegal && !derivedOwner.isNullOrBlank() -> "היסעים ($derivedOwner)"
+                    isSpecialShuttleLegal -> "היסעים (הסע מיוחד)"
                     isTaxiLegal && derivedOwner?.contains("פרטי") == true -> "פרטי (ברישוי מונית)"
+                    isTaxiLegal && derivedOwner.isNullOrBlank() -> "מונית"
                     isAmbulanceLegal && !derivedOwner.isNullOrBlank() -> "רכב ביטחון והצלה ($derivedOwner)"
                     isAmbulanceLegal -> "רכב ביטחון והצלה"
                     !derivedOwner.isNullOrBlank() -> derivedOwner
+                    catLegal.contains("מסחרי") || stdLegal.startsWith("N") -> "מסחרי"
+                    catLegal.contains("פרטי") -> "פרטי"
                     else -> "אין מידע"
                 }
                 SpecRow("סוג בעלות רשומה:", ownershipStr)
@@ -1658,7 +1724,7 @@ private fun GeneralTabContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "קבוצת אגרה:",
+                        text = if (isEn) "Fee Group:" else "קבוצת אגרה:",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1725,7 +1791,7 @@ private fun GeneralTabContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "קילומטראז' וניתוח נסועה",
+                        text = if (isEn) "Mileage & Usage Analysis" else "קילומטראז' וניתוח נסועה",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -1749,7 +1815,7 @@ private fun GeneralTabContent(
                             color = Color(0xFF2E7D32).copy(alpha = 0.12f)
                         ) {
                             Text(
-                                text = "רכב חדש בשנה הראשונה לעלייה לכביש (לא מחושב ממוצע שנתי)",
+                                text = if (isEn) "New vehicle in its first year on road (annual average not computed)" else "רכב חדש בשנה הראשונה לעלייה לכביש (לא מחושב ממוצע שנתי)",
                                 color = Color(0xFF2E7D32),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
@@ -1760,9 +1826,9 @@ private fun GeneralTabContent(
                         SpecRow("ממוצע נסועה שנתית:", "%,d ק\"מ לשנה".format(annualKm))
 
                         val (statusText, statusColor) = when {
-                            annualKm in 10000..22000 -> Pair("נסועה ממוצעת תקינה", Color(0xFF2E7D32))
-                            annualKm < 8000 -> Pair("נסועה נמוכה במיוחד (מומלץ לאמת בספר טיפולים)", Color(0xFF0091EA))
-                            else -> Pair("נסועה גבוהה מהממוצע", Color(0xFFFF9800))
+                            annualKm in 10000..22000 -> Pair(if (isEn) "Normal average mileage" else "נסועה ממוצעת תקינה", Color(0xFF2E7D32))
+                            annualKm < 8000 -> Pair(if (isEn) "Exceptionally low mileage (verify with service records)" else "נסועה נמוכה במיוחד (מומלץ לאמת בספר טיפולים)", Color(0xFF0091EA))
+                            else -> Pair(if (isEn) "Above-average mileage" else "נסועה גבוהה מהממוצע", Color(0xFFFF9800))
                         }
 
                         Surface(
@@ -1782,9 +1848,9 @@ private fun GeneralTabContent(
                 } else {
                     Text(
                         text = if (isExemptNewVehicle) {
-                            "רכב חדש פטור ממבחן רישוי שנתי (טסט) ב-3 השנים הראשונות לעלייתו לכביש, ולכן נתוני מד-אוץ טרם נרשמו במאגר."
+                            if (isEn) "New vehicle is exempt from annual MOT test during its first 3 years on road; odometer data is not yet logged." else "רכב חדש פטור ממבחן רישוי שנתי (טסט) ב-3 השנים הראשונות לעלייתו לכביש, ולכן נתוני מד-אוץ טרם נרשמו במאגר."
                         } else {
-                            "נתוני קילומטראז' לא הוזנו בטסט האחרון במאגר משרד התחבורה"
+                            if (isEn) "Odometer reading was not logged during last MOT inspection in registry" else "נתוני קילומטראז' לא הוזנו בטסט האחרון במאגר משרד התחבורה"
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1804,7 +1870,7 @@ private fun GeneralTabContent(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "שינויים, תוספות וגפ\"מ",
+                    text = if (isEn) "Modifications, Additions & LPG" else "שינויים, תוספות וגפ\"מ",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 10.dp)
@@ -1850,7 +1916,7 @@ private fun GeneralTabContent(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = "מפרט צמיגים וגלגלים",
+                    text = if (isEn) "Tires & Wheels Specifications" else "מפרט צמיגים וגלגלים",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 10.dp)
@@ -2078,16 +2144,21 @@ private fun SafetyDiscountCard(safetyDiscount: SafetyDiscountRecord?) {
                 )
             }
             Spacer(Modifier.width(12.dp))
+            val isEn = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "en"
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "זכאות להנחה באגרת רישוי (מערכות בטיחות)",
+                    text = if (isEn) "Safety System Licensing Fee Discount" else "זכאות להנחה באגרת רישוי (מערכות בטיחות)",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "רכב זה רשום במאגר משרד התחבורה כזכאי להנחה שנתית באגרת הרישוי בזכות התקנת מערכות בטיחות מצילות חיים (התרעת התנגשות וסטייה מנתיב בהתקנה מקומית).",
+                    text = if (isEn) {
+                        "This vehicle is registered in the Ministry of Transport database as eligible for an annual license fee discount due to installed life-saving safety systems (forward collision warning and lane departure alert)."
+                    } else {
+                        "רכב זה רשום במאגר משרד התחבורה כזכאי להנחה שנתית באגרת הרישוי בזכות התקנת מערכות בטיחות מצילות חיים (התרעת התנגשות וסטייה מנתיב בהתקנה מקומית)."
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 18.sp
@@ -2104,7 +2175,12 @@ private fun BusInfoCell(label: String, value: String, modifier: Modifier = Modif
         shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
     ) {
-        Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
@@ -2171,49 +2247,58 @@ private fun BusFleetCard(busFleet: BusFleetRecord?) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             Spacer(Modifier.height(12.dp))
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 busFleet.totalKilometer?.let { km: Long ->
                     BusInfoCell(
                         label = "קילומטראז' משרד התחבורה",
                         value = "%,d ק\"מ".format(km),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f).fillMaxHeight()
                     )
                 }
                 busFleet.seatsNum?.let { seats: Int ->
                     BusInfoCell(
                         label = "מספר מקומות ישיבה",
                         value = "$seats מושבים",
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f).fillMaxHeight()
                     )
                 }
             }
 
             Spacer(Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 val stone = busFleet.stoneProof ?: "לא צוין"
                 val bullet = busFleet.bulletProof ?: "לא צוין"
                 BusInfoCell(
                     label = "מיגון אבנים",
                     value = stone,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).fillMaxHeight()
                 )
                 BusInfoCell(
                     label = "מיגון ירי",
                     value = bullet,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).fillMaxHeight()
                 )
             }
 
             val hasSizeOrType = !busFleet.busSize.isNullOrBlank() || !busFleet.busType.isNullOrBlank()
             if (hasSizeOrType) {
                 Spacer(Modifier.height(8.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     val size = busFleet.busSize
                     if (!size.isNullOrBlank()) {
                         BusInfoCell(
                             label = "גודל אוטובוס",
                             value = size,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).fillMaxHeight()
                         )
                     }
                     val type = busFleet.busType
@@ -2221,7 +2306,7 @@ private fun BusFleetCard(busFleet: BusFleetRecord?) {
                         BusInfoCell(
                             label = "ייעוד אוטובוס",
                             value = type,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).fillMaxHeight()
                         )
                     }
                 }
@@ -2284,19 +2369,22 @@ private fun TaxiFleetCard(vehicle: VehicleRecord) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             Spacer(Modifier.height(12.dp))
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 if (seats != null && seats > 0) {
                     BusInfoCell(
                         label = "מקומות ישיבה",
                         value = "$seats נוסעים",
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f).fillMaxHeight()
                     )
                 }
                 if (seatsNext != null && seatsNext > 0) {
                     BusInfoCell(
                         label = "ליד הנהג",
                         value = "$seatsNext נוסעים",
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f).fillMaxHeight()
                     )
                 }
                 val std = vehicle.effectiveStandardType ?: vehicle.standardType
@@ -2304,7 +2392,7 @@ private fun TaxiFleetCard(vehicle: VehicleRecord) {
                     BusInfoCell(
                         label = "תקינה אירופית",
                         value = std,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f).fillMaxHeight()
                     )
                 } else {
                     val cat = vehicle.effectiveVehicleCategory ?: vehicle.vehicleCategory
@@ -2312,7 +2400,7 @@ private fun TaxiFleetCard(vehicle: VehicleRecord) {
                         BusInfoCell(
                             label = "סיווג במאגר",
                             value = cat,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).fillMaxHeight()
                         )
                     }
                 }
@@ -2361,9 +2449,11 @@ private fun PublicSpecialTransitCard(vehicle: VehicleRecord, busFleet: BusFleetR
                         modifier = Modifier.size(20.dp)
                     )
                 }
+                val isSpecialShuttle = !cat.contains("שירות") && !owner.contains("תחבורה ציבורית") && !owner.contains("תחב\"צ")
+                val headerPrefix = if (isSpecialShuttle) "היסעים" else "תחבורה ציבורית"
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "תחבורה ציבורית – ${if (cat.isNotBlank()) cat else "אוטובוס / היסע"}",
+                        text = "$headerPrefix – ${if (cat.isNotBlank()) cat else "אוטובוס / היסע"}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -2394,17 +2484,20 @@ private fun PublicSpecialTransitCard(vehicle: VehicleRecord, busFleet: BusFleetR
                 else -> "$seatsNext מושבים"
             }
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 BusInfoCell(
                     label = "מקומות ישיבה",
                     value = seatsVal,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).fillMaxHeight()
                 )
                 if (seatsNext != null) {
                     BusInfoCell(
                         label = "ליד הנהג",
                         value = seatsNextVal,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f).fillMaxHeight()
                     )
                 }
                 val nf = java.text.NumberFormat.getIntegerInstance(java.util.Locale.US)
@@ -2412,7 +2505,7 @@ private fun PublicSpecialTransitCard(vehicle: VehicleRecord, busFleet: BusFleetR
                 BusInfoCell(
                     label = "משקל כולל מורשה",
                     value = weightVal,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).fillMaxHeight()
                 )
             }
 
@@ -3159,6 +3252,212 @@ private fun StatusPill(
     )
 }
 
+private fun translateSpecLabel(label: String, isEn: Boolean): String {
+    if (!isEn) return label
+    val hasColon = label.endsWith(':')
+    val clean = label.trimEnd(':').trim()
+    val translated = when (clean) {
+        "טסט אחרון (מבחן רישוי אחרון)", "טסט אחרון" -> "Last MOT Test"
+        "טסט הבא (תוקף רישיון רכב)", "טסט הבא" -> "Next MOT Test (License Expiry)"
+        "תוקף רישיון אחרון (לפני ביטול)" -> "Last License Expiry (Before Cancellation)"
+        "מועד ביטול רישום (הורדה מהכביש)" -> "Cancellation Date (Off-Road)"
+        "שנת ייצור" -> "Year of Manufacture"
+        "מועד עלייה לכביש" -> "Registration Date"
+        "תאריך רישום ראשוני" -> "First Registration Date"
+        "סיווג ראשי" -> "Primary Classification"
+        "קבוצת רישוי ומשקל" -> "License & Weight Group"
+        "דרגת רישיון נדרשת" -> "Required License Class"
+        "סוג מרכב" -> "Body Type"
+        "סוג דלק" -> "Fuel Type"
+        "נפח מנוע" -> "Engine Displacement"
+        "הספק מנוע" -> "Engine Power"
+        "כוחות סוס" -> "Horsepower"
+        "תיבת הילוכים" -> "Transmission"
+        "הנעה", "סוג הנעה" -> "Drivetrain"
+        "טכנולוגיית הנעה" -> "Powertrain Tech"
+        "ארץ ייצור" -> "Country of Origin"
+        "צבע" -> "Color"
+        "משקל כולל", "משקל כולל מורשה" -> "Gross Vehicle Weight"
+        "משקל עצמי" -> "Curb Weight"
+        "משקל מטען מורשה" -> "Payload Capacity"
+        "מקומות ישיבה", "מקומות ישיבה מורשים" -> "Seating Capacity"
+        "מושבים ליד הנהג" -> "Front Passenger Seats"
+        "מספר דלתות" -> "Number of Doors"
+        "כריות אוויר" -> "Airbags"
+        "דרגת זיהום אוויר" -> "Pollution Score"
+        "אגרת רישוי שנתית משוערת", "אגרת רישוי שנתית" -> "Est. Annual License Fee"
+        "קוד דגם", "קוד דגם משרד התחבורה" -> "Model Code"
+        "מספר שלדה (VIN)", "מספר שילדה (VIN)" -> "Chassis Number (VIN)"
+        "מספר מנוע" -> "Engine Number"
+        "דגם מנוע" -> "Engine Model Code"
+        "צמיג קדמי מאושר" -> "Front Tire Spec"
+        "צמיג אחורי מאושר" -> "Rear Tire Spec"
+        "כושר גרירה עם בלמים" -> "Towing Capacity (Braked)"
+        "כושר גרירה בלי בלמים" -> "Towing Capacity (Unbraked)"
+        "כושר גרירה מורשה" -> "Approved Towing Capacity"
+        "כושר הרמה / מטען" -> "Lifting / Load Capacity"
+        "מד-אוץ במבחן הרישוי" -> "Odometer at MOT Test"
+        "ממוצע נסועה שנתית" -> "Average Annual Mileage"
+        "סטטוס נסועה" -> "Mileage Status"
+        "מספר הוראת רישום" -> "Type Approval Code"
+        "קבוצת סוג רכב" -> "Vehicle Category Group"
+        "קוד תוצרת", "קוד תוצרת שלדה" -> "Make / Chassis Code"
+        "שם יצרן" -> "Manufacturer"
+        "דגם כלי" -> "Equipment Model"
+        "סוג תקינה" -> "Regulation Standard"
+        "סוג ציוד מכני" -> "Machinery Type"
+        "מורשה פעילות" -> "Operation Authorized"
+        "מעמד אספנות" -> "Vintage Vehicle Status"
+        "סוג בעלות רשומה" -> "Registered Ownership Type"
+        "סוג ממיר" -> "Catalytic Converter"
+        "מסנן חלקיקים" -> "Particulate Filter (DPF)"
+        "וו גרירה" -> "Tow Hitch"
+        "חלונות חשמל" -> "Power Windows"
+        "ג'נטים / גלגלי סגסוגת קלה" -> "Alloy Wheels"
+        "חיישני לחץ אוויר בצמיגים (TPMS)" -> "Tire Pressure Sensors (TPMS)"
+        "האם בוצע שינוי צבע" -> "Color Change Recorded"
+        "האם בוצע שינוי במידת צמיג" -> "Tire Size Change Recorded"
+        "האם יש ארגז (משא / טנדר)" -> "Cargo Bed (Pickup/Truck)"
+        "הגבלות תנועה", "הגבלת מהירות ותנועה" -> "Speed & Driving Restrictions"
+        "האם הותקנה מערכת גפ\"מ (גז)", "האם הותקנה מערכת גפ״מ (גז)" -> "LPG (Autogas) System Installed"
+        "קבוצת אגרה" -> "Fee Group"
+        else -> clean
+    }
+    return if (hasColon) "$translated:" else translated
+}
+
+private fun translateSpecValue(value: String, isEn: Boolean): String {
+    if (!isEn) return value
+    val trimmed = value.trim()
+    return when {
+        trimmed == "אין מידע" -> "No information"
+        trimmed == "לא ידוע" -> "Unknown"
+        trimmed == "יש" || trimmed == "כן" || trimmed == "מותקן" || trimmed == "קיים" -> "Installed"
+        trimmed == "אין" || trimmed == "לא" || trimmed == "לא מותקן" || trimmed == "לא קיים" -> "Not installed"
+        trimmed == "כן (מותקנת)" || trimmed == "כן (מותקן)" -> "Installed"
+        trimmed == "כן (שינוי רשום)" -> "Recorded modification"
+        trimmed == "כן (מאושר ברישיון)" -> "Approved in license"
+        trimmed == "מותקן ומאושר" -> "Installed & approved"
+        trimmed.contains("ללא רישום") -> "No tow hitch recorded"
+        trimmed.contains("מורשה לגרירה") -> trimmed.replace("מורשה לגרירה", "Approved for towing").replace("ק\"ג", "kg").replace("ק״ג", "kg").replace("עד", "up to")
+        trimmed == "בנזין" -> "Gasoline"
+        trimmed == "דיזל" || trimmed == "סולר" -> "Diesel"
+        trimmed == "חשמל" || trimmed == "חשמלי" -> "Electric"
+        trimmed.contains("היבריד") -> "Hybrid"
+        trimmed.contains("פלאג-אין") -> "Plug-in Hybrid"
+        trimmed.contains("אוטומט") -> "Automatic"
+        trimmed.contains("ידני") -> "Manual"
+        trimmed.contains("רובוט") -> "Dual-Clutch"
+        trimmed.contains("רציפ") -> "CVT"
+        trimmed.contains("קדמית") -> "Front-Wheel Drive (FWD)"
+        trimmed.contains("אחורית") -> "Rear-Wheel Drive (RWD)"
+        trimmed.contains("כפולה") || trimmed.contains("4X4") || trimmed.contains("4x4") -> "All-Wheel Drive (AWD)"
+        trimmed == "פרטי" -> "Private"
+        trimmed == "חברה" -> "Company"
+        trimmed == "השכרה" -> "Rental"
+        trimmed == "ליסינג" -> "Leasing"
+        trimmed == "תחב\"צ" -> "Transit"
+        trimmed == "מונית" -> "Taxi"
+        trimmed.contains("מושב 1 ליד הנהג") -> "1 seat next to driver"
+        trimmed.contains("ללא מושב ליד הנהג") -> "No passenger seat"
+        trimmed.contains("מושבים ליד הנהג") -> trimmed.replace("מושבים ליד הנהג", "seats next to driver")
+        trimmed.contains("מושב 1") -> "1 seat"
+        trimmed.contains("מושבים") -> trimmed.replace("מושבים", "seats")
+        trimmed.contains("לשנה") -> trimmed.replace("ק\"מ לשנה", "km / year").replace("ק״מ לשנה", "km / year").replace("לשנה", "/ year")
+        trimmed.contains("רכב אספנות רשמי") -> "Official Vintage Vehicle 🏆"
+        trimmed.contains("זכאי להסבה") -> "Eligible for vintage conversion"
+        trimmed.contains("שנה ראשונה על הכביש") -> trimmed.replace("שנה ראשונה על הכביש - נסע", "First year on road - total").replace("ק\"מ בסה\"כ", "km total").replace("ק״מ בסה״כ", "km total")
+        else -> {
+            var v = value
+            v = v.replace("כ\"ס", "HP")
+                .replace("סמ\"ק", "cc")
+                .replace("ק\"מ", "km")
+                .replace("ק״מ", "km")
+                .replace("ק\"ג", "kg")
+                .replace("ק״ג", "kg")
+                .replace("טון", "tons")
+                .replace("ליטר", "L")
+            v
+        }
+    }
+}
+
+private fun translateCountry(c: String): String {
+    return when {
+        c.contains("יפן") -> "Japan"
+        c.contains("גרמנ") -> "Germany"
+        c.contains("קוריאה") -> "South Korea"
+        c.contains("ארה") -> "United States"
+        c.contains("צרפת") -> "France"
+        c.contains("בריטניה") || c.contains("אנגליה") -> "United Kingdom"
+        c.contains("איטלי") -> "Italy"
+        c.contains("ספרד") -> "Spain"
+        c.contains("שוודיה") || c.contains("שבדיה") -> "Sweden"
+        c.contains("צ'כיה") || c.contains("טשכיה") -> "Czech Republic"
+        c.contains("סין") -> "China"
+        c.contains("טורקיה") || c.contains("תורכיה") -> "Turkey"
+        c.contains("ישראל") -> "Israel"
+        c.contains("סלובקיה") -> "Slovakia"
+        c.contains("הונגריה") -> "Hungary"
+        c.contains("פולין") -> "Poland"
+        c.contains("מקסיקו") -> "Mexico"
+        c.contains("קנדה") -> "Canada"
+        c.contains("אוסטריה") -> "Austria"
+        c.contains("בלגיה") -> "Belgium"
+        c.contains("הולנד") -> "Netherlands"
+        c.contains("תאילנד") -> "Thailand"
+        c.contains("דרום אפריקה") -> "South Africa"
+        else -> c
+    }
+}
+
+private fun translateColor(c: String): String {
+    val clean = c.trim().lowercase()
+    return when {
+        clean.contains("לבן") -> "White"
+        clean.contains("שחור") -> "Black"
+        clean.contains("אפור") || clean.contains("עכבר") -> "Gray"
+        clean.contains("כסף") -> "Silver"
+        clean.contains("כחול") || clean.contains("תכלת") -> "Blue"
+        clean.contains("אדום") || clean.contains("בורדו") -> "Red"
+        clean.contains("ירוק") -> "Green"
+        clean.contains("צהוב") -> "Yellow"
+        clean.contains("חום") -> "Brown"
+        clean.contains("כתום") -> "Orange"
+        clean.contains("בז") || clean.contains("קרם") -> "Beige"
+        clean.contains("סגול") || clean.contains("חציל") -> "Purple"
+        clean.contains("זהב") || clean.contains("שמפניה") -> "Gold"
+        else -> c
+    }
+}
+
+private fun translateClassification(cls: String, isEn: Boolean): String {
+    if (!isEn) return cls
+    return when {
+        cls.contains("פנאי") || cls.contains("שטח") -> "🚙 SUV / Crossover"
+        cls.contains("פרטי") -> "🚗 Private Car"
+        cls.contains("מסחרי") -> "🚐 Commercial"
+        cls.contains("משאית") -> "🚚 Truck"
+        cls.contains("אוטובוס") -> "🚌 Bus"
+        cls.contains("מונית") -> "🚕 Taxi"
+        cls.contains("אופנוע") -> "🏍️ Motorcycle"
+        cls.contains("קטנוע") -> "🛵 Scooter"
+        cls.contains("טרקטור") -> "🚜 Tractor"
+        cls.contains("אספנות") -> "🏆 Vintage Car"
+        cls.contains("גרר") -> "🚛 Tow Truck"
+        cls.contains("גולף") -> "🛺 Golf Cart"
+        cls.contains("צמ\"ה") || cls.contains("צמ״ה") -> "🏗️ Heavy Equipment"
+        cls.contains("אמבולנס") -> "🚑 Ambulance"
+        cls.contains("כיבוי") || cls.contains("כבאית") -> "🚒 Fire Truck"
+        cls.contains("הסע מיוחד") || cls.contains("היסע") -> "🚐 Special Shuttle"
+        cls.contains("גרור") -> "🚛 Trailer"
+        cls.contains("נתמך") -> "🚛 Semi-Trailer"
+        cls.contains("לימוד נהיגה") -> "🚗 Driving School"
+        cls.contains("רכב סיור") -> "🚙 Patrol Vehicle"
+        else -> cls
+    }
+}
+
 @Composable
 private fun SpecRow(
     label: String,
@@ -3168,22 +3467,25 @@ private fun SpecRow(
     copyValue: String? = null
 ) {
     val context = LocalContext.current
-    val cleanLabel = label.trimEnd(':').trim()
-    val canCopy = isCopyable && value != "אין מידע" && value.isNotBlank()
-    val textToCopy = copyValue ?: value
+    val isEn = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "en"
+    val displayLabel = translateSpecLabel(label, isEn)
+    val displayValue = translateSpecValue(value, isEn)
+    val cleanLabel = displayLabel.trimEnd(':').trim()
+    val canCopy = isCopyable && displayValue != "אין מידע" && displayValue != "No information" && displayValue.isNotBlank()
+    val textToCopy = copyValue ?: displayValue
 
     val rowModifier = if (canCopy) {
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(6.dp))
             .clickable(
-                onClickLabel = "העתק $cleanLabel",
+                onClickLabel = if (isEn) "Copy $cleanLabel" else "העתק $cleanLabel",
                 role = Role.Button
             ) {
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 clipboard.setPrimaryClip(ClipData.newPlainText(cleanLabel, textToCopy))
                 if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) {
-                    Toast.makeText(context, "$cleanLabel הועתק ללוח", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, if (isEn) "$cleanLabel copied to clipboard" else "$cleanLabel הועתק ללוח", Toast.LENGTH_SHORT).show()
                 }
             }
             .padding(horizontal = 4.dp, vertical = 4.dp)
@@ -3195,25 +3497,25 @@ private fun SpecRow(
 
     Row(
         modifier = rowModifier.semantics(mergeDescendants = true) {
-            contentDescription = "$label $value"
+            contentDescription = "$displayLabel $displayValue"
         },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = displayLabel, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
-                text = value,
+                text = displayValue,
                 fontWeight = if (isHighlighted) FontWeight.Bold else FontWeight.SemiBold,
                 color = if (isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
             )
             if (canCopy) {
                 Icon(
                     imageVector = Icons.Outlined.ContentCopy,
-                    contentDescription = "העתק",
+                    contentDescription = if (isEn) "Copy" else "העתק",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     modifier = Modifier.size(13.dp)
                 )
@@ -3224,19 +3526,22 @@ private fun SpecRow(
 
 @Composable
 private fun CountrySpecRow(label: String, country: String) {
-    val isIsrael = country.contains("ישראל")
+    val isEn = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "en"
+    val displayLabel = translateSpecLabel(label, isEn)
+    val displayCountry = if (isEn) translateCountry(country) else country.replace(Regex("[\\uD83C\\uDDE6-\\uD83C\\uDDFF]{2}"), "").trim()
+    val isIsrael = country.contains("ישראל") || displayCountry.contains("Israel")
     val flagUrl = VehicleUtils.getCountryFlagUrl(country)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .semantics(mergeDescendants = true) {
-                contentDescription = "$label $country"
+                contentDescription = "$displayLabel $displayCountry"
             },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = displayLabel, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -3255,7 +3560,7 @@ private fun CountrySpecRow(label: String, country: String) {
                 )
             }
             Text(
-                text = country.replace(Regex("[\\uD83C\\uDDE6-\\uD83C\\uDDFF]{2}"), "").trim(),
+                text = displayCountry,
                 fontWeight = if (isIsrael) FontWeight.Bold else FontWeight.SemiBold,
                 color = if (isIsrael) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
             )
@@ -3265,18 +3570,21 @@ private fun CountrySpecRow(label: String, country: String) {
 
 @Composable
 private fun ColorSpecRow(label: String, colorName: String) {
+    val isEn = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "en"
+    val displayLabel = translateSpecLabel(label, isEn)
+    val displayColor = if (isEn) translateColor(colorName) else colorName
     val (colorLong, borderLong) = VehicleUtils.getColorVisual(colorName)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .semantics(mergeDescendants = true) {
-                contentDescription = "$label $colorName"
+                contentDescription = "$displayLabel $displayColor"
             },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = displayLabel, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -3288,7 +3596,7 @@ private fun ColorSpecRow(label: String, colorName: String) {
                 border = if (borderLong != null) BorderStroke(1.5.dp, Color(borderLong)) else BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
             ) {}
             Text(
-                text = colorName,
+                text = displayColor,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -3298,10 +3606,13 @@ private fun ColorSpecRow(label: String, colorName: String) {
 
 @Composable
 private fun FuelSpecRow(label: String, fuelType: String) {
+    val isEn = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "en"
+    val displayLabel = translateSpecLabel(label, isEn)
     if (fuelType == "אין מידע" || fuelType.isBlank()) {
-        SpecRow(label, "אין מידע")
+        SpecRow(displayLabel, if (isEn) "No information" else "אין מידע")
         return
     }
+    val displayFuel = if (isEn) translateSpecValue(fuelType, true) else fuelType
     val f = fuelType.trim().lowercase()
     val (icon, tint) = when {
         f.contains("חשמל") || f.contains("חשמלי") -> Pair(Icons.Default.Bolt, Color(0xFF00ACC1))
@@ -3316,12 +3627,12 @@ private fun FuelSpecRow(label: String, fuelType: String) {
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .semantics(mergeDescendants = true) {
-                contentDescription = "$label $fuelType"
+                contentDescription = "$displayLabel $displayFuel"
             },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = displayLabel, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -3333,7 +3644,7 @@ private fun FuelSpecRow(label: String, fuelType: String) {
                 modifier = Modifier.size(18.dp)
             )
             Text(
-                text = fuelType,
+                text = displayFuel,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -3347,8 +3658,10 @@ private fun SafetySystemRow(
     isPresent: Boolean,
     note: String? = null
 ) {
-    val statusText = if (isPresent) "קיים" else "לא קיים"
-    val fullDesc = if (note.isNullOrBlank()) "$title: $statusText" else "$title: $statusText ($note)"
+    val isEn = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language == "en"
+    val displayTitle = translateSpecLabel(title, isEn)
+    val statusText = if (isPresent) (if (isEn) "Present" else "קיים") else (if (isEn) "Not installed" else "לא קיים")
+    val fullDesc = if (note.isNullOrBlank()) "$displayTitle: $statusText" else "$displayTitle: $statusText ($note)"
     Row(
         modifier = Modifier
             .fillMaxWidth()

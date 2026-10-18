@@ -350,7 +350,11 @@ object NetworkClient {
     }
 
     private val okHttpClient = OkHttpClient.Builder()
-        .connectionPool(okhttp3.ConnectionPool(8, 5, TimeUnit.MINUTES))
+        .dispatcher(okhttp3.Dispatcher().apply {
+            maxRequests = 64
+            maxRequestsPerHost = 24
+        })
+        .connectionPool(okhttp3.ConnectionPool(16, 5, TimeUnit.MINUTES))
         .connectTimeout(12, TimeUnit.SECONDS)
         .readTimeout(12, TimeUnit.SECONDS)
         .addInterceptor(HttpLoggingInterceptor().apply {
