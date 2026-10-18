@@ -2134,8 +2134,23 @@ fun ModelDetailStatisticsCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(Icons.Default.LocalGasStation, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                val fuelTypesDisplay = if (isEn) {
+                    detail.fuelTypes.map { f ->
+                        when {
+                            f.contains("בנזין") -> "Gasoline"
+                            f.contains("דיזל") -> "Diesel"
+                            f.contains("היבריד") -> "Hybrid"
+                            f.contains("חשמל") -> "Electric"
+                            f.contains("פלאג") || f.contains("נטען") -> "Plug-in Hybrid"
+                            f.contains("גז") || f.contains("גפ\"מ") || f.contains("גפ״מ") -> "LPG (Gas)"
+                            else -> f
+                        }
+                    }.joinToString(", ")
+                } else {
+                    detail.fuelTypes.joinToString(", ")
+                }
                 Text(
-                    text = if (isEn) "Fuel/Engine types: ${detail.fuelTypes.joinToString(", ")}" else "סוגי הנעה/דלק בדגם: ${detail.fuelTypes.joinToString(", ")}",
+                    text = if (isEn) "Fuel/Engine types: $fuelTypesDisplay" else "סוגי הנעה/דלק בדגם: $fuelTypesDisplay",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -2149,8 +2164,19 @@ fun ModelDetailStatisticsCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(Icons.Default.SettingsSuggest, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                    val transDisplay = if (isEn) {
+                        when {
+                            detail.transmission.contains("אוטומט") -> "Automatic"
+                            detail.transmission.contains("ידני") -> "Manual"
+                            detail.transmission.contains("רובוט") -> "Dual-Clutch"
+                            detail.transmission.contains("רציפ") -> "CVT"
+                            else -> detail.transmission
+                        }
+                    } else {
+                        detail.transmission
+                    }
                     Text(
-                        text = if (isEn) "Transmission: ${detail.transmission}" else "תיבת הילוכים: ${detail.transmission}",
+                        text = if (isEn) "Transmission: $transDisplay" else "תיבת הילוכים: $transDisplay",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

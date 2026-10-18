@@ -403,7 +403,7 @@ fun GalleryScreen(
                                 onClick = { selectedImageIndexForViewer = null },
                                 modifier = Modifier.handCursor()
                             ) {
-                                Icon(Icons.Default.Close, contentDescription = "סגור חלון תצוגה מקדימה", tint = Color.White)
+                                Icon(Icons.Default.Close, contentDescription = if (isEn) "Close preview" else "סגור חלון תצוגה מקדימה", tint = Color.White)
                             }
 
                             if (images.size > 1) {
@@ -430,16 +430,18 @@ fun GalleryScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 IconButton(
                                     onClick = {
+                                        val shareTitle = if (isEn) "Vehicle photo (${currentImage.title})" else "תמונת רכב (${currentImage.title})"
+                                        val shareSource = if (isEn) "Source" else "מקור"
                                         val sendIntent = Intent().apply {
                                             action = Intent.ACTION_SEND
-                                            putExtra(Intent.EXTRA_TEXT, "תמונת רכב (${currentImage.title}):\n${currentImage.imageUrl}\nמקור: ${currentImage.descriptionUrl}")
+                                            putExtra(Intent.EXTRA_TEXT, "$shareTitle:\n${currentImage.imageUrl}\n$shareSource: ${currentImage.descriptionUrl}")
                                             type = "text/plain"
                                         }
-                                        context.startActivity(Intent.createChooser(sendIntent, "שתף תמונת רכב"))
+                                        context.startActivity(Intent.createChooser(sendIntent, if (isEn) "Share vehicle photo" else "שתף תמונת רכב"))
                                     },
                                     modifier = Modifier.handCursor()
                                 ) {
-                                    Icon(Icons.Default.Share, contentDescription = "שתף תמונת רכב", tint = Color.White)
+                                    Icon(Icons.Default.Share, contentDescription = if (isEn) "Share vehicle photo" else "שתף תמונת רכב", tint = Color.White)
                                 }
 
                                 IconButton(
@@ -448,7 +450,7 @@ fun GalleryScreen(
                                         ReportUtils.sendImageReport(
                                             context = context,
                                             image = currentImage,
-                                            vehicleOrSearchContext = "גלריה: $ctxDesc"
+                                            vehicleOrSearchContext = if (isEn) "Gallery: $ctxDesc" else "גלריה: $ctxDesc"
                                         )
                                     },
                                     modifier = Modifier.handCursor()

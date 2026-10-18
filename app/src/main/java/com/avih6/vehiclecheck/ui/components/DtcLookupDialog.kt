@@ -63,59 +63,113 @@ fun DtcLookupDialog(
     }
 
     fun copyDtcDetails(info: DtcCodeInfo) {
-        val shareText = buildString {
-            appendLine("קוד תקלה: ${info.code}")
-            appendLine("תיאור: ${info.titleHe} (${info.titleEn})")
-            appendLine("רמת חומרה: ${info.severity.titleHe}")
-            appendLine("מערכת: ${info.categoryHe}")
-            appendLine()
-            appendLine(info.descriptionHe)
-            if (info.symptomsHe.isNotEmpty()) {
-                appendLine("\nתסמינים ברכב:")
-                info.symptomsHe.forEach { appendLine("• $it") }
+        val shareText = if (isEn) {
+            buildString {
+                appendLine("Fault Code: ${info.code}")
+                appendLine("Description: ${info.titleEn}")
+                appendLine("Severity: ${info.severity.titleEn}")
+                appendLine("System: ${info.getCategory(true)}")
+                appendLine()
+                appendLine(info.getDescription(true))
+                val symptoms = info.getSymptoms(true)
+                if (symptoms.isNotEmpty()) {
+                    appendLine("\nVehicle Symptoms:")
+                    symptoms.forEach { appendLine("• $it") }
+                }
+                val causes = info.getPossibleCauses(true)
+                if (causes.isNotEmpty()) {
+                    appendLine("\nPossible Causes:")
+                    causes.forEach { appendLine("• $it") }
+                }
+                val solutions = info.getSolutions(true)
+                if (solutions.isNotEmpty()) {
+                    appendLine("\nRecommended Solutions:")
+                    solutions.forEach { appendLine("✔ $it") }
+                }
+                appendLine("\nShared from VehicleCheck app")
             }
-            if (info.possibleCausesHe.isNotEmpty()) {
-                appendLine("\nגורמים אפשריים:")
-                info.possibleCausesHe.forEach { appendLine("• $it") }
+        } else {
+            buildString {
+                appendLine("קוד תקלה: ${info.code}")
+                appendLine("תיאור: ${info.titleHe} (${info.titleEn})")
+                appendLine("רמת חומרה: ${info.severity.titleHe}")
+                appendLine("מערכת: ${info.categoryHe}")
+                appendLine()
+                appendLine(info.descriptionHe)
+                if (info.symptomsHe.isNotEmpty()) {
+                    appendLine("\nתסמינים ברכב:")
+                    info.symptomsHe.forEach { appendLine("• $it") }
+                }
+                if (info.possibleCausesHe.isNotEmpty()) {
+                    appendLine("\nגורמים אפשריים:")
+                    info.possibleCausesHe.forEach { appendLine("• $it") }
+                }
+                if (info.solutionsHe.isNotEmpty()) {
+                    appendLine("\nדרכי טיפול:")
+                    info.solutionsHe.forEach { appendLine("✔ $it") }
+                }
+                appendLine("\nשותף מאפליקציית בודק רכב (VehicleCheck)")
             }
-            if (info.solutionsHe.isNotEmpty()) {
-                appendLine("\nדרכי טיפול:")
-                info.solutionsHe.forEach { appendLine("✔ $it") }
-            }
-            appendLine("\nשותף מאפליקציית בודק רכב (VehicleCheck)")
         }
         clipboardManager.setText(AnnotatedString(shareText))
-        Toast.makeText(context, "קוד התקלה הועתק ללוח", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, if (isEn) "Fault code copied to clipboard" else "קוד התקלה הועתק ללוח", Toast.LENGTH_SHORT).show()
     }
 
     fun shareDtcDetails(info: DtcCodeInfo) {
-        val shareText = buildString {
-            appendLine("🚗 פירוט קוד תקלה מהרכב: ${info.code}")
-            appendLine("📌 ${info.titleHe} (${info.titleEn})")
-            appendLine("⚠️ חומרה: ${info.severity.titleHe}")
-            appendLine("🔧 מערכת: ${info.categoryHe}")
-            appendLine()
-            appendLine(info.descriptionHe)
-            if (info.symptomsHe.isNotEmpty()) {
-                appendLine("\nתסמינים:")
-                info.symptomsHe.forEach { appendLine("• $it") }
+        val shareText = if (isEn) {
+            buildString {
+                appendLine("🚗 Vehicle Fault Code Details: ${info.code}")
+                appendLine("📌 ${info.titleEn}")
+                appendLine("⚠️ Severity: ${info.severity.titleEn}")
+                appendLine("🔧 System: ${info.getCategory(true)}")
+                appendLine()
+                appendLine(info.getDescription(true))
+                val symptoms = info.getSymptoms(true)
+                if (symptoms.isNotEmpty()) {
+                    appendLine("\nSymptoms:")
+                    symptoms.forEach { appendLine("• $it") }
+                }
+                val causes = info.getPossibleCauses(true)
+                if (causes.isNotEmpty()) {
+                    appendLine("\nPossible Causes:")
+                    causes.forEach { appendLine("• $it") }
+                }
+                val solutions = info.getSolutions(true)
+                if (solutions.isNotEmpty()) {
+                    appendLine("\nRecommended Solutions:")
+                    solutions.forEach { appendLine("✔ $it") }
+                }
+                appendLine("\nShared from VehicleCheck app")
             }
-            if (info.possibleCausesHe.isNotEmpty()) {
-                appendLine("\nגורמים אפשריים:")
-                info.possibleCausesHe.forEach { appendLine("• $it") }
+        } else {
+            buildString {
+                appendLine("🚗 פירוט קוד תקלה מהרכב: ${info.code}")
+                appendLine("📌 ${info.titleHe} (${info.titleEn})")
+                appendLine("⚠️ חומרה: ${info.severity.titleHe}")
+                appendLine("🔧 מערכת: ${info.categoryHe}")
+                appendLine()
+                appendLine(info.descriptionHe)
+                if (info.symptomsHe.isNotEmpty()) {
+                    appendLine("\nתסמינים:")
+                    info.symptomsHe.forEach { appendLine("• $it") }
+                }
+                if (info.possibleCausesHe.isNotEmpty()) {
+                    appendLine("\nגורמים אפשריים:")
+                    info.possibleCausesHe.forEach { appendLine("• $it") }
+                }
+                if (info.solutionsHe.isNotEmpty()) {
+                    appendLine("\nדרכי טיפול מומלצות:")
+                    info.solutionsHe.forEach { appendLine("✔ $it") }
+                }
+                appendLine("\nנשלח מ-VehicleCheck")
             }
-            if (info.solutionsHe.isNotEmpty()) {
-                appendLine("\nדרכי טיפול מומלצות:")
-                info.solutionsHe.forEach { appendLine("✔ $it") }
-            }
-            appendLine("\nנשלח מ-VehicleCheck")
         }
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
-            putExtra(Intent.EXTRA_SUBJECT, "פירוט תקלת רכב ${info.code}")
+            putExtra(Intent.EXTRA_SUBJECT, if (isEn) "Vehicle Fault Code ${info.code}" else "פירוט תקלת רכב ${info.code}")
             putExtra(Intent.EXTRA_TEXT, shareText)
         }
-        context.startActivity(Intent.createChooser(intent, "שיתוף תקלת רכב"))
+        context.startActivity(Intent.createChooser(intent, if (isEn) "Share Fault Code" else "שיתוף תקלת רכב"))
     }
 
     fun performLookup(code: String) {

@@ -511,34 +511,35 @@ fun ResultCard(
                                     putInt("year", vehicle.year ?: 0)
                                 })
                                 val shareText = buildComprehensiveShareText(
-                                    vehicle, techSpec, importerInfo, extraHistory, formattedPlate, testStatus, hasDisabledPermit, permitIssueDate, isOffRoad, offRoadDate, recalls
+                                    vehicle, techSpec, importerInfo, extraHistory, formattedPlate, testStatus, hasDisabledPermit, permitIssueDate, isOffRoad, offRoadDate, recalls, isEn
                                 )
                                 val sendIntent = Intent().apply {
                                     action = Intent.ACTION_SEND
+                                    putExtra(Intent.EXTRA_SUBJECT, if (isEn) "Vehicle Report - $formattedPlate" else "דוח בדיקת רכב - $formattedPlate")
                                     putExtra(Intent.EXTRA_TEXT, shareText)
                                     type = "text/plain"
                                 }
-                                context.startActivity(Intent.createChooser(sendIntent, "שתף דוח רכב"))
+                                context.startActivity(Intent.createChooser(sendIntent, if (isEn) "Share Vehicle Report" else "שתף דוח רכב"))
                             },
-                            tooltipText = "שתף דוח בדיקת רכב"
+                            tooltipText = if (isEn) "Share Vehicle Report" else "שתף דוח בדיקת רכב"
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Share,
-                                contentDescription = "שתף דוח בדיקת רכב",
+                                contentDescription = if (isEn) "Share Vehicle Report" else "שתף דוח בדיקת רכב",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         HoverTooltipIconButton(
                             onClick = onToggleFavorite,
-                            tooltipText = if (isFavorite) "הסר ממועדפים" else "הוסף למועדפים",
+                            tooltipText = if (isFavorite) (if (isEn) "Remove from favorites" else "הסר ממועדפים") else (if (isEn) "Add to favorites" else "הוסף למועדפים"),
                             modifier = Modifier.semantics {
                                 role = Role.Checkbox
-                                stateDescription = if (isFavorite) "נמצא במועדפים" else "לא במועדפים"
+                                stateDescription = if (isFavorite) (if (isEn) "In favorites" else "נמצא במועדפים") else (if (isEn) "Not in favorites" else "לא במועדפים")
                             }
                         ) {
                             Icon(
                                 imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                                contentDescription = if (isFavorite) "הסר ממועדפים" else "הוסף למועדפים",
+                                contentDescription = if (isFavorite) (if (isEn) "Remove from favorites" else "הסר ממועדפים") else (if (isEn) "Add to favorites" else "הוסף למועדפים"),
                                 tint = if (isFavorite) Color(0xFFFFB300) else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -3703,8 +3704,52 @@ private fun buildComprehensiveShareText(
     permitIssueDate: Long?,
     isOffRoad: Boolean,
     offRoadDate: String?,
-    recalls: List<VehicleRecallRestrictionRecord>
+    recalls: List<VehicleRecallRestrictionRecord>,
+    isEn: Boolean = false
 ): String {
+    if (isEn) {
+        val statusStr = when (testStatus) {
+            is TestStatus.Valid -> "MOT Valid (${testStatus.daysLeft} days remaining)"
+            is TestStatus.ExpiringSoon -> "MOT Expiring Soon (${testStatus.daysLeft} days remaining)"
+            is TestStatus.Expired -> "MOT Expired (${testStatus.daysPassed} days ago)"
+            is TestStatus.OffRoad -> "Deregistered / Off Road on: ${offRoadDate ?: "Cancelled"}"
+            TestStatus.Unknown -> "Unknown"
+        }
+
+        val offRoadAlert = if (isOffRoad) "🚫 *Vehicle Status: Deregistered (${offRoadDate ?: "Cancelled"})*\n" else ""
+        val recallAlert = if (recalls.isNotEmpty()) "⚠️ *Open Safety Recall:* ${recalls.first().faultDescription ?: "Open safety recall"}\n" else ""
+        val mileageStr = extraHistory?.lastTestMileage?.let { "\n🛣️ Mileage at MOT: %,d km".format(it) } ?: ""
+        val hpStr = techSpec?.horsepower?.let { "\n🐎 Horsepower: $it hp" } ?: ""
+        val ccStr = techSpec?.engineDisplacement?.let { "\n⚙️ Engine Displacement: %,d cc".format(it) } ?: ""
+        val driveStr = techSpec?.driveType?.let { "\n🚙 Drive: ${translateSpecValue(it, true)}" } ?: ""
+        val priceStr = importerInfo?.importerPrice?.let { "\n💰 Original Importer Price: ₪%,d".format(it) } ?: ""
+        val permitDateStr = if (hasDisabledPermit && permitIssueDate != null) " (Issued: ${VehicleUtils.formatPermitDate(permitIssueDate)})" else ""
+
+        val (enMake, enModel) = VehicleUtils.getEnglishMakeAndModel(vehicle.make, vehicle.effectiveModel ?: vehicle.model, vehicle.trimLevel)
+        val makeEn = if (enMake.isNotBlank()) enMake else VehicleUtils.formatMake(vehicle.make, true)
+        val modelEn = if (enModel.isNotBlank()) enModel else (vehicle.effectiveModel ?: vehicle.model ?: "")
+        val fuelStr = translateSpecValue(vehicle.fuelType ?: "-", true)
+        val colorStr = translateColor(vehicle.color ?: "-")
+        val ownershipStr = translateSpecValue(vehicle.ownership ?: "-", true)
+
+        return """
+            📋 *Comprehensive Vehicle Check Report - $formattedPlate*
+            $offRoadAlert$recallAlert🚗 Make & Model: $makeEn $modelEn (${vehicle.trimLevel ?: ""})
+            📅 Manufacture Year: ${vehicle.year ?: "-"} (On road: ${vehicle.onRoadDate?.let { VehicleUtils.formatDate(it) } ?: "-"})$priceStr
+            🛡️ MOT Status: $statusStr
+            🗓️ MOT Expiry: ${vehicle.testExpiryDate?.let { VehicleUtils.formatDate(it) } ?: "-"} (Last test: ${vehicle.lastTestDate?.let { VehicleUtils.formatDate(it) } ?: "-"})$hpStr$ccStr$driveStr
+            ⛽ Fuel: $fuelStr$mileageStr
+            🎨 Color: $colorStr
+            👤 Ownership: $ownershipStr
+            🛡️ Safety Rating: ${vehicle.safetyRating ?: "-"}/8
+            🍃 Emission Group: ${vehicle.emissionGroup ?: "-"}/15
+            🔢 VIN / Chassis: ${vehicle.vin ?: "-"}
+            ♿ Disabled Permit: ${if (hasDisabledPermit) "Active$permitDateStr" else "None"}
+            
+            Checked with VehicleCheck app (Official Ministry of Transport Registry).
+        """.trimIndent()
+    }
+
     val statusStr = when (testStatus) {
         is TestStatus.Valid -> "טסט בתוקף (נותרו ${testStatus.daysLeft} ימים)"
         is TestStatus.ExpiringSoon -> "טסט יפוג בקרוב (נותרו ${testStatus.daysLeft} ימים)"
